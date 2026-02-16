@@ -1,0 +1,544 @@
+{
+  "quotes": [
+    {
+      "id": "bundled-001",
+      "source": "bhagavad_gita",
+      "reference": "Chapter 6, Verse 5",
+      "originalText": "उद्धरेदात्मनात्मानं नात्मानमवसादयेत्। आत्मैव ह्यात्मनो बन्धुरात्मैव रिपुरात्मनः॥",
+      "originalLanguage": "sanskrit",
+      "translation": "One must elevate oneself by one's own mind, not degrade oneself. The mind alone is the friend of the self, and the mind alone is the enemy of the self.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-002",
+      "source": "bhagavad_gita",
+      "reference": "Chapter 6, Verse 35",
+      "originalText": "असंशयं महाबाहो मनो दुर्निग्रहं चलम्। अभ्यासेन तु कौन्तेय वैराग्येण च गृह्यते॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Undoubtedly, O mighty-armed one, the mind is restless and difficult to control; but through practice and detachment, O son of Kunti, it can be restrained.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-003",
+      "source": "bhagavad_gita",
+      "reference": "Chapter 2, Verse 48",
+      "originalText": "योगस्थः कुरु कर्माणि सङ्गं त्यक्त्वा धनञ्जय। सिद्ध्यसिद्ध्योः समो भूत्वा समत्वं योग उच्यते॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Perform your duties established in yoga, renouncing attachment, O Dhananjaya. Be even-minded in success and failure, for such equanimity is called yoga.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-004",
+      "source": "bhagavad_gita",
+      "reference": "Chapter 6, Verse 19",
+      "originalText": "यथा दीपो निवातस्थो नेङ्गते सोपमा स्मृता। योगिनो यतचित्तस्य युञ्जतो योगमात्मनः॥",
+      "originalLanguage": "sanskrit",
+      "translation": "As a lamp in a windless place does not flicker — such is the simile used for the disciplined mind of a yogi practicing meditation on the Self.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-005",
+      "source": "bhagavad_gita",
+      "reference": "Chapter 2, Verse 70",
+      "originalText": "आपूर्यमाणमचलप्रतिष्ठं समुद्रमापः प्रविशन्ति यद्वत्। तद्वत्कामा यं प्रविशन्ति सर्वे स शान्तिमाप्नोति न कामकामी॥",
+      "originalLanguage": "sanskrit",
+      "translation": "As the ocean remains unmoved though waters flow into it, so the one into whom all desires enter without causing disturbance attains peace — not the one who craves desires.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-006",
+      "source": "bhagavad_gita",
+      "reference": "Chapter 5, Verse 21",
+      "originalText": "बाह्यस्पर्शेष्वसक्तात्मा विन्दत्यात्मनि यत्सुखम्। स ब्रह्मयोगयुक्तात्मा सुखमक्षयमश्नुते॥",
+      "originalLanguage": "sanskrit",
+      "translation": "One who is not attached to external sense pleasures finds happiness within the Self. Such a person, united with Brahman through yoga, enjoys imperishable bliss.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-007",
+      "source": "bhagavad_gita",
+      "reference": "Chapter 6, Verse 25",
+      "originalText": "शनैः शनैरुपरमेद्बुद्ध्या धृतिगृहीतया। आत्मसंस्थं मनः कृत्वा न किञ्चिदपि चिन्तयेत्॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Gradually, step by step, one should become established in tranquility through intellect sustained by conviction. Having fixed the mind upon the Self, one should not think of anything else.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-008",
+      "source": "bhagavad_gita",
+      "reference": "Chapter 2, Verse 66",
+      "originalText": "नास्ति बुद्धिरयुक्तस्य न चायुक्तस्य भावना। न चाभावयतः शान्तिरशान्तस्य कुतः सुखम्॥",
+      "originalLanguage": "sanskrit",
+      "translation": "There is no wisdom for the undisciplined, and no meditation for the undisciplined. For the one without meditation there is no peace, and for the peaceless how can there be happiness?",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-009",
+      "source": "bhagavad_gita",
+      "reference": "Chapter 6, Verse 26",
+      "originalText": "यतो यतो निश्चरति मनश्चञ्चलमस्थिरम्। ततस्ततो नियम्यैतदात्मन्येव वशं नयेत्॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Wherever the restless and unsteady mind wanders, one should bring it back and direct it to rest within the Self alone.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-010",
+      "source": "bhagavad_gita",
+      "reference": "Chapter 6, Verse 7",
+      "originalText": "जितात्मनः प्रशान्तस्य परमात्मा समाहितः। शीतोष्णसुखदुःखेषु तथा मानापमानयोः॥",
+      "originalLanguage": "sanskrit",
+      "translation": "For one who has conquered the mind, the Supreme Self is already reached, in peace. To such a person, heat and cold, joy and sorrow, honor and dishonor are the same.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-011",
+      "source": "yoga_sutras",
+      "reference": "Sutra 1.2",
+      "originalText": "योगश्चित्तवृत्तिनिरोधः॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Yoga is the cessation of the fluctuations of the mind.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-012",
+      "source": "yoga_sutras",
+      "reference": "Sutra 1.3",
+      "originalText": "तदा द्रष्टुः स्वरूपेऽवस्थानम्॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Then the seer abides in its own true nature.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-013",
+      "source": "yoga_sutras",
+      "reference": "Sutra 1.12",
+      "originalText": "अभ्यासवैराग्याभ्यां तन्निरोधः॥",
+      "originalLanguage": "sanskrit",
+      "translation": "The cessation of mental fluctuations is brought about by practice and non-attachment.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-014",
+      "source": "yoga_sutras",
+      "reference": "Sutra 1.14",
+      "originalText": "स तु दीर्घकालनैरन्तर्यसत्कारासेवितो दृढभूमिः॥",
+      "originalLanguage": "sanskrit",
+      "translation": "That practice becomes firmly grounded when it is cultivated for a long time, without interruption, and with sincere devotion.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-015",
+      "source": "yoga_sutras",
+      "reference": "Sutra 1.33",
+      "originalText": "मैत्रीकरुणामुदितोपेक्षाणां सुखदुःखपुण्यापुण्यविषयाणां भावनातश्चित्तप्रसादनम्॥",
+      "originalLanguage": "sanskrit",
+      "translation": "By cultivating friendliness toward the happy, compassion toward the suffering, delight toward the virtuous, and equanimity toward the non-virtuous, the mind retains its serenity.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-016",
+      "source": "yoga_sutras",
+      "reference": "Sutra 2.46",
+      "originalText": "स्थिरसुखमासनम्॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Posture should be steady and comfortable.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-017",
+      "source": "yoga_sutras",
+      "reference": "Sutra 3.2",
+      "originalText": "तत्र प्रत्ययैकतानता ध्यानम्॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Dhyana (meditation) is the continuous flow of cognition toward that object of focus.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-018",
+      "source": "yoga_sutras",
+      "reference": "Sutra 1.36",
+      "originalText": "विशोका वा ज्योतिष्मती॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Or by meditating on the inner light that is beyond all sorrow, the mind becomes steady.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-019",
+      "source": "yoga_sutras",
+      "reference": "Sutra 2.1",
+      "originalText": "तपःस्वाध्यायेश्वरप्रणिधानानि क्रियायोगः॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Austerity, self-study, and surrender to the Supreme constitute the yoga of action.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-020",
+      "source": "yoga_sutras",
+      "reference": "Sutra 2.33",
+      "originalText": "वितर्कबाधने प्रतिपक्षभावनम्॥",
+      "originalLanguage": "sanskrit",
+      "translation": "When disturbed by negative thoughts, one should cultivate the opposite mental attitude.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-021",
+      "source": "upanishads",
+      "reference": "Katha Upanishad 1.3.3-4",
+      "originalText": "आत्मानं रथिनं विद्धि शरीरं रथमेव तु। बुद्धिं तु सारथिं विद्धि मनः प्रग्रहमेव च॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Know the Self as the rider of the chariot, and the body as the chariot. Know the intellect as the charioteer, and the mind as the reins.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-022",
+      "source": "upanishads",
+      "reference": "Isha Upanishad, Verse 1",
+      "originalText": "ईशावास्यमिदं सर्वं यत्किञ्च जगत्यां जगत्। तेन त्यक्तेन भुञ्जीथा मा गृधः कस्यस्विद्धनम्॥",
+      "originalLanguage": "sanskrit",
+      "translation": "All this — whatever moves in this moving world — is pervaded by the Lord. Enjoy through renunciation. Do not covet the wealth of anyone.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-023",
+      "source": "upanishads",
+      "reference": "Mandukya Upanishad, Verse 7",
+      "originalText": "नान्तःप्रज्ञं न बहिष्प्रज्ञं नोभयतःप्रज्ञं न प्रज्ञानघनं न प्रज्ञं नाप्रज्ञम्। अदृष्टमव्यवहार्यमग्राह्यमलक्षणमचिन्त्यमव्यपदेश्यमेकात्मप्रत्ययसारं प्रपञ्चोपशमं शान्तं शिवमद्वैतं चतुर्थं मन्यन्ते स आत्मा स विज्ञेयः॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Turiya is not inwardly cognitive nor outwardly cognitive. It is not cognitive on both sides, not a mass of cognition, neither conscious nor unconscious. It is unseen, beyond all relations, incomprehensible, without distinguishing marks, unthinkable, indescribable — the essence of Self-awareness, the cessation of the manifold world, peaceful, blissful, non-dual. This is the Self, and this is to be known.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-024",
+      "source": "upanishads",
+      "reference": "Mundaka Upanishad 3.1.1",
+      "originalText": "द्वा सुपर्णा सयुजा सखाया समानं वृक्षं परिषस्वजाते। तयोरन्यः पिप्पलं स्वाद्वत्त्यनश्नन्नन्यो अभिचाकशीति॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Two birds, inseparable companions, perch upon the same tree. One eats the sweet fruit while the other looks on without eating.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-025",
+      "source": "upanishads",
+      "reference": "Chandogya Upanishad 6.8.7",
+      "originalText": "तत्त्वमसि॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Thou art That.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-026",
+      "source": "upanishads",
+      "reference": "Katha Upanishad 1.2.20",
+      "originalText": "अणोरणीयान्महतो महीयानात्मास्य जन्तोर्निहितो गुहायाम्। तमक्रतुः पश्यति वीतशोको धातुः प्रसादान्महिमानमात्मनः॥",
+      "originalLanguage": "sanskrit",
+      "translation": "The Self, smaller than the smallest and greater than the greatest, is hidden in the heart of every creature. One who is free from desire and free from grief, with a serene mind, sees the glory of the Self.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-027",
+      "source": "upanishads",
+      "reference": "Katha Upanishad 2.3.17",
+      "originalText": "मनसैवानुद्रष्टव्यं नेह नानास्ति किञ्चन। मृत्योः स मृत्युमाप्नोति य इह नानेव पश्यति॥",
+      "originalLanguage": "sanskrit",
+      "translation": "It is to be perceived by the mind alone — there is no diversity here whatsoever. One who sees diversity here goes from death to death.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-028",
+      "source": "upanishads",
+      "reference": "Mundaka Upanishad 2.2.4",
+      "originalText": "प्रणवो धनुः शरो ह्यात्मा ब्रह्म तल्लक्ष्यमुच्यते। अप्रमत्तेन वेद्धव्यं शरवत्तन्मयो भवेत्॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Om is the bow, the Self is the arrow, Brahman is the target. It is to be hit by the undistracted. One should become one with it, as the arrow becomes one with the target.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-029",
+      "source": "upanishads",
+      "reference": "Chandogya Upanishad 7.23.1",
+      "originalText": "यो वै भूमा तत्सुखम्। नाल्पे सुखमस्ति। भूमैव सुखम्॥",
+      "originalLanguage": "sanskrit",
+      "translation": "That which is infinite — that alone is happiness. There is no happiness in the finite. The Infinite alone is happiness.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-030",
+      "source": "upanishads",
+      "reference": "Brihadaranyaka Upanishad 1.3.28",
+      "originalText": "असतो मा सद्गमय। तमसो मा ज्योतिर्गमय। मृत्योर्मामृतं गमय॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Lead me from the unreal to the real. Lead me from darkness to light. Lead me from death to immortality.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-031",
+      "source": "subhashita",
+      "reference": "Traditional Subhashita",
+      "originalText": "उद्यमेन हि सिध्यन्ति कार्याणि न मनोरथैः। न हि सुप्तस्य सिंहस्य प्रविशन्ति मुखे मृगाः॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Tasks are accomplished by effort, not by wishful thinking. Deer do not walk into the mouth of a sleeping lion.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-032",
+      "source": "subhashita",
+      "reference": "Chanakya Niti",
+      "originalText": "विद्या मित्रं प्रवासेषु भार्या मित्रं गृहेषु च। व्याधितस्यौषधं मित्रं धर्मो मित्रं मृतस्य च॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Knowledge is a friend in travels, a wife is a friend at home, medicine is a friend to the sick, and dharma is a friend after death.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-033",
+      "source": "subhashita",
+      "reference": "Traditional Subhashita",
+      "originalText": "क्षणशः कणशश्चैव विद्यामर्थं च साधयेत्। क्षणत्यागे कुतो विद्या कणत्यागे कुतो धनम्॥",
+      "originalLanguage": "sanskrit",
+      "translation": "One should pursue knowledge moment by moment, and wealth grain by grain. If moments are wasted, how can there be knowledge? If grains are neglected, how can there be wealth?",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-034",
+      "source": "subhashita",
+      "reference": "Traditional Subhashita",
+      "originalText": "सर्वे भवन्तु सुखिनः सर्वे सन्तु निरामयाः। सर्वे भद्राणि पश्यन्तु मा कश्चित् दुःखभाग्भवेत्॥",
+      "originalLanguage": "sanskrit",
+      "translation": "May all be happy, may all be free from illness. May all see auspiciousness, may none suffer.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-035",
+      "source": "subhashita",
+      "reference": "Traditional Subhashita",
+      "originalText": "परोपकाराय फलन्ति वृक्षाः परोपकाराय वहन्ति नद्यः। परोपकाराय दुहन्ति गावः परोपकारार्थमिदं शरीरम्॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Trees bear fruit for others, rivers flow for others, cows give milk for others — this body too is meant for the service of others.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-036",
+      "source": "subhashita",
+      "reference": "Vidura Niti / Subhashita",
+      "originalText": "शान्तितुल्यं तपो नास्ति न सन्तोषात्परं सुखम्। न तृष्णायाः परो व्याधिर्न च धर्मो दयापरः॥",
+      "originalLanguage": "sanskrit",
+      "translation": "There is no austerity equal to peace of mind, no happiness greater than contentment, no disease worse than greed, and no dharma higher than compassion.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-037",
+      "source": "subhashita",
+      "reference": "Traditional Subhashita",
+      "originalText": "अयं निजः परो वेति गणना लघुचेतसाम्। उदारचरितानां तु वसुधैव कुटुम्बकम्॥",
+      "originalLanguage": "sanskrit",
+      "translation": "This one is mine, that one is a stranger — such is the reckoning of the narrow-minded. For the noble-hearted, the entire world is one family.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-038",
+      "source": "subhashita",
+      "reference": "Traditional Subhashita",
+      "originalText": "गुणा गुणज्ञेषु गुणा भवन्ति ते निर्गुणं प्राप्य भवन्ति दोषाः। सुस्वादुतोयाः प्रभवन्ति नद्यः समुद्रमासाद्य भवन्त्यपेयाः॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Virtues are appreciated as virtues by those who understand them; among the ignorant they become faults. Rivers flow with sweet water, but upon reaching the ocean become undrinkable.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-039",
+      "source": "subhashita",
+      "reference": "Traditional Subhashita",
+      "originalText": "विद्या ददाति विनयं विनयाद्याति पात्रताम्। पात्रत्वाद्धनमाप्नोति धनाद्धर्मं ततः सुखम्॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Knowledge gives humility, from humility comes worthiness, from worthiness comes wealth, from wealth comes dharma, and from dharma comes happiness.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-040",
+      "source": "subhashita",
+      "reference": "Traditional Subhashita",
+      "originalText": "मनसि वचसि काये पुण्यपीयूषपूर्णास्त्रिभुवनमुपकारश्रेणिभिः प्रीणयन्तः। परगुणपरमाणून् पर्वतीकृत्य नित्यं निजहृदि विकसन्तः सन्ति सन्तः कियन्तः॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Filled with the nectar of virtue in mind, speech, and body, delighting the three worlds with their benevolent deeds, magnifying the smallest virtues of others — how rare are such noble souls whose hearts bloom thus!",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-041",
+      "source": "ramayana",
+      "reference": "Valmiki Ramayana, Ayodhya Kanda 109.13",
+      "originalText": "आत्मानं रथमारूढं विद्धि शरीरं रथमेव च। बुद्धिं तु सारथिं विद्धि धर्ममेव तु गोचरम्॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Know the Self as the chariot rider, the body as the chariot, the intellect as the charioteer, and dharma as the destination.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-042",
+      "source": "ramayana",
+      "reference": "Valmiki Ramayana, Aranya Kanda 37.13",
+      "originalText": "धर्मो रक्षति रक्षितः॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Dharma protects those who protect dharma.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-043",
+      "source": "ramayana",
+      "reference": "Valmiki Ramayana, Sundara Kanda 34.6",
+      "originalText": "उत्साहो बलवानार्य नास्त्युत्साहात्परं बलम्। सोत्साहस्य हि लोकेषु न किञ्चिदपि दुर्लभम्॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Enthusiasm is the greatest strength, O noble one. There is no power greater than enthusiasm. For one who is enthusiastic, nothing in this world is impossible.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-044",
+      "source": "ramayana",
+      "reference": "Valmiki Ramayana, Kishkindha Kanda 28.15",
+      "originalText": "कालो हि दुरतिक्रमः। धैर्यमात्मनि सन्दध्यात् प्राज्ञो हि सततं नरः॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Time is impossible to overcome. A wise person should always maintain courage within the self.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-045",
+      "source": "ramayana",
+      "reference": "Valmiki Ramayana, Yuddha Kanda 10.22",
+      "originalText": "न कश्चित्कस्यचिन्मित्रं न कश्चित्कस्यचिद्रिपुः। व्यवहारेण मित्राणि जायन्ते रिपवस्तथा॥",
+      "originalLanguage": "sanskrit",
+      "translation": "No one is born a friend, no one is born an enemy. By conduct and interaction, friendships and enmities arise.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-046",
+      "source": "ramayana",
+      "reference": "Valmiki Ramayana, Ayodhya Kanda 105.26",
+      "originalText": "सत्यमेवेश्वरो लोके सत्यं पद्मा समाश्रिता। सत्यमूलानि सर्वाणि सत्यान्नास्ति परं पदम्॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Truth is the lord of the world, truth is the refuge of Lakshmi. Everything is rooted in truth; there is no state higher than truth.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-047",
+      "source": "ramayana",
+      "reference": "Valmiki Ramayana, Ayodhya Kanda 12.17",
+      "originalText": "सत्यं च धर्मो च परक्रमश्च भूतानुकम्पा प्रियवादिता च। द्विजातिदेवातिथिपूजनं च पन्थानमाहुस्त्रिदिवस्य सन्तः॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Truth, dharma, valor, compassion for all beings, sweet speech, and the worship of sages, gods, and guests — the noble ones say these are the path to heaven.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-048",
+      "source": "ramayana",
+      "reference": "Valmiki Ramayana, Sundara Kanda 11.12",
+      "originalText": "नैव धर्मार्थकामेषु नात्मनो नाऽपि जीवित। प्रियं न कार्यं धर्मस्य यत्र स्यादधर्मतः॥",
+      "originalLanguage": "sanskrit",
+      "translation": "In matters of dharma, wealth, and desire — even for oneself or for one's life — one should never do that which appears pleasing but arises from adharma.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-049",
+      "source": "ramayana",
+      "reference": "Valmiki Ramayana, Kishkindha Kanda 26.19",
+      "originalText": "मणिर्लुण्ठति पादेषु काचः शिरसि धार्यते। क्रयविक्रयवेलायां काचः काचो मणिर्मणिः॥",
+      "originalLanguage": "sanskrit",
+      "translation": "A gem may roll at the feet while glass is placed on the head. But when the time of true reckoning comes, glass remains glass and the gem remains a gem.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-050",
+      "source": "ramayana",
+      "reference": "Valmiki Ramayana, Ayodhya Kanda 61.5",
+      "originalText": "सुखं हि धर्मं चरतो नरस्य लोकद्वयेऽप्यर्थसमृद्धिरस्ति। चलो हि धर्मात् विचलत्यधर्मात् तीव्रं च दुःखं जनयत्यधर्मः॥",
+      "originalLanguage": "sanskrit",
+      "translation": "For one who follows dharma, happiness and prosperity come in both worlds. One who departs from dharma falls into adharma, and adharma generates intense suffering.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-051",
+      "source": "mahabharata",
+      "reference": "Vidura Niti, Udyoga Parva 33.59",
+      "originalText": "मनः पूतं समाचरेत्। बुद्धिश्च सुसमाहिता। एतद्विद्याद्दृढं ज्ञानं यत्तत्त्वार्थात्परं मतम्॥",
+      "originalLanguage": "sanskrit",
+      "translation": "One should act with a purified mind and a well-concentrated intellect. This firm knowledge is considered the highest understanding of reality.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-052",
+      "source": "mahabharata",
+      "reference": "Shanti Parva 174.34",
+      "originalText": "अहिंसा परमो धर्मः धर्म हिंसा तथैव च। अहिंसा सर्वभूतानां धर्मात्सर्वोपरि स्थितः॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Non-violence is the highest dharma. Non-violence toward all living beings stands above all other forms of dharma.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-053",
+      "source": "mahabharata",
+      "reference": "Vidura Niti, Udyoga Parva 33.74",
+      "originalText": "कर्णे कर्णे जपति यो ब्रूते कर्ण आगतम्। सोऽनर्थे स्थापयत्यन्यं यं दुष्टो हन्तुमिच्छति॥",
+      "originalLanguage": "sanskrit",
+      "translation": "One who whispers from ear to ear and repeats whatever comes to the ear places others in peril — such a wicked one desires only to destroy.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-054",
+      "source": "mahabharata",
+      "reference": "Vidura Niti, Udyoga Parva 40.12",
+      "originalText": "धृतिः क्षमा दमोऽस्तेयं शौचमिन्द्रियनिग्रहः। धीर्विद्या सत्यमक्रोधो दशकं धर्मलक्षणम्॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Patience, forgiveness, self-control, non-stealing, purity, mastery over the senses, wisdom, knowledge, truthfulness, and freedom from anger — these ten are the marks of dharma.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-055",
+      "source": "mahabharata",
+      "reference": "Shanti Parva 329.40",
+      "originalText": "यथा ह्येकेन चक्रेण न रथस्य गतिर्भवेत्। एवं पुरुषकारेण विना दैवं न सिध्यति॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Just as a chariot cannot move on a single wheel, so too destiny cannot bring results without human effort.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-056",
+      "source": "mahabharata",
+      "reference": "Shanti Parva 21.11",
+      "originalText": "नास्ति विद्यासमं चक्षुर्नास्ति सत्यसमं तपः। नास्ति रागसमं दुःखं नास्ति त्यागसमं सुखम्॥",
+      "originalLanguage": "sanskrit",
+      "translation": "There is no eye like knowledge, no austerity like truth, no suffering like attachment, and no happiness like renunciation.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-057",
+      "source": "mahabharata",
+      "reference": "Shanti Parva 25.29",
+      "originalText": "श्रेयान्स्वधर्मो विगुणः परधर्मात्स्वनुष्ठितात्। स्वधर्मे निधनं श्रेयः परधर्मो भयावहः॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Better is one's own dharma, though imperfectly performed, than the dharma of another well performed. Death in one's own dharma is preferable; another's dharma is fraught with fear.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-058",
+      "source": "mahabharata",
+      "reference": "Vidura Niti, Udyoga Parva 34.60",
+      "originalText": "बुद्धिर्यस्य बलं तस्य निर्बुद्धेस्तु कुतो बलम्। वने सिंहो मदोन्मत्तः शशकेन निपातितः॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Strength belongs to one who has wisdom; where is strength for the one without wisdom? A lion maddened by pride in the forest was brought down by a hare.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-059",
+      "source": "mahabharata",
+      "reference": "Shanti Parva 296.18",
+      "originalText": "सर्वस्य चाहं हृदि सन्निविष्टो मत्तः स्मृतिर्ज्ञानमपोहनं च। मां ध्यायन्ति ये सततयुक्ताः ते मय्येव प्रविलीयन्ते॥",
+      "originalLanguage": "sanskrit",
+      "translation": "I am seated in the hearts of all. From Me come memory, knowledge, and their removal. Those who meditate upon Me with unwavering devotion merge into Me alone.",
+      "userAdded": false
+    },
+    {
+      "id": "bundled-060",
+      "source": "mahabharata",
+      "reference": "Shanti Parva 167.17",
+      "originalText": "ध्यानेन आत्मनि पश्यन्ति केचिदात्मानमात्मना। अन्ये सांख्येन योगेन कर्मयोगेन चापरे॥",
+      "originalLanguage": "sanskrit",
+      "translation": "Some perceive the Self within the self through meditation, others through the path of knowledge, and still others through the path of selfless action.",
+      "userAdded": false
+    }
+  ]
+}
