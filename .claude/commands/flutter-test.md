@@ -1,3 +1,8 @@
+---
+name: flutter-test
+description: Run all Flutter tests for the Citta project
+---
+
 Run all Flutter tests for the Citta project.
 
 ## Setup: resolve paths first

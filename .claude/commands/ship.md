@@ -1,3 +1,8 @@
+---
+name: ship
+description: Review, commit, and push all changes in the Citta project to GitHub
+---
+
 Review, commit, and push all changes in the Citta project to GitHub.
 
 Follow these steps carefully:
@@ -14,7 +19,7 @@ Common files to ALWAYS ignore (add to `citta/.gitignore` if not already there):
 - `/build/`, `.dart_tool/`, `.flutter-plugins`, `.flutter-plugins-dependencies`
 - `.idea/`, `*.iml`, `.vscode/`
 - `pubspec.lock` (already ignored)
-- Platform dirs: `/android/`, `/ios/`, `/linux/`, `/macos/`, `/windows/`, `/web/`
+- Platform dirs: `/ios/`, `/linux/`, `/macos/`, `/windows/`, `/web/` (note: `/android/` is tracked in this project)
 
 The `.claude/` directory is already handled by the user's global gitignore — do not touch it.
 

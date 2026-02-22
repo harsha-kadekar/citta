@@ -1,3 +1,8 @@
+---
+name: flutter-build
+description: Build the Citta Flutter app as a release APK
+---
+
 Build the Citta Flutter app as a release APK.
 
 ## Setup: resolve paths first

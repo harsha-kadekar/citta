@@ -1,3 +1,8 @@
+---
+name: flutter-analyze
+description: Run Flutter static analysis on the Citta project
+---
+
 Run Flutter static analysis on the Citta project.
 
 ## Setup: resolve paths first
