@@ -1,15 +1,22 @@
 Run Flutter static analysis on the Citta project.
 
-Use the following command (exact paths required due to local setup):
+## Setup: resolve paths first
+
+Before running, detect the required paths:
+
+1. **Flutter binary**: run `which flutter` — if not found, check `$HOME/flutter/flutter/bin/flutter`
+2. **JAVA_HOME**: run `mise where java` — if mise is not available, fall back to the existing `$JAVA_HOME` environment variable
+
+## Run analysis
+
+From the `citta/` subdirectory of the project:
 
 ```
-JAVA_HOME=/home/harsha/.local/share/mise/installs/java/17.0.2 \
-/home/harsha/flutter/flutter/bin/flutter analyze
+JAVA_HOME=<resolved-java-home> \
+<resolved-flutter> analyze
 ```
 
-Run it from the `citta/` subdirectory (`/home/harsha/workspace/Citta/citta`).
-
-After analysis completes:
+## Report results
 - If there are no issues, confirm clearly
 - If there are warnings or errors, list them grouped by file
 - For each issue, explain what it means and suggest a fix
