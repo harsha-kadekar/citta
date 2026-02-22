@@ -5,7 +5,10 @@ Run all Flutter tests for the Citta project.
 Before running, detect the required paths:
 
 1. **Flutter binary**: run `which flutter` — if not found, check `$HOME/flutter/flutter/bin/flutter`
-2. **JAVA_HOME**: run `mise where java` — if mise is not available, fall back to the existing `$JAVA_HOME` environment variable
+2. **JAVA_HOME**: resolve Java 17 home in this order:
+   - Run `mise where java@17` to get the exact path
+   - If mise is unavailable, look for a `17.*` directory under `$HOME/.local/share/mise/installs/java/`
+   - Last resort: use `$JAVA_HOME` only if it points to a Java 17 installation
 3. **Android SDK**: use `$ANDROID_HOME` if set, otherwise default to `$HOME/Android/Sdk`
 
 ## Run tests
