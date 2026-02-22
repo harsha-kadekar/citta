@@ -30,8 +30,10 @@ If any untracked files should be ignored, add them to `citta/.gitignore` before 
 Use `git add` with specific file paths — never `git add -A` or `git add .`.
 
 ## 5. Commit
-- Look at `git log --oneline -5` to match the existing commit message style
-- Write a concise, imperative commit message describing what changed and why
+- Use the Conventional Commits format: https://www.conventionalcommits.org/en/v1.0.0/
+- Format: `<type>(<scope>): <description>` where type is one of:
+  `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `ci`, `style`, `perf`
+- Example: `feat(audio): pre-initialize player on app start`
 - Always append: `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>`
 
 ## 6. Push
