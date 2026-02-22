@@ -65,11 +65,11 @@ class _CalendarViewState extends State<CalendarView> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             color: AppColors.cardShadow,
             blurRadius: 8,
-            offset: const Offset(0, 2),
+            offset: Offset(0, 2),
           ),
         ],
       ),
@@ -138,7 +138,7 @@ class _CalendarViewState extends State<CalendarView> {
                       margin: const EdgeInsets.all(1),
                       decoration: BoxDecoration(
                         color: hasSession
-                            ? AppColors.primary.withOpacity(0.2)
+                            ? AppColors.primary.withValues(alpha:0.2)
                             : null,
                         borderRadius: BorderRadius.circular(8),
                         border: isToday

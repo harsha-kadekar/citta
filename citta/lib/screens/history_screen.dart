@@ -14,6 +14,60 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   final Set<String> _selectedFilterTags = {};
+  bool _selectionMode = false;
+  final Set<String> _selectedSessionIds = {};
+
+  void _exitSelectionMode() {
+    setState(() {
+      _selectionMode = false;
+      _selectedSessionIds.clear();
+    });
+  }
+
+  void _toggleSessionSelection(String id) {
+    setState(() {
+      if (_selectedSessionIds.contains(id)) {
+        _selectedSessionIds.remove(id);
+        if (_selectedSessionIds.isEmpty) {
+          _selectionMode = false;
+        }
+      } else {
+        _selectedSessionIds.add(id);
+      }
+    });
+  }
+
+  void _enterSelectionMode(String id) {
+    setState(() {
+      _selectionMode = true;
+      _selectedSessionIds.add(id);
+    });
+  }
+
+  Future<void> _deleteSelected() async {
+    final count = _selectedSessionIds.length;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Sessions'),
+        content: Text('Delete $count session${count > 1 ? 's' : ''}? This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete', style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await context.read<AppState>().deleteSessions(_selectedSessionIds.toList());
+      _exitSelectionMode();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +79,22 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('History'),
+        title: _selectionMode
+            ? Text('${_selectedSessionIds.length} selected')
+            : const Text('History'),
+        leading: _selectionMode
+            ? IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: _exitSelectionMode,
+              )
+            : null,
+        actions: [
+          if (_selectionMode)
+            IconButton(
+              icon: const Icon(Icons.delete_outline),
+              onPressed: _selectedSessionIds.isNotEmpty ? _deleteSelected : null,
+            ),
+        ],
       ),
       body: Column(
         children: [
@@ -87,7 +156,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.primary.withOpacity(0.15)
+              ? AppColors.primary.withValues(alpha: 0.15)
               : AppColors.surfaceVariant,
           borderRadius: BorderRadius.circular(20),
           border: selected
@@ -113,6 +182,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final timeStr =
         '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
     final duration = _formatDuration(session.duration);
+    final isSelected = _selectedSessionIds.contains(session.id);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -120,13 +190,29 @@ class _HistoryScreenState extends State<HistoryScreen> {
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) =>
-                  SessionDetailScreen(session: session),
-            ),
-          );
+          if (_selectionMode) {
+            _toggleSessionSelection(session.id);
+          } else {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) =>
+                    SessionDetailScreen(session: session),
+              ),
+            );
+          }
         },
+        onLongPress: () {
+          if (!_selectionMode) {
+            _enterSelectionMode(session.id);
+          }
+        },
+        leading: _selectionMode
+            ? Checkbox(
+                value: isSelected,
+                onChanged: (_) => _toggleSessionSelection(session.id),
+                activeColor: AppColors.primary,
+              )
+            : null,
         title: Row(
           children: [
             Text(
@@ -146,14 +232,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
             const SizedBox(height: 4),
             Row(
               children: [
-                Icon(Icons.timer_outlined,
+                const Icon(Icons.timer_outlined,
                     size: 14, color: AppColors.textHint),
                 const SizedBox(width: 4),
                 Text(duration,
                     style: Theme.of(context).textTheme.bodyMedium),
                 if (session.completedFully) ...[
                   const SizedBox(width: 8),
-                  Icon(Icons.check_circle,
+                  const Icon(Icons.check_circle,
                       size: 14, color: AppColors.success),
                 ],
               ],
@@ -182,8 +268,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ],
           ],
         ),
-        trailing:
-            Icon(Icons.chevron_right, color: AppColors.textHint, size: 20),
+        trailing: _selectionMode
+            ? null
+            : const Icon(Icons.chevron_right, color: AppColors.textHint, size: 20),
       ),
     );
   }
@@ -194,9 +281,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.self_improvement,
-              size: 64, color: AppColors.textHint.withOpacity(0.5)),
+              size: 64, color: AppColors.textHint.withValues(alpha: 0.5)),
           const SizedBox(height: 16),
-          Text(
+          const Text(
             'No sessions yet',
             style: TextStyle(
               fontSize: 18,
@@ -209,7 +296,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             'Complete your first dhyana session\nto see it here',
             style: TextStyle(
               fontSize: 14,
-              color: AppColors.textHint.withOpacity(0.7),
+              color: AppColors.textHint.withValues(alpha: 0.7),
             ),
             textAlign: TextAlign.center,
           ),

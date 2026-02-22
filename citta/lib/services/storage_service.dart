@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/config_model.dart';
 import '../models/session_model.dart';
@@ -7,6 +8,11 @@ import '../models/quote_model.dart';
 
 class StorageService {
   String? _basePath;
+
+  StorageService();
+
+  @visibleForTesting
+  StorageService.withBasePath(String basePath) : _basePath = basePath;
 
   Future<String> get basePath async {
     if (_basePath != null) return _basePath!;
@@ -67,6 +73,18 @@ class StorageService {
     }
   }
 
+  // --- Corrupt file handling ---
+
+  /// Renames a corrupt file to `<path>.bak_corrupt` for manual recovery,
+  /// deleting any previously saved corrupt backup first.
+  Future<void> _saveCorrupt(String filePath) async {
+    final file = File(filePath);
+    if (!await file.exists()) return;
+    final corruptFile = File('$filePath.bak_corrupt');
+    if (await corruptFile.exists()) await corruptFile.delete();
+    await file.rename(corruptFile.path);
+  }
+
   // --- Config ---
 
   Future<String> get _configPath async => '${await basePath}/config.json';
@@ -83,6 +101,7 @@ class StorageService {
       final json = jsonDecode(content) as Map<String, dynamic>;
       return ConfigModel.fromJson(json);
     } catch (_) {
+      await _saveCorrupt(path);
       return ConfigModel();
     }
   }
@@ -113,6 +132,7 @@ class StorageService {
           [];
       return sessions;
     } catch (_) {
+      await _saveCorrupt(path);
       return [];
     }
   }
@@ -153,6 +173,7 @@ class StorageService {
           [];
       return quotes;
     } catch (_) {
+      await _saveCorrupt(path);
       return [];
     }
   }
@@ -205,13 +226,13 @@ class StorageService {
 
     // Reset custom audio paths that may not exist on this device
     if (importedConfig.bellStart.startsWith('custom:')) {
-      importedConfig.bellStart = 'bundled:tibetan_bowl';
+      importedConfig.bellStart = ConfigModel.defaultBellStart;
     }
     if (importedConfig.bellEnd.startsWith('custom:')) {
-      importedConfig.bellEnd = 'bundled:tibetan_bowl';
+      importedConfig.bellEnd = ConfigModel.defaultBellEnd;
     }
     if (importedConfig.bellInterval.startsWith('custom:')) {
-      importedConfig.bellInterval = 'bundled:soft_chime';
+      importedConfig.bellInterval = ConfigModel.defaultBellInterval;
     }
     importedConfig.backgroundMusic = null;
 

@@ -1,31 +1,91 @@
+import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:flutter/services.dart';
+
+/// Abstraction over [AudioPlayer] to allow fake injection in tests.
+abstract class AudioPlayerBase {
+  Future<void> setAsset(String path);
+  Future<void> setFilePath(String path);
+  Future<void> setLoopMode(LoopMode mode);
+  Future<void> setVolume(double volume);
+  Future<void> seek(Duration position);
+  Future<void> play();
+  Future<void> stop();
+  Future<void> dispose();
+}
+
+/// Production wrapper that delegates to [just_audio]'s [AudioPlayer].
+/// Creates a fresh [AudioPlayer] for each source to avoid ExoPlayer stale
+/// format state when switching between MP3 files with different encodings.
+class _RealAudioPlayer implements AudioPlayerBase {
+  AudioPlayer _player = AudioPlayer();
+
+  @override
+  Future<void> setAsset(String path) async {
+    await _player.dispose();
+    _player = AudioPlayer();
+    await _player.setAsset(path);
+  }
+
+  @override
+  Future<void> setFilePath(String path) async {
+    await _player.dispose();
+    _player = AudioPlayer();
+    await _player.setFilePath(path);
+  }
+
+  @override
+  Future<void> setLoopMode(LoopMode mode) => _player.setLoopMode(mode);
+  @override
+  Future<void> setVolume(double volume) => _player.setVolume(volume);
+  @override
+  Future<void> seek(Duration position) => _player.seek(position);
+  @override
+  Future<void> play() => _player.play();
+  @override
+  Future<void> stop() => _player.stop();
+  @override
+  Future<void> dispose() => _player.dispose();
+}
 
 class AudioService {
-  final AudioPlayer _bellPlayer = AudioPlayer();
-  final AudioPlayer _musicPlayer = AudioPlayer();
+  final AudioPlayerBase _bellPlayer;
+  final AudioPlayerBase _musicPlayer;
   bool _isMusicPlaying = false;
 
+  AudioService()
+      : _bellPlayer = _RealAudioPlayer(),
+        _musicPlayer = _RealAudioPlayer();
+
+  @visibleForTesting
+  AudioService.withPlayers({
+    required AudioPlayerBase bellPlayer,
+    required AudioPlayerBase musicPlayer,
+  })  : _bellPlayer = bellPlayer,
+        _musicPlayer = musicPlayer;
+
   static const Map<String, String> bundledSounds = {
-    'tibetan_bowl': 'assets/sounds/tibetan_bowl.mp3',
-    'soft_chime': 'assets/sounds/soft_chime.mp3',
-    'singing_bowl': 'assets/sounds/singing_bowl.mp3',
-    'temple_bell': 'assets/sounds/temple_bell.mp3',
-    'wind_chime': 'assets/sounds/wind_chime.mp3',
-    'zen_bell': 'assets/sounds/zen_bell.mp3',
+    'bell_meditation': 'assets/sounds/bell-meditation.mp3',
+    'bright_tibetan_bell': 'assets/sounds/bright-tibetan-bell.mp3',
+    'flat_tibetan_singing_bowl': 'assets/sounds/flat-tibetan-singing-bowl.mp3',
+    'indian_temple_bell': 'assets/sounds/indian-temple-bell.mp3',
+    'singing_bell': 'assets/sounds/singing-bell.mp3',
+    'temple_bells': 'assets/sounds/temple-bells.mp3',
+    'wind_chime': 'assets/sounds/wind-chime.mp3',
   };
 
   static const Map<String, String> soundDisplayNames = {
-    'tibetan_bowl': 'Tibetan Bowl',
-    'soft_chime': 'Soft Chime',
-    'singing_bowl': 'Singing Bowl',
-    'temple_bell': 'Temple Bell',
+    'bell_meditation': 'Bell Meditation',
+    'bright_tibetan_bell': 'Bright Tibetan Bell',
+    'flat_tibetan_singing_bowl': 'Flat Tibetan Singing Bowl',
+    'indian_temple_bell': 'Indian Temple Bell',
+    'singing_bell': 'Singing Bell',
+    'temple_bells': 'Temple Bells',
     'wind_chime': 'Wind Chime',
-    'zen_bell': 'Zen Bell',
   };
 
   /// Play a bell sound identified by its config string (e.g., "bundled:tibetan_bowl" or "custom:/path/to/file.mp3")
-  Future<void> playBell(String bellId) async {
+  /// Retries once on failure — ExoPlayer bypass mode can fail on first attempt on some Android versions.
+  Future<void> playBell(String bellId, {bool isRetry = false}) async {
     try {
       if (bellId.startsWith('bundled:')) {
         final name = bellId.substring(8);
@@ -39,8 +99,12 @@ class AudioService {
         await _bellPlayer.setFilePath(path);
         await _bellPlayer.play();
       }
-    } catch (_) {
-      // Silently fail if audio playback fails
+    } catch (e) {
+      debugPrint('AudioService: playBell failed for "$bellId": $e');
+      if (!isRetry) {
+        debugPrint('AudioService: retrying playBell for "$bellId"');
+        await playBell(bellId, isRetry: true);
+      }
     }
   }
 
@@ -61,7 +125,8 @@ class AudioService {
       await _musicPlayer.setVolume(0.3);
       await _musicPlayer.play();
       _isMusicPlaying = true;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('AudioService: startBackgroundMusic failed for "$path": $e');
       _isMusicPlaying = false;
     }
   }

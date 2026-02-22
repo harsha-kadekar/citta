@@ -15,16 +15,16 @@ class QuoteCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             color: AppColors.cardShadow,
             blurRadius: 8,
-            offset: const Offset(0, 2),
+            offset: Offset(0, 2),
           ),
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Original text
           Text(
@@ -34,6 +34,7 @@ class QuoteCard extends StatelessWidget {
               height: 1.7,
               color: AppColors.textPrimary,
             ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
           // Divider
@@ -52,6 +53,7 @@ class QuoteCard extends StatelessWidget {
               color: AppColors.textSecondary,
               fontStyle: FontStyle.italic,
             ),
+            textAlign: TextAlign.center,
           ),
           if (quote.reference.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -62,6 +64,7 @@ class QuoteCard extends StatelessWidget {
                 color: AppColors.textHint,
                 letterSpacing: 0.5,
               ),
+              textAlign: TextAlign.center,
             ),
           ],
         ],

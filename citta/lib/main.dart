@@ -31,11 +31,17 @@ class CittaApp extends StatelessWidget {
         audioService: audioService,
         statsService: statsService,
       )..initialize(),
-      child: MaterialApp(
-        title: 'Citta',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        home: const _AppRoot(),
+      child: Consumer<AppState>(
+        builder: (context, appState, _) {
+          return MaterialApp(
+            title: 'Citta',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: AppTheme.themeMode(appState.config.themeMode),
+            home: const _AppRoot(),
+          );
+        },
       ),
     );
   }
@@ -50,6 +56,7 @@ class _AppRoot extends StatefulWidget {
 
 class _AppRootState extends State<_AppRoot> {
   bool _showSplash = true;
+  bool _hasPromptedName = false;
 
   @override
   Widget build(BuildContext context) {
@@ -63,13 +70,59 @@ class _AppRootState extends State<_AppRoot> {
       );
     }
 
+    // Prompt for name on first launch
+    if (!_hasPromptedName && appState.config.userName == null) {
+      _hasPromptedName = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showNamePrompt(context, appState);
+      });
+    }
+
     if (_showSplash) {
       return SplashScreen(
         quote: appState.quoteService.todayQuote,
+        userName: appState.config.userName,
         onDismiss: () => setState(() => _showSplash = false),
       );
     }
 
     return const MainShell();
+  }
+
+  void _showNamePrompt(BuildContext context, AppState appState) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Welcome to Citta'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: 'Enter your name',
+          ),
+          textCapitalization: TextCapitalization.words,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Skip'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final name = controller.text.trim();
+              if (name.isNotEmpty) {
+                appState.updateConfig(
+                  appState.config.copyWith(userName: name),
+                );
+              }
+              Navigator.pop(context);
+            },
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
   }
 }

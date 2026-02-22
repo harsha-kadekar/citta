@@ -58,7 +58,7 @@ class SessionDetailScreen extends StatelessWidget {
                         const Icon(Icons.check_circle,
                             size: 16, color: AppColors.success),
                         const SizedBox(width: 4),
-                        Text(
+                        const Text(
                           'Completed',
                           style: TextStyle(
                             fontSize: 13,
@@ -80,7 +80,7 @@ class SessionDetailScreen extends StatelessWidget {
                 children: session.tags
                     .map((tag) => Chip(
                           label: Text(tag),
-                          backgroundColor: AppColors.primaryLight.withOpacity(0.2),
+                          backgroundColor: AppColors.primaryLight.withValues(alpha:0.2),
                           labelStyle: const TextStyle(
                             fontSize: 13,
                             color: AppColors.primaryDark,
@@ -121,7 +121,7 @@ class SessionDetailScreen extends StatelessWidget {
             ],
             if (session.notes == null || session.notes!.isEmpty) ...[
               const SizedBox(height: 24),
-              Center(
+              const Center(
                 child: Text(
                   'No notes for this session',
                   style: TextStyle(

@@ -26,7 +26,7 @@ class TimerDisplay extends StatelessWidget {
                   width: 240,
                   height: 240,
                   child: CircularProgressIndicator(
-                    value: 1.0 - timerService.progress,
+                    value: timerService.progress,
                     strokeWidth: 4,
                     backgroundColor: AppColors.divider,
                     valueColor: AlwaysStoppedAnimation<Color>(
@@ -44,8 +44,8 @@ class TimerDisplay extends StatelessWidget {
                     shape: BoxShape.circle,
                     border: Border.all(
                       color: timerService.state == TimerState.paused
-                          ? AppColors.secondary.withOpacity(0.3)
-                          : AppColors.primary.withOpacity(0.3),
+                          ? AppColors.secondary.withValues(alpha:0.3)
+                          : AppColors.primary.withValues(alpha:0.3),
                       width: 4,
                     ),
                   ),

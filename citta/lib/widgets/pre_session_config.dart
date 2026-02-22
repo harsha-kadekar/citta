@@ -36,11 +36,11 @@ class PreSessionConfig extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             color: AppColors.cardShadow,
             blurRadius: 12,
-            offset: const Offset(0, 4),
+            offset: Offset(0, 4),
           ),
         ],
       ),
@@ -136,7 +136,7 @@ class _ModeButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.primary.withOpacity(0.1)
+              ? AppColors.primary.withValues(alpha:0.1)
               : AppColors.surfaceVariant,
           borderRadius: BorderRadius.circular(12),
           border: selected

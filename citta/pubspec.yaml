@@ -13,16 +13,25 @@ dependencies:
   path_provider: ^2.1.1
   uuid: ^4.2.1
   just_audio: ^0.9.36
-  file_picker: ^6.1.1
-  share_plus: ^7.2.1
+  file_picker: ^8.0.0
+  share_plus: ^10.0.0
   flutter_markdown: ^0.6.18
   intl: ^0.19.0
   cupertino_icons: ^1.0.6
+  wakelock_plus: ^1.2.8
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.1
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon.png"
+  adaptive_icon_background: "#F7F4F0"
+  adaptive_icon_foreground: "assets/icon.png"
 
 flutter:
   uses-material-design: true
@@ -31,18 +40,19 @@ flutter:
     - assets/data/
     - assets/sounds/
 
-  fonts:
-    - family: NotoSans
-      fonts:
-        - asset: assets/fonts/NotoSans-Regular.ttf
-        - asset: assets/fonts/NotoSans-Medium.ttf
-          weight: 500
-        - asset: assets/fonts/NotoSans-SemiBold.ttf
-          weight: 600
-        - asset: assets/fonts/NotoSans-Bold.ttf
-          weight: 700
-    - family: NotoSansDevanagari
-      fonts:
-        - asset: assets/fonts/NotoSansDevanagari-Regular.ttf
-        - asset: assets/fonts/NotoSansDevanagari-Medium.ttf
-          weight: 500
+  # Uncomment after downloading Noto Sans fonts to assets/fonts/
+  # fonts:
+  #   - family: NotoSans
+  #     fonts:
+  #       - asset: assets/fonts/NotoSans-Regular.ttf
+  #       - asset: assets/fonts/NotoSans-Medium.ttf
+  #         weight: 500
+  #       - asset: assets/fonts/NotoSans-SemiBold.ttf
+  #         weight: 600
+  #       - asset: assets/fonts/NotoSans-Bold.ttf
+  #         weight: 700
+  #   - family: NotoSansDevanagari
+  #     fonts:
+  #       - asset: assets/fonts/NotoSansDevanagari-Regular.ttf
+  #       - asset: assets/fonts/NotoSansDevanagari-Medium.ttf
+  #         weight: 500

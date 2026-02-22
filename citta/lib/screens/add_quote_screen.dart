@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../models/quote_model.dart';
 import '../providers/app_state.dart';
-import '../theme/app_theme.dart';
+
 
 class AddQuoteScreen extends StatefulWidget {
   const AddQuoteScreen({super.key});
@@ -83,7 +83,7 @@ class _AddQuoteScreenState extends State<AddQuoteScreen> {
                 style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: _language,
+              initialValue: _language,
               decoration: const InputDecoration(),
               items: const [
                 DropdownMenuItem(value: 'sanskrit', child: Text('Sanskrit')),

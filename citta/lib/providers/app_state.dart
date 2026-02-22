@@ -67,6 +67,12 @@ class AppState extends ChangeNotifier {
       ..sort((a, b) => b.date.compareTo(a.date));
   }
 
+  Future<void> deleteSessions(List<String> sessionIds) async {
+    _sessions.removeWhere((s) => sessionIds.contains(s.id));
+    await storageService.saveSessions(_sessions);
+    notifyListeners();
+  }
+
   List<SessionModel> filterByTags(List<String> tags) {
     if (tags.isEmpty) return sortedSessions;
     return _sessions

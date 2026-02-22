@@ -23,8 +23,26 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
+          // --- Profile Section ---
+          const _SectionHeader(title: 'Profile'),
+          _SettingsTile(
+            title: 'Name',
+            subtitle: config.userName ?? 'Not set',
+            onTap: () => _showEditNameDialog(context, appState),
+          ),
+          const Divider(),
+
+          // --- Appearance Section ---
+          const _SectionHeader(title: 'Appearance'),
+          _SettingsTile(
+            title: 'Theme',
+            subtitle: _themeDisplayName(config.themeMode),
+            onTap: () => _showThemePicker(context, appState),
+          ),
+          const Divider(),
+
           // --- Timer Section ---
-          _SectionHeader(title: 'Timer'),
+          const _SectionHeader(title: 'Timer'),
           _SettingsTile(
             title: 'Default Mode',
             subtitle: config.timerMode == 'countdown'
@@ -41,15 +59,17 @@ class SettingsScreen extends StatelessWidget {
           const Divider(),
 
           // --- Bell Sounds ---
-          _SectionHeader(title: 'Bell Sounds'),
+          const _SectionHeader(title: 'Bell Sounds'),
           _SettingsTile(
             title: 'Start Bell',
             subtitle: _bellDisplayName(config.bellStart),
-            trailing: IconButton(
-              icon: const Icon(Icons.play_circle_outline, size: 20),
-              onPressed: () =>
-                  appState.audioService.previewSound(config.bellStart),
-            ),
+            trailing: config.bellStart == 'none'
+                ? null
+                : IconButton(
+                    icon: const Icon(Icons.play_circle_outline, size: 20),
+                    onPressed: () =>
+                        appState.audioService.previewSound(config.bellStart),
+                  ),
             onTap: () => _showBellPicker(
                 context, appState, 'Start Bell', config.bellStart,
                 (val) {
@@ -59,11 +79,13 @@ class SettingsScreen extends StatelessWidget {
           _SettingsTile(
             title: 'End Bell',
             subtitle: _bellDisplayName(config.bellEnd),
-            trailing: IconButton(
-              icon: const Icon(Icons.play_circle_outline, size: 20),
-              onPressed: () =>
-                  appState.audioService.previewSound(config.bellEnd),
-            ),
+            trailing: config.bellEnd == 'none'
+                ? null
+                : IconButton(
+                    icon: const Icon(Icons.play_circle_outline, size: 20),
+                    onPressed: () =>
+                        appState.audioService.previewSound(config.bellEnd),
+                  ),
             onTap: () => _showBellPicker(
                 context, appState, 'End Bell', config.bellEnd,
                 (val) {
@@ -73,14 +95,14 @@ class SettingsScreen extends StatelessWidget {
           const Divider(),
 
           // --- Interval ---
-          _SectionHeader(title: 'Interval Bell'),
+          const _SectionHeader(title: 'Interval Bell'),
           SwitchListTile(
             title: const Text('Enable Interval Bell'),
             subtitle: Text(config.intervalEnabled
                 ? 'Every ${config.intervalDuration ~/ 60} min'
                 : 'Off'),
             value: config.intervalEnabled,
-            activeColor: AppColors.primary,
+            activeThumbColor: AppColors.primary,
             onChanged: (val) {
               appState
                   .updateConfig(config.copyWith(intervalEnabled: val));
@@ -96,11 +118,13 @@ class SettingsScreen extends StatelessWidget {
             _SettingsTile(
               title: 'Interval Sound',
               subtitle: _bellDisplayName(config.bellInterval),
-              trailing: IconButton(
-                icon: const Icon(Icons.play_circle_outline, size: 20),
-                onPressed: () => appState.audioService
-                    .previewSound(config.bellInterval),
-              ),
+              trailing: config.bellInterval == 'none'
+                  ? null
+                  : IconButton(
+                      icon: const Icon(Icons.play_circle_outline, size: 20),
+                      onPressed: () => appState.audioService
+                          .previewSound(config.bellInterval),
+                    ),
               onTap: () => _showBellPicker(context, appState,
                   'Interval Sound', config.bellInterval, (val) {
                 appState
@@ -111,7 +135,7 @@ class SettingsScreen extends StatelessWidget {
           const Divider(),
 
           // --- Background Music ---
-          _SectionHeader(title: 'Background Music'),
+          const _SectionHeader(title: 'Background Music'),
           _SettingsTile(
             title: 'Music File',
             subtitle:
@@ -130,7 +154,7 @@ class SettingsScreen extends StatelessWidget {
           const Divider(),
 
           // --- Tags ---
-          _SectionHeader(title: 'Tags'),
+          const _SectionHeader(title: 'Tags'),
           Padding(
             padding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -153,7 +177,7 @@ class SettingsScreen extends StatelessWidget {
           const Divider(),
 
           // --- Quotes ---
-          _SectionHeader(title: 'Quotes'),
+          const _SectionHeader(title: 'Quotes'),
           _SettingsTile(
             title: 'Add Custom Quote',
             subtitle:
@@ -168,7 +192,7 @@ class SettingsScreen extends StatelessWidget {
           const Divider(),
 
           // --- Data ---
-          _SectionHeader(title: 'Data'),
+          const _SectionHeader(title: 'Data'),
           _SettingsTile(
             title: 'Export Data',
             subtitle: 'Share your sessions & config as JSON',
@@ -184,7 +208,85 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
+  String _themeDisplayName(String mode) {
+    switch (mode) {
+      case 'light':
+        return 'Light';
+      case 'system':
+        return 'System';
+      case 'dark':
+      default:
+        return 'Dark';
+    }
+  }
+
+  void _showThemePicker(BuildContext context, AppState appState) {
+    showDialog(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('Theme'),
+        children: [
+          for (final entry in [
+            ('dark', 'Dark', Icons.dark_mode),
+            ('light', 'Light', Icons.light_mode),
+            ('system', 'System', Icons.settings_brightness),
+          ])
+            SimpleDialogOption(
+              onPressed: () {
+                appState.updateConfig(
+                    appState.config.copyWith(themeMode: entry.$1));
+                Navigator.pop(context);
+              },
+              child: ListTile(
+                leading: Icon(entry.$3,
+                    color: appState.config.themeMode == entry.$1
+                        ? Theme.of(context).colorScheme.primary
+                        : null),
+                title: Text(entry.$2),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditNameDialog(BuildContext context, AppState appState) {
+    final controller =
+        TextEditingController(text: appState.config.userName ?? '');
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Name'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: 'Enter your name'),
+          textCapitalization: TextCapitalization.words,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final name = controller.text.trim();
+              if (name.isNotEmpty) {
+                appState.updateConfig(
+                  appState.config.copyWith(userName: name),
+                );
+              }
+              Navigator.pop(context);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
   String _bellDisplayName(String bellId) {
+    if (bellId == 'none') return 'None';
     if (bellId.startsWith('bundled:')) {
       final name = bellId.substring(8);
       return AudioService.soundDisplayNames[name] ?? name;
@@ -308,6 +410,23 @@ class SettingsScreen extends StatelessWidget {
       builder: (context) => SimpleDialog(
         title: Text(title),
         children: [
+          SimpleDialogOption(
+            onPressed: () {
+              onSelect('none');
+              Navigator.pop(context);
+            },
+            child: Text(
+              'None',
+              style: TextStyle(
+                fontWeight: currentValue == 'none'
+                    ? FontWeight.w600
+                    : FontWeight.w400,
+                color: currentValue == 'none'
+                    ? AppColors.primary
+                    : null,
+              ),
+            ),
+          ),
           ...AudioService.bundledSounds.entries.map((entry) {
             final bellId = 'bundled:${entry.key}';
             return SimpleDialogOption(
@@ -485,7 +604,7 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
       child: Text(
         title.toUpperCase(),
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,
           color: AppColors.textHint,

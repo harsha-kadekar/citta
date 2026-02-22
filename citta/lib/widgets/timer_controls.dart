@@ -83,8 +83,8 @@ class _CircleButton extends StatelessWidget {
         height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: color.withOpacity(0.1),
-          border: Border.all(color: color.withOpacity(0.3), width: 2),
+          color: color.withValues(alpha:0.1),
+          border: Border.all(color: color.withValues(alpha:0.3), width: 2),
         ),
         child: Icon(icon, color: color, size: size * 0.5),
       ),

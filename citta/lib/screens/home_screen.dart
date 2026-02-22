@@ -1,21 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import '../providers/app_state.dart';
 import '../services/timer_service.dart';
-import '../services/audio_service.dart';
-import '../models/quote_model.dart';
 import '../models/session_model.dart';
 import '../theme/app_theme.dart';
 import '../widgets/quote_card.dart';
 import '../widgets/timer_display.dart';
 import '../widgets/timer_controls.dart';
 import '../widgets/pre_session_config.dart';
-import 'notes_screen.dart';
+import 'session_complete_screen.dart';
 import 'package:uuid/uuid.dart';
 
+const _cittaTitles = [
+  'Citta',       // English
+  'चित्त',       // Sanskrit / Hindi
+  'ಚಿತ್ತ',       // Kannada
+  'சித்த',       // Tamil
+  'చిత్త',       // Telugu
+  'ചിത്ത',       // Malayalam
+];
+
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final int visitCount;
+  const HomeScreen({super.key, this.visitCount = 0});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -27,6 +36,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   // Ad-hoc overrides (null means use config default)
   TimerMode? _adHocMode;
   int? _adHocDuration;
+  String get _title => _cittaTitles[widget.visitCount % _cittaTitles.length];
 
   @override
   void initState() {
@@ -39,9 +49,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void _setupTimerCallbacks() {
     final appState = context.read<AppState>();
     _timerService.onComplete = () {
-      _playBell(appState.config.bellEnd);
       HapticFeedback.heavyImpact();
-      _onSessionComplete();
+      if (mounted) _onSessionComplete();
     };
     _timerService.onIntervalBell = () {
       _playBell(appState.config.bellInterval);
@@ -55,14 +64,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     };
   }
 
-  void _playBell(String bellId) {
+  Future<void> _playBell(String bellId) async {
     final appState = context.read<AppState>();
-    appState.audioService.playBell(bellId);
+    await appState.audioService.playBell(bellId);
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Timer keeps running; no special handling needed for foreground-only timer
+    if (state == AppLifecycleState.paused &&
+        _timerService.state == TimerState.running) {
+      _timerService.pause();
+    }
   }
 
   void _startSession() {
@@ -84,6 +96,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     _setupTimerCallbacks();
     _timerService.start();
+    WakelockPlus.enable();
     HapticFeedback.mediumImpact();
     setState(() {
       _showPreSessionConfig = false;
@@ -91,8 +104,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   void _onSessionComplete() {
+    WakelockPlus.disable();
     final appState = context.read<AppState>();
     appState.audioService.stopBackgroundMusic();
+    _playBell(appState.config.bellEnd);
 
     final session = SessionModel(
       id: const Uuid().v4(),
@@ -106,7 +121,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => NotesScreen(session: session),
+        builder: (context) => SessionCompleteScreen(session: session),
       ),
     ).then((_) {
       _timerService.reset();
@@ -119,14 +134,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void _stopSession() {
     _timerService.stop();
     HapticFeedback.mediumImpact();
-    final appState = context.read<AppState>();
-    _playBell(appState.config.bellEnd);
-    appState.audioService.stopBackgroundMusic();
     _onSessionComplete();
   }
 
   @override
   void dispose() {
+    WakelockPlus.disable();
     WidgetsBinding.instance.removeObserver(this);
     _timerService.dispose();
     super.dispose();
@@ -141,7 +154,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Citta'),
+        title: Text(
+          _title,
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.0,
+          ),
+        ),
       ),
       body: ListenableBuilder(
         listenable: _timerService,
@@ -193,12 +213,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     else ...[
                       _buildStartButton(),
                       const SizedBox(height: 16),
-                      TextButton(
+                      TextButton.icon(
                         onPressed: () =>
                             setState(() => _showPreSessionConfig = true),
-                        child: Text(
+                        icon: const Icon(
+                          Icons.tune,
+                          size: 14,
+                          color: AppColors.textSecondary,
+                        ),
+                        label: Text(
                           _getConfigSummary(appState.config),
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: AppColors.textSecondary,
                             fontSize: 13,
                           ),
@@ -227,7 +252,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           color: AppColors.primary,
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withOpacity(0.3),
+              color: AppColors.primary.withValues(alpha:0.3),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),

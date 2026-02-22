@@ -102,7 +102,7 @@ class _NotesScreenState extends State<NotesScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.self_improvement,
+                    const Icon(Icons.self_improvement,
                         color: AppColors.primary, size: 20),
                     const SizedBox(width: 8),
                     Text(
@@ -111,7 +111,7 @@ class _NotesScreenState extends State<NotesScreen> {
                     ),
                     if (widget.session.completedFully) ...[
                       const SizedBox(width: 12),
-                      Icon(Icons.check_circle,
+                      const Icon(Icons.check_circle,
                           color: AppColors.success, size: 18),
                     ],
                   ],
@@ -163,7 +163,7 @@ class _NotesScreenState extends State<NotesScreen> {
                         }
                       });
                     },
-                    selectedColor: AppColors.primaryLight.withOpacity(0.3),
+                    selectedColor: AppColors.primaryLight.withValues(alpha:0.3),
                     checkmarkColor: AppColors.primary,
                   );
                 }).toList(),

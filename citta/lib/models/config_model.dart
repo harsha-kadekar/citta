@@ -1,4 +1,23 @@
 class ConfigModel {
+  static const String defaultTimerMode = 'countdown';
+  static const int defaultCountdownDuration = 900;
+  static const String defaultBellStart = 'bundled:bright_tibetan_bell';
+  static const String defaultBellEnd = 'bundled:bell_meditation';
+  static const String defaultBellInterval = 'bundled:singing_bell';
+  static const int defaultIntervalDuration = 300;
+  static const bool defaultIntervalEnabled = false;
+  static const bool defaultCalendarViewEnabled = false;
+  static const String defaultThemeMode = 'dark';
+  static const List<String> defaultTags = ['calm', 'restless', 'deep', 'distracted'];
+  static const List<String> defaultQuoteSources = [
+    'subhashita',
+    'yoga_sutra',
+    'bhagavad_gita',
+    'upanishad',
+    'ramayana',
+    'mahabharata',
+  ];
+
   String timerMode; // "countdown" or "stopwatch"
   int countdownDuration; // seconds
   String bellStart;
@@ -10,56 +29,41 @@ class ConfigModel {
   bool calendarViewEnabled;
   List<String> tags;
   List<String> quoteSources;
+  String? userName;
+  String themeMode; // 'dark', 'light', or 'system'
 
   ConfigModel({
-    this.timerMode = 'countdown',
-    this.countdownDuration = 1200,
-    this.bellStart = 'bundled:tibetan_bowl',
-    this.bellEnd = 'bundled:tibetan_bowl',
-    this.bellInterval = 'bundled:soft_chime',
-    this.intervalDuration = 300,
-    this.intervalEnabled = false,
+    this.timerMode = defaultTimerMode,
+    this.countdownDuration = defaultCountdownDuration,
+    this.bellStart = defaultBellStart,
+    this.bellEnd = defaultBellEnd,
+    this.bellInterval = defaultBellInterval,
+    this.intervalDuration = defaultIntervalDuration,
+    this.intervalEnabled = defaultIntervalEnabled,
     this.backgroundMusic,
-    this.calendarViewEnabled = false,
+    this.calendarViewEnabled = defaultCalendarViewEnabled,
+    this.userName,
+    this.themeMode = defaultThemeMode,
     List<String>? tags,
     List<String>? quoteSources,
-  })  : tags = tags ?? ['calm', 'restless', 'deep', 'distracted'],
-        quoteSources = quoteSources ??
-            [
-              'subhashita',
-              'yoga_sutra',
-              'bhagavad_gita',
-              'upanishad',
-              'ramayana',
-              'mahabharata',
-            ];
+  })  : tags = tags ?? List.of(defaultTags),
+        quoteSources = quoteSources ?? List.of(defaultQuoteSources);
 
   factory ConfigModel.fromJson(Map<String, dynamic> json) {
     return ConfigModel(
-      timerMode: json['timerMode'] as String? ?? 'countdown',
-      countdownDuration: json['countdownDuration'] as int? ?? 1200,
-      bellStart: json['bellStart'] as String? ?? 'bundled:tibetan_bowl',
-      bellEnd: json['bellEnd'] as String? ?? 'bundled:tibetan_bowl',
-      bellInterval: json['bellInterval'] as String? ?? 'bundled:soft_chime',
-      intervalDuration: json['intervalDuration'] as int? ?? 300,
-      intervalEnabled: json['intervalEnabled'] as bool? ?? false,
+      timerMode: json['timerMode'] as String? ?? defaultTimerMode,
+      countdownDuration: json['countdownDuration'] as int? ?? defaultCountdownDuration,
+      bellStart: json['bellStart'] as String? ?? defaultBellStart,
+      bellEnd: json['bellEnd'] as String? ?? defaultBellEnd,
+      bellInterval: json['bellInterval'] as String? ?? defaultBellInterval,
+      intervalDuration: json['intervalDuration'] as int? ?? defaultIntervalDuration,
+      intervalEnabled: json['intervalEnabled'] as bool? ?? defaultIntervalEnabled,
       backgroundMusic: json['backgroundMusic'] as String?,
-      calendarViewEnabled: json['calendarViewEnabled'] as bool? ?? false,
-      tags: (json['tags'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          ['calm', 'restless', 'deep', 'distracted'],
-      quoteSources: (json['quoteSources'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          [
-            'subhashita',
-            'yoga_sutra',
-            'bhagavad_gita',
-            'upanishad',
-            'ramayana',
-            'mahabharata',
-          ],
+      calendarViewEnabled: json['calendarViewEnabled'] as bool? ?? defaultCalendarViewEnabled,
+      userName: json['userName'] as String?,
+      themeMode: json['themeMode'] as String? ?? defaultThemeMode,
+      tags: (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList(),
+      quoteSources: (json['quoteSources'] as List<dynamic>?)?.map((e) => e as String).toList(),
     );
   }
 
@@ -74,6 +78,8 @@ class ConfigModel {
       'intervalEnabled': intervalEnabled,
       'backgroundMusic': backgroundMusic,
       'calendarViewEnabled': calendarViewEnabled,
+      'userName': userName,
+      'themeMode': themeMode,
       'tags': tags,
       'quoteSources': quoteSources,
     };
@@ -89,6 +95,8 @@ class ConfigModel {
     bool? intervalEnabled,
     String? backgroundMusic,
     bool? calendarViewEnabled,
+    String? userName,
+    String? themeMode,
     List<String>? tags,
     List<String>? quoteSources,
   }) {
@@ -102,6 +110,8 @@ class ConfigModel {
       intervalEnabled: intervalEnabled ?? this.intervalEnabled,
       backgroundMusic: backgroundMusic ?? this.backgroundMusic,
       calendarViewEnabled: calendarViewEnabled ?? this.calendarViewEnabled,
+      userName: userName ?? this.userName,
+      themeMode: themeMode ?? this.themeMode,
       tags: tags ?? List.from(this.tags),
       quoteSources: quoteSources ?? List.from(this.quoteSources),
     );
