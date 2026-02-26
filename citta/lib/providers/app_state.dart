@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import '../models/config_model.dart';
 import '../models/session_model.dart';
 import '../services/storage_service.dart';
@@ -28,6 +28,9 @@ class AppState extends ChangeNotifier {
   bool get isLoading => _isLoading;
   StatsResult get stats => statsService.calculateStats(_sessions);
 
+  Locale? get locale =>
+      _config.language == 'system' ? null : Locale(_config.language);
+
   Future<void> initialize() async {
     _isLoading = true;
     notifyListeners();
@@ -47,6 +50,9 @@ class AppState extends ChangeNotifier {
     await storageService.saveConfig(config);
     notifyListeners();
   }
+
+  Future<void> setLanguage(String code) =>
+      updateConfig(_config.copyWith(language: code));
 
   // --- Sessions ---
 

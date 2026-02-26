@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:citta/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
@@ -10,12 +11,13 @@ class StatsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
+    final l10n = AppLocalizations.of(context)!;
     final stats = appState.stats;
     final showCalendar = appState.config.calendarViewEnabled;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Stats'),
+        title: Text(l10n.statsTitle),
         actions: [
           IconButton(
             icon: Icon(
@@ -30,7 +32,7 @@ class StatsScreen extends StatelessWidget {
                   .copyWith(calendarViewEnabled: !showCalendar);
               appState.updateConfig(newConfig);
             },
-            tooltip: 'Toggle calendar view',
+            tooltip: l10n.statsToggleCalendar,
           ),
         ],
       ),
@@ -45,9 +47,9 @@ class StatsScreen extends StatelessWidget {
                   child: _StatCard(
                     icon: Icons.local_fire_department,
                     iconColor: const Color(0xFFE8834A),
-                    label: 'Current Streak',
+                    label: l10n.statsCurrentStreak,
                     value: '${stats.currentStreak}',
-                    unit: stats.currentStreak == 1 ? 'day' : 'days',
+                    unit: l10n.statsDays(stats.currentStreak),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -55,9 +57,9 @@ class StatsScreen extends StatelessWidget {
                   child: _StatCard(
                     icon: Icons.emoji_events,
                     iconColor: AppColors.secondary,
-                    label: 'Longest Streak',
+                    label: l10n.statsLongestStreak,
                     value: '${stats.longestStreak}',
-                    unit: stats.longestStreak == 1 ? 'day' : 'days',
+                    unit: l10n.statsDays(stats.longestStreak),
                   ),
                 ),
               ],
@@ -69,7 +71,7 @@ class StatsScreen extends StatelessWidget {
                   child: _StatCard(
                     icon: Icons.self_improvement,
                     iconColor: AppColors.primary,
-                    label: 'Total Sessions',
+                    label: l10n.statsTotalSessions,
                     value: '${stats.totalSessions}',
                     unit: '',
                   ),
@@ -79,7 +81,7 @@ class StatsScreen extends StatelessWidget {
                   child: _StatCard(
                     icon: Icons.schedule,
                     iconColor: AppColors.accent,
-                    label: 'Average',
+                    label: l10n.statsAverage,
                     value: _formatDuration(stats.averageDurationSeconds),
                     unit: '',
                   ),

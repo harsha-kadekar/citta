@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:citta/l10n/app_localizations.dart';
+import 'package:citta/l10n/intl_locale.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
 import '../models/session_model.dart';
@@ -45,20 +48,22 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Future<void> _deleteSelected() async {
+    final l10n = AppLocalizations.of(context)!;
     final count = _selectedSessionIds.length;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Sessions'),
-        content: Text('Delete $count session${count > 1 ? 's' : ''}? This cannot be undone.'),
+        title: Text(l10n.historyDeleteTitle),
+        content: Text(l10n.historyDeleteConfirm(count)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.actionCancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Delete', style: TextStyle(color: AppColors.error)),
+            child: Text(l10n.actionDelete,
+                style: const TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -72,6 +77,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
+    final l10n = AppLocalizations.of(context)!;
     final allTags = appState.config.tags;
     final sessions = _selectedFilterTags.isEmpty
         ? appState.sortedSessions
@@ -80,8 +86,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return Scaffold(
       appBar: AppBar(
         title: _selectionMode
-            ? Text('${_selectedSessionIds.length} selected')
-            : const Text('History'),
+            ? Text(l10n.historySelected(_selectedSessionIds.length))
+            : Text(l10n.historyTitle),
         leading: _selectionMode
             ? IconButton(
                 icon: const Icon(Icons.close),
@@ -107,7 +113,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    _buildFilterChip('All', _selectedFilterTags.isEmpty, () {
+                    _buildFilterChip(l10n.historyFilterAll, _selectedFilterTags.isEmpty, () {
                       setState(() => _selectedFilterTags.clear());
                     }),
                     const SizedBox(width: 8),
@@ -134,13 +140,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
           // Session list
           Expanded(
             child: sessions.isEmpty
-                ? _buildEmptyState()
+                ? _buildEmptyState(l10n)
                 : ListView.builder(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 8),
                     itemCount: sessions.length,
                     itemBuilder: (context, index) {
-                      return _buildSessionCard(context, sessions[index]);
+                      return _buildSessionCard(context, sessions[index], l10n);
                     },
                   ),
           ),
@@ -175,10 +181,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  Widget _buildSessionCard(BuildContext context, SessionModel session) {
+  Widget _buildSessionCard(
+      BuildContext context, SessionModel session, AppLocalizations l10n) {
     final date = session.date.toLocal();
-    final dateStr =
-        '${_monthName(date.month)} ${date.day}, ${date.year}';
+    final localeStr = safeIntlLocale(Localizations.localeOf(context).toString());
+    final dateStr = DateFormat('MMM d, y', localeStr).format(date);
     final timeStr =
         '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
     final duration = _formatDuration(session.duration);
@@ -270,12 +277,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
         ),
         trailing: _selectionMode
             ? null
-            : const Icon(Icons.chevron_right, color: AppColors.textHint, size: 20),
+            : const Icon(Icons.chevron_right,
+                color: AppColors.textHint, size: 20),
       ),
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(AppLocalizations l10n) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -283,9 +291,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
           Icon(Icons.self_improvement,
               size: 64, color: AppColors.textHint.withValues(alpha: 0.5)),
           const SizedBox(height: 16),
-          const Text(
-            'No sessions yet',
-            style: TextStyle(
+          Text(
+            l10n.historyEmpty,
+            style: const TextStyle(
               fontSize: 18,
               color: AppColors.textHint,
               fontWeight: FontWeight.w500,
@@ -293,7 +301,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Complete your first dhyana session\nto see it here',
+            l10n.historyEmptyHint,
             style: TextStyle(
               fontSize: 14,
               color: AppColors.textHint.withValues(alpha: 0.7),
@@ -310,24 +318,5 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final secs = seconds % 60;
     if (mins == 0) return '${secs}s';
     return secs > 0 ? '${mins}m ${secs}s' : '${mins}m';
-  }
-
-  String _monthName(int month) {
-    const months = [
-      '',
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return months[month];
   }
 }

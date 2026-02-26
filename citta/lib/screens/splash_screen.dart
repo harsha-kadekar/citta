@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:citta/l10n/app_localizations.dart';
 import '../models/quote_model.dart';
 
 class SplashScreen extends StatelessWidget {
@@ -17,6 +18,7 @@ class SplashScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final onBg = colorScheme.onSurface;
+    final l10n = AppLocalizations.of(context)!;
 
     return GestureDetector(
       onTap: onDismiss,
@@ -31,7 +33,9 @@ class SplashScreen extends StatelessWidget {
                 const Spacer(flex: 2),
                 // Namaskara greeting
                 Text(
-                  userName != null ? 'Namaskara, $userName' : 'Namaskara',
+                  userName != null
+                      ? l10n.splashGreetingWithName(userName!)
+                      : l10n.splashGreeting,
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
@@ -97,7 +101,7 @@ class SplashScreen extends StatelessWidget {
                 const Spacer(flex: 3),
                 // Tap to dismiss hint
                 Text(
-                  'tap to begin',
+                  l10n.splashTapToBegin,
                   style: TextStyle(
                     fontSize: 12,
                     color: onBg.withValues(alpha: 0.3),

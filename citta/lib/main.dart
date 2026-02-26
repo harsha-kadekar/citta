@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:citta/l10n/app_localizations.dart';
+import 'package:citta/l10n/fallback_localizations_delegate.dart';
 import 'package:provider/provider.dart';
 import 'theme/app_theme.dart';
 import 'providers/app_state.dart';
@@ -39,6 +42,42 @@ class CittaApp extends StatelessWidget {
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: AppTheme.themeMode(appState.config.themeMode),
+            locale: appState.locale,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              FallbackMaterialLocalizationsDelegate(),
+              GlobalWidgetsLocalizations.delegate,
+              FallbackCupertinoLocalizationsDelegate(),
+            ],
+            supportedLocales: const [
+              Locale('en'),
+              Locale('hi'),
+              Locale('kn'),
+              Locale('sa'),
+              Locale('te'),
+              Locale('ta'),
+              Locale('ml'),
+              Locale('fr'),
+              Locale('de'),
+              Locale('ja'),
+              Locale('he'),
+              Locale('zh'),
+              Locale('mr'),
+              Locale('gu'),
+              Locale('or'),
+              Locale('bn'),
+              Locale('tcy'),
+              Locale('kok'),
+              Locale('ur'),
+              Locale('it'),
+              Locale('es'),
+              Locale('ar'),
+              Locale('ru'),
+              Locale('pt'),
+              Locale('mai'),
+              Locale('as'),
+              Locale('pa'),
+            ],
             home: const _AppRoot(),
           );
         },
@@ -61,6 +100,7 @@ class _AppRootState extends State<_AppRoot> {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
+    final l10n = AppLocalizations.of(context)!;
 
     if (appState.isLoading) {
       return const Scaffold(
@@ -74,7 +114,7 @@ class _AppRootState extends State<_AppRoot> {
     if (!_hasPromptedName && appState.config.userName == null) {
       _hasPromptedName = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showNamePrompt(context, appState);
+        _showNamePrompt(context, appState, l10n);
       });
     }
 
@@ -89,25 +129,25 @@ class _AppRootState extends State<_AppRoot> {
     return const MainShell();
   }
 
-  void _showNamePrompt(BuildContext context, AppState appState) {
+  void _showNamePrompt(BuildContext context, AppState appState, AppLocalizations l10n) {
     final controller = TextEditingController();
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('Welcome to Citta'),
+        title: Text(l10n.welcomeTitle),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(
-            hintText: 'Enter your name',
+          decoration: InputDecoration(
+            hintText: l10n.welcomeNameHint,
           ),
           textCapitalization: TextCapitalization.words,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Skip'),
+            child: Text(l10n.actionSkip),
           ),
           ElevatedButton(
             onPressed: () {
@@ -119,7 +159,7 @@ class _AppRootState extends State<_AppRoot> {
               }
               Navigator.pop(context);
             },
-            child: const Text('Continue'),
+            child: Text(l10n.actionContinue),
           ),
         ],
       ),

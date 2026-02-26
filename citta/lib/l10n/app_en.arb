@@ -1,0 +1,450 @@
+{
+  "@@locale": "en",
+
+  "actionCancel": "Cancel",
+  "@actionCancel": {},
+
+  "actionSave": "Save",
+  "@actionSave": {},
+
+  "actionSkip": "Skip",
+  "@actionSkip": {},
+
+  "actionContinue": "Continue",
+  "@actionContinue": {},
+
+  "actionDelete": "Delete",
+  "@actionDelete": {},
+
+  "actionAdd": "Add",
+  "@actionAdd": {},
+
+  "actionBegin": "Begin",
+  "@actionBegin": {},
+
+  "navDhyana": "Dhyana",
+  "@navDhyana": {},
+
+  "navHistory": "History",
+  "@navHistory": {},
+
+  "navStats": "Stats",
+  "@navStats": {},
+
+  "navSettings": "Settings",
+  "@navSettings": {},
+
+  "splashGreeting": "Namaskara",
+  "@splashGreeting": {},
+
+  "splashGreetingWithName": "Namaskara, {name}",
+  "@splashGreetingWithName": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+
+  "splashTapToBegin": "tap to begin",
+  "@splashTapToBegin": {},
+
+  "welcomeTitle": "Welcome to Citta",
+  "@welcomeTitle": {},
+
+  "welcomeNameHint": "Enter your name",
+  "@welcomeNameHint": {},
+
+  "homeBegin": "Begin",
+  "@homeBegin": {},
+
+  "homeCountdown": "Countdown",
+  "@homeCountdown": {},
+
+  "homeStopwatch": "Stopwatch",
+  "@homeStopwatch": {},
+
+  "homeMin": "min",
+  "@homeMin": {},
+
+  "historyTitle": "History",
+  "@historyTitle": {},
+
+  "historySelected": "{count} selected",
+  "@historySelected": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "historyDeleteTitle": "Delete Sessions",
+  "@historyDeleteTitle": {},
+
+  "historyDeleteConfirm": "Delete {count} sessions? This cannot be undone.",
+  "@historyDeleteConfirm": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "historyFilterAll": "All",
+  "@historyFilterAll": {},
+
+  "historyEmpty": "No sessions yet",
+  "@historyEmpty": {},
+
+  "historyEmptyHint": "Complete your first dhyana session\nto see it here",
+  "@historyEmptyHint": {},
+
+  "statsTitle": "Stats",
+  "@statsTitle": {},
+
+  "statsToggleCalendar": "Toggle calendar view",
+  "@statsToggleCalendar": {},
+
+  "statsCurrentStreak": "Current Streak",
+  "@statsCurrentStreak": {},
+
+  "statsLongestStreak": "Longest Streak",
+  "@statsLongestStreak": {},
+
+  "statsTotalSessions": "Total Sessions",
+  "@statsTotalSessions": {},
+
+  "statsAverage": "Average",
+  "@statsAverage": {},
+
+  "statsDays": "{count, plural, =1{day} other{days}}",
+  "@statsDays": {
+    "placeholders": {
+      "count": { "type": "num" }
+    }
+  },
+
+  "settingsTitle": "Settings",
+  "@settingsTitle": {},
+
+  "settingsProfile": "Profile",
+  "@settingsProfile": {},
+
+  "settingsName": "Name",
+  "@settingsName": {},
+
+  "settingsNameNotSet": "Not set",
+  "@settingsNameNotSet": {},
+
+  "settingsEditName": "Edit Name",
+  "@settingsEditName": {},
+
+  "settingsAppearance": "Appearance",
+  "@settingsAppearance": {},
+
+  "settingsTheme": "Theme",
+  "@settingsTheme": {},
+
+  "settingsThemeDark": "Dark",
+  "@settingsThemeDark": {},
+
+  "settingsThemeLight": "Light",
+  "@settingsThemeLight": {},
+
+  "settingsThemeSystem": "System",
+  "@settingsThemeSystem": {},
+
+  "settingsLanguage": "Language",
+  "@settingsLanguage": {},
+
+  "settingsLanguageSystem": "System Default",
+  "@settingsLanguageSystem": {},
+
+  "settingsTimer": "Timer",
+  "@settingsTimer": {},
+
+  "settingsDefaultMode": "Default Mode",
+  "@settingsDefaultMode": {},
+
+  "settingsDefaultDuration": "Default Duration",
+  "@settingsDefaultDuration": {},
+
+  "settingsDurationMinutes": "{count} minutes",
+  "@settingsDurationMinutes": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "settingsCountdown": "Countdown",
+  "@settingsCountdown": {},
+
+  "settingsCountdownDesc": "Set a duration, timer counts down",
+  "@settingsCountdownDesc": {},
+
+  "settingsStopwatch": "Stopwatch",
+  "@settingsStopwatch": {},
+
+  "settingsStopwatchDesc": "Open-ended, stop manually",
+  "@settingsStopwatchDesc": {},
+
+  "settingsBellSounds": "Bell Sounds",
+  "@settingsBellSounds": {},
+
+  "settingsStartBell": "Start Bell",
+  "@settingsStartBell": {},
+
+  "settingsEndBell": "End Bell",
+  "@settingsEndBell": {},
+
+  "settingsIntervalBell": "Interval Bell",
+  "@settingsIntervalBell": {},
+
+  "settingsBellNone": "None",
+  "@settingsBellNone": {},
+
+  "settingsPickFromDevice": "Pick from device...",
+  "@settingsPickFromDevice": {},
+
+  "settingsEnableInterval": "Enable Interval Bell",
+  "@settingsEnableInterval": {},
+
+  "settingsIntervalEvery": "Every {count} min",
+  "@settingsIntervalEvery": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "settingsOff": "Off",
+  "@settingsOff": {},
+
+  "settingsIntervalDuration": "Interval Duration",
+  "@settingsIntervalDuration": {},
+
+  "settingsIntervalSound": "Interval Sound",
+  "@settingsIntervalSound": {},
+
+  "settingsBgMusic": "Background Music",
+  "@settingsBgMusic": {},
+
+  "settingsMusicFile": "Music File",
+  "@settingsMusicFile": {},
+
+  "settingsMusicSelected": "Selected",
+  "@settingsMusicSelected": {},
+
+  "settingsMusicNone": "None",
+  "@settingsMusicNone": {},
+
+  "settingsRemoveMusic": "Remove Background Music",
+  "@settingsRemoveMusic": {},
+
+  "settingsTags": "Tags",
+  "@settingsTags": {},
+
+  "settingsAddTag": "+ Add",
+  "@settingsAddTag": {},
+
+  "settingsAddTagTitle": "Add Tag",
+  "@settingsAddTagTitle": {},
+
+  "settingsAddTagHint": "e.g., focused",
+  "@settingsAddTagHint": {},
+
+  "settingsQuotes": "Quotes",
+  "@settingsQuotes": {},
+
+  "settingsAddCustomQuote": "Add Custom Quote",
+  "@settingsAddCustomQuote": {},
+
+  "settingsUserQuotes": "{count} user quotes",
+  "@settingsUserQuotes": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "settingsData": "Data",
+  "@settingsData": {},
+
+  "settingsExport": "Export Data",
+  "@settingsExport": {},
+
+  "settingsExportDesc": "Share your sessions & config as JSON",
+  "@settingsExportDesc": {},
+
+  "settingsImport": "Import Data",
+  "@settingsImport": {},
+
+  "settingsImportDesc": "Load from a Citta JSON export file",
+  "@settingsImportDesc": {},
+
+  "settingsImportReplaceMsg": "Replace all existing data, or merge with current data?",
+  "@settingsImportReplaceMsg": {},
+
+  "settingsMerge": "Merge",
+  "@settingsMerge": {},
+
+  "settingsReplaceAll": "Replace All",
+  "@settingsReplaceAll": {},
+
+  "settingsImportSuccess": "Data imported successfully",
+  "@settingsImportSuccess": {},
+
+  "settingsImportError": "Invalid import file",
+  "@settingsImportError": {},
+
+  "settingsExportFailed": "Export failed: {error}",
+  "@settingsExportFailed": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+
+  "notesTitle": "Session Notes",
+  "@notesTitle": {},
+
+  "notesPrompt": "How was your practice?",
+  "@notesPrompt": {},
+
+  "notesHint": "Write about your experience... (plain text or markdown)",
+  "@notesHint": {},
+
+  "notesWordCount": "{count} / 500 words",
+  "@notesWordCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "notesTags": "Tags",
+  "@notesTags": {},
+
+  "sessionComplete": "Session Complete",
+  "@sessionComplete": {},
+
+  "sessionTitle": "Session",
+  "@sessionTitle": {},
+
+  "sessionCountdown": "Countdown",
+  "@sessionCountdown": {},
+
+  "sessionStopwatch": "Stopwatch",
+  "@sessionStopwatch": {},
+
+  "sessionCompleted": "Completed",
+  "@sessionCompleted": {},
+
+  "sessionNotes": "Notes",
+  "@sessionNotes": {},
+
+  "sessionNoNotes": "No notes for this session",
+  "@sessionNoNotes": {},
+
+  "addQuoteTitle": "Add Quote",
+  "@addQuoteTitle": {},
+
+  "addQuoteOriginalText": "Original Text *",
+  "@addQuoteOriginalText": {},
+
+  "addQuoteOriginalHint": "Enter the quote in original script...",
+  "@addQuoteOriginalHint": {},
+
+  "addQuoteLanguage": "Language",
+  "@addQuoteLanguage": {},
+
+  "addQuoteTranslation": "English Translation *",
+  "@addQuoteTranslation": {},
+
+  "addQuoteTranslationHint": "Enter the English translation...",
+  "@addQuoteTranslationHint": {},
+
+  "addQuoteSource": "Source",
+  "@addQuoteSource": {},
+
+  "addQuoteSourceHint": "e.g., Bhagavad Gita",
+  "@addQuoteSourceHint": {},
+
+  "addQuoteReference": "Reference",
+  "@addQuoteReference": {},
+
+  "addQuoteReferenceHint": "e.g., Chapter 2, Verse 47",
+  "@addQuoteReferenceHint": {},
+
+  "addQuoteSave": "Save Quote",
+  "@addQuoteSave": {},
+
+  "addQuoteAdded": "Quote added",
+  "@addQuoteAdded": {},
+
+  "langEnglish": "English",
+  "@langEnglish": {},
+
+  "langHindi": "Hindi",
+  "@langHindi": {},
+
+  "langKannada": "Kannada",
+  "@langKannada": {},
+
+  "langSanskrit": "Sanskrit",
+  "@langSanskrit": {},
+
+  "langTelugu": "Telugu",
+  "@langTelugu": {},
+
+  "langTamil": "Tamil",
+  "@langTamil": {},
+
+  "langMalayalam": "Malayalam",
+  "@langMalayalam": {},
+
+  "langFrench": "French",
+  "@langFrench": {},
+
+  "langGerman": "German",
+  "@langGerman": {},
+
+  "langJapanese": "Japanese",
+  "@langJapanese": {},
+
+  "langHebrew": "Hebrew",
+  "@langHebrew": {},
+
+  "langChinese": "Chinese",
+  "@langChinese": {},
+
+  "langMarathi": "Marathi",
+  "@langMarathi": {},
+  "langGujarati": "Gujarati",
+  "@langGujarati": {},
+  "langOdia": "Odia",
+  "@langOdia": {},
+  "langBengali": "Bengali",
+  "@langBengali": {},
+  "langTulu": "Tulu",
+  "@langTulu": {},
+  "langKonkani": "Konkani",
+  "@langKonkani": {},
+  "langUrdu": "Urdu",
+  "@langUrdu": {},
+  "langItalian": "Italian",
+  "@langItalian": {},
+  "langSpanish": "Spanish",
+  "@langSpanish": {},
+  "langArabic": "Arabic",
+  "@langArabic": {},
+  "langRussian": "Russian",
+  "@langRussian": {},
+  "langPortuguese": "Portuguese",
+  "@langPortuguese": {},
+  "langMaithili": "Maithili",
+  "@langMaithili": {},
+  "langAssamese": "Assamese",
+  "@langAssamese": {},
+  "langPunjabi": "Punjabi",
+  "@langPunjabi": {},
+  "langOther": "Other",
+  "@langOther": {},
+
+  "preSessionSetup": "Session Setup",
+  "@preSessionSetup": {},
+
+  "timerPaused": "PAUSED",
+  "@timerPaused": {}
+}

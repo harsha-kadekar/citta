@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:citta/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../models/quote_model.dart';
@@ -27,6 +28,7 @@ class _AddQuoteScreenState extends State<AddQuoteScreen> {
     if (!_isValid) return;
 
     final appState = context.read<AppState>();
+    final l10n = AppLocalizations.of(context)!;
     final quote = QuoteModel(
       id: 'user-${const Uuid().v4()}',
       source: _sourceController.text.trim().isEmpty
@@ -43,7 +45,7 @@ class _AddQuoteScreenState extends State<AddQuoteScreen> {
     if (mounted) {
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Quote added')),
+        SnackBar(content: Text(l10n.addQuoteAdded)),
       );
     }
   }
@@ -59,67 +61,103 @@ class _AddQuoteScreenState extends State<AddQuoteScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+    final languageOptions = [
+      ('english', l10n.langEnglish),
+      ('hindi', l10n.langHindi),
+      ('kannada', l10n.langKannada),
+      ('sanskrit', l10n.langSanskrit),
+      ('telugu', l10n.langTelugu),
+      ('tamil', l10n.langTamil),
+      ('malayalam', l10n.langMalayalam),
+      ('marathi', l10n.langMarathi),
+      ('gujarati', l10n.langGujarati),
+      ('odia', l10n.langOdia),
+      ('bengali', l10n.langBengali),
+      ('tulu', l10n.langTulu),
+      ('konkani', l10n.langKonkani),
+      ('urdu', l10n.langUrdu),
+      ('assamese', l10n.langAssamese),
+      ('punjabi', l10n.langPunjabi),
+      ('maithili', l10n.langMaithili),
+      ('french', l10n.langFrench),
+      ('german', l10n.langGerman),
+      ('italian', l10n.langItalian),
+      ('spanish', l10n.langSpanish),
+      ('portuguese', l10n.langPortuguese),
+      ('russian', l10n.langRussian),
+      ('arabic', l10n.langArabic),
+      ('japanese', l10n.langJapanese),
+      ('chinese', l10n.langChinese),
+      ('hebrew', l10n.langHebrew),
+      ('other', l10n.langOther),
+    ];
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add Quote'),
+        title: Text(l10n.addQuoteTitle),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Original Text *',
+            Text(l10n.addQuoteOriginalText,
                 style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             TextField(
               controller: _originalTextController,
               maxLines: 4,
-              decoration: const InputDecoration(
-                hintText: 'Enter the quote in original script...',
+              decoration: InputDecoration(
+                hintText: l10n.addQuoteOriginalHint,
               ),
             ),
             const SizedBox(height: 20),
-            Text('Language',
+            Text(l10n.addQuoteLanguage,
                 style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
               initialValue: _language,
               decoration: const InputDecoration(),
-              items: const [
-                DropdownMenuItem(value: 'sanskrit', child: Text('Sanskrit')),
-                DropdownMenuItem(value: 'kannada', child: Text('Kannada')),
-                DropdownMenuItem(value: 'hindi', child: Text('Hindi')),
-                DropdownMenuItem(value: 'other', child: Text('Other')),
-              ],
-              onChanged: (val) => setState(() => _language = val ?? 'sanskrit'),
+              items: languageOptions
+                  .map((entry) => DropdownMenuItem(
+                        value: entry.$1,
+                        child: Text(entry.$2),
+                      ))
+                  .toList(),
+              onChanged: (val) =>
+                  setState(() => _language = val ?? 'sanskrit'),
             ),
             const SizedBox(height: 20),
-            Text('English Translation *',
+            Text(l10n.addQuoteTranslation,
                 style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             TextField(
               controller: _translationController,
               maxLines: 3,
-              decoration: const InputDecoration(
-                hintText: 'Enter the English translation...',
+              decoration: InputDecoration(
+                hintText: l10n.addQuoteTranslationHint,
               ),
             ),
             const SizedBox(height: 20),
-            Text('Source', style: Theme.of(context).textTheme.titleMedium),
+            Text(l10n.addQuoteSource,
+                style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             TextField(
               controller: _sourceController,
-              decoration: const InputDecoration(
-                hintText: 'e.g., Bhagavad Gita',
+              decoration: InputDecoration(
+                hintText: l10n.addQuoteSourceHint,
               ),
             ),
             const SizedBox(height: 20),
-            Text('Reference', style: Theme.of(context).textTheme.titleMedium),
+            Text(l10n.addQuoteReference,
+                style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             TextField(
               controller: _referenceController,
-              decoration: const InputDecoration(
-                hintText: 'e.g., Chapter 2, Verse 47',
+              decoration: InputDecoration(
+                hintText: l10n.addQuoteReferenceHint,
               ),
             ),
             const SizedBox(height: 32),
@@ -127,7 +165,7 @@ class _AddQuoteScreenState extends State<AddQuoteScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _isValid ? _save : null,
-                child: const Text('Save Quote'),
+                child: Text(l10n.addQuoteSave),
               ),
             ),
           ],

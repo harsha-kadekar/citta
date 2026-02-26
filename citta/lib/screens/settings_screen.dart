@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:citta/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:share_plus/share_plus.dart';
@@ -8,6 +9,53 @@ import '../services/audio_service.dart';
 import '../theme/app_theme.dart';
 import 'add_quote_screen.dart';
 
+// Language options: (locale code, native label, English label)
+const _languageOptions = [
+  ('en', 'English', 'English'),
+  // Indian languages
+  ('hi', 'हिंदी', 'Hindi'),
+  ('kn', 'ಕನ್ನಡ', 'Kannada'),
+  ('sa', 'संस्कृत', 'Sanskrit'),
+  ('te', 'తెలుగు', 'Telugu'),
+  ('ta', 'தமிழ்', 'Tamil'),
+  ('ml', 'മലയാളം', 'Malayalam'),
+  ('mr', 'मराठी', 'Marathi'),
+  ('gu', 'ગુજરાતી', 'Gujarati'),
+  ('or', 'ଓଡ଼ିଆ', 'Odia'),
+  ('bn', 'বাংলা', 'Bengali'),
+  ('tcy', 'ತುಳು', 'Tulu'),
+  ('kok', 'कोंकणी', 'Konkani'),
+  ('ur', 'اردو', 'Urdu'),
+  ('as', 'অসমীয়া', 'Assamese'),
+  ('pa', 'ਪੰਜਾਬੀ', 'Punjabi'),
+  ('mai', 'मैथिली', 'Maithili'),
+  // European languages
+  ('fr', 'Français', 'French'),
+  ('de', 'Deutsch', 'German'),
+  ('it', 'Italiano', 'Italian'),
+  ('es', 'Español', 'Spanish'),
+  ('pt', 'Português', 'Portuguese'),
+  ('ru', 'Русский', 'Russian'),
+  // Asian & Middle Eastern
+  ('ar', 'العربية', 'Arabic'),
+  ('ja', '日本語', 'Japanese'),
+  ('zh', '中文', 'Chinese'),
+  ('he', 'עברית', 'Hebrew'),
+];
+
+// Locale codes that use Latin script — show native name only (no English subtitle)
+const _latinLocales = {'en', 'fr', 'de', 'it', 'es', 'pt'};
+
+String _languageDisplayName(String code, AppLocalizations l10n) {
+  if (code == 'system') return l10n.settingsLanguageSystem;
+  for (final opt in _languageOptions) {
+    if (opt.$1 == code) {
+      return _latinLocales.contains(code) ? opt.$2 : '${opt.$2} (${opt.$3})';
+    }
+  }
+  return code;
+}
+
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
@@ -15,53 +63,59 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
     final config = appState.config;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings'),
+        title: Text(l10n.settingsTitle),
       ),
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
           // --- Profile Section ---
-          const _SectionHeader(title: 'Profile'),
+          _SectionHeader(title: l10n.settingsProfile),
           _SettingsTile(
-            title: 'Name',
-            subtitle: config.userName ?? 'Not set',
-            onTap: () => _showEditNameDialog(context, appState),
+            title: l10n.settingsName,
+            subtitle: config.userName ?? l10n.settingsNameNotSet,
+            onTap: () => _showEditNameDialog(context, appState, l10n),
           ),
           const Divider(),
 
           // --- Appearance Section ---
-          const _SectionHeader(title: 'Appearance'),
+          _SectionHeader(title: l10n.settingsAppearance),
           _SettingsTile(
-            title: 'Theme',
-            subtitle: _themeDisplayName(config.themeMode),
-            onTap: () => _showThemePicker(context, appState),
+            title: l10n.settingsTheme,
+            subtitle: _themeDisplayName(config.themeMode, l10n),
+            onTap: () => _showThemePicker(context, appState, l10n),
+          ),
+          _SettingsTile(
+            title: l10n.settingsLanguage,
+            subtitle: _languageDisplayName(config.language, l10n),
+            onTap: () => _showLanguagePicker(context, appState, l10n),
           ),
           const Divider(),
 
           // --- Timer Section ---
-          const _SectionHeader(title: 'Timer'),
+          _SectionHeader(title: l10n.settingsTimer),
           _SettingsTile(
-            title: 'Default Mode',
+            title: l10n.settingsDefaultMode,
             subtitle: config.timerMode == 'countdown'
-                ? 'Countdown'
-                : 'Stopwatch',
-            onTap: () => _showTimerModeDialog(context, appState),
+                ? l10n.settingsCountdown
+                : l10n.settingsStopwatch,
+            onTap: () => _showTimerModeDialog(context, appState, l10n),
           ),
           if (config.timerMode == 'countdown')
             _SettingsTile(
-              title: 'Default Duration',
-              subtitle: '${config.countdownDuration ~/ 60} minutes',
-              onTap: () => _showDurationPicker(context, appState),
+              title: l10n.settingsDefaultDuration,
+              subtitle: l10n.settingsDurationMinutes(config.countdownDuration ~/ 60),
+              onTap: () => _showDurationPicker(context, appState, l10n),
             ),
           const Divider(),
 
           // --- Bell Sounds ---
-          const _SectionHeader(title: 'Bell Sounds'),
+          _SectionHeader(title: l10n.settingsBellSounds),
           _SettingsTile(
-            title: 'Start Bell',
+            title: l10n.settingsStartBell,
             subtitle: _bellDisplayName(config.bellStart),
             trailing: config.bellStart == 'none'
                 ? null
@@ -71,13 +125,13 @@ class SettingsScreen extends StatelessWidget {
                         appState.audioService.previewSound(config.bellStart),
                   ),
             onTap: () => _showBellPicker(
-                context, appState, 'Start Bell', config.bellStart,
+                context, appState, l10n.settingsStartBell, config.bellStart,
                 (val) {
               appState.updateConfig(config.copyWith(bellStart: val));
-            }),
+            }, l10n),
           ),
           _SettingsTile(
-            title: 'End Bell',
+            title: l10n.settingsEndBell,
             subtitle: _bellDisplayName(config.bellEnd),
             trailing: config.bellEnd == 'none'
                 ? null
@@ -87,20 +141,20 @@ class SettingsScreen extends StatelessWidget {
                         appState.audioService.previewSound(config.bellEnd),
                   ),
             onTap: () => _showBellPicker(
-                context, appState, 'End Bell', config.bellEnd,
+                context, appState, l10n.settingsEndBell, config.bellEnd,
                 (val) {
               appState.updateConfig(config.copyWith(bellEnd: val));
-            }),
+            }, l10n),
           ),
           const Divider(),
 
           // --- Interval ---
-          const _SectionHeader(title: 'Interval Bell'),
+          _SectionHeader(title: l10n.settingsIntervalBell),
           SwitchListTile(
-            title: const Text('Enable Interval Bell'),
+            title: Text(l10n.settingsEnableInterval),
             subtitle: Text(config.intervalEnabled
-                ? 'Every ${config.intervalDuration ~/ 60} min'
-                : 'Off'),
+                ? l10n.settingsIntervalEvery(config.intervalDuration ~/ 60)
+                : l10n.settingsOff),
             value: config.intervalEnabled,
             activeThumbColor: AppColors.primary,
             onChanged: (val) {
@@ -110,13 +164,13 @@ class SettingsScreen extends StatelessWidget {
           ),
           if (config.intervalEnabled) ...[
             _SettingsTile(
-              title: 'Interval Duration',
-              subtitle: '${config.intervalDuration ~/ 60} minutes',
+              title: l10n.settingsIntervalDuration,
+              subtitle: l10n.settingsDurationMinutes(config.intervalDuration ~/ 60),
               onTap: () =>
-                  _showIntervalDurationPicker(context, appState),
+                  _showIntervalDurationPicker(context, appState, l10n),
             ),
             _SettingsTile(
-              title: 'Interval Sound',
+              title: l10n.settingsIntervalSound,
               subtitle: _bellDisplayName(config.bellInterval),
               trailing: config.bellInterval == 'none'
                   ? null
@@ -126,26 +180,26 @@ class SettingsScreen extends StatelessWidget {
                           .previewSound(config.bellInterval),
                     ),
               onTap: () => _showBellPicker(context, appState,
-                  'Interval Sound', config.bellInterval, (val) {
+                  l10n.settingsIntervalSound, config.bellInterval, (val) {
                 appState
                     .updateConfig(config.copyWith(bellInterval: val));
-              }),
+              }, l10n),
             ),
           ],
           const Divider(),
 
           // --- Background Music ---
-          const _SectionHeader(title: 'Background Music'),
+          _SectionHeader(title: l10n.settingsBgMusic),
           _SettingsTile(
-            title: 'Music File',
+            title: l10n.settingsMusicFile,
             subtitle:
-                config.backgroundMusic != null ? 'Selected' : 'None',
+                config.backgroundMusic != null ? l10n.settingsMusicSelected : l10n.settingsMusicNone,
             onTap: () => _pickBackgroundMusic(context, appState),
           ),
           if (config.backgroundMusic != null)
             ListTile(
               leading: const Icon(Icons.clear, color: AppColors.error),
-              title: const Text('Remove Background Music'),
+              title: Text(l10n.settingsRemoveMusic),
               onTap: () {
                 appState.updateConfig(
                     config.copyWith(backgroundMusic: null));
@@ -154,7 +208,7 @@ class SettingsScreen extends StatelessWidget {
           const Divider(),
 
           // --- Tags ---
-          const _SectionHeader(title: 'Tags'),
+          _SectionHeader(title: l10n.settingsTags),
           Padding(
             padding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -168,8 +222,8 @@ class SettingsScreen extends StatelessWidget {
                       deleteIconColor: AppColors.textHint,
                     )),
                 ActionChip(
-                  label: const Text('+ Add'),
-                  onPressed: () => _showAddTagDialog(context, appState),
+                  label: Text(l10n.settingsAddTag),
+                  onPressed: () => _showAddTagDialog(context, appState, l10n),
                 ),
               ],
             ),
@@ -177,11 +231,11 @@ class SettingsScreen extends StatelessWidget {
           const Divider(),
 
           // --- Quotes ---
-          const _SectionHeader(title: 'Quotes'),
+          _SectionHeader(title: l10n.settingsQuotes),
           _SettingsTile(
-            title: 'Add Custom Quote',
-            subtitle:
-                '${appState.quoteService.userQuotes.length} user quotes',
+            title: l10n.settingsAddCustomQuote,
+            subtitle: l10n.settingsUserQuotes(
+                appState.quoteService.userQuotes.length),
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -192,44 +246,45 @@ class SettingsScreen extends StatelessWidget {
           const Divider(),
 
           // --- Data ---
-          const _SectionHeader(title: 'Data'),
+          _SectionHeader(title: l10n.settingsData),
           _SettingsTile(
-            title: 'Export Data',
-            subtitle: 'Share your sessions & config as JSON',
-            onTap: () => _exportData(context, appState),
+            title: l10n.settingsExport,
+            subtitle: l10n.settingsExportDesc,
+            onTap: () => _exportData(context, appState, l10n),
           ),
           _SettingsTile(
-            title: 'Import Data',
-            subtitle: 'Load from a Citta JSON export file',
-            onTap: () => _importData(context, appState),
+            title: l10n.settingsImport,
+            subtitle: l10n.settingsImportDesc,
+            onTap: () => _importData(context, appState, l10n),
           ),
         ],
       ),
     );
   }
 
-  String _themeDisplayName(String mode) {
+  String _themeDisplayName(String mode, AppLocalizations l10n) {
     switch (mode) {
       case 'light':
-        return 'Light';
+        return l10n.settingsThemeLight;
       case 'system':
-        return 'System';
+        return l10n.settingsThemeSystem;
       case 'dark':
       default:
-        return 'Dark';
+        return l10n.settingsThemeDark;
     }
   }
 
-  void _showThemePicker(BuildContext context, AppState appState) {
+  void _showThemePicker(
+      BuildContext context, AppState appState, AppLocalizations l10n) {
     showDialog(
       context: context,
       builder: (context) => SimpleDialog(
-        title: const Text('Theme'),
+        title: Text(l10n.settingsTheme),
         children: [
           for (final entry in [
-            ('dark', 'Dark', Icons.dark_mode),
-            ('light', 'Light', Icons.light_mode),
-            ('system', 'System', Icons.settings_brightness),
+            ('dark', l10n.settingsThemeDark, Icons.dark_mode),
+            ('light', l10n.settingsThemeLight, Icons.light_mode),
+            ('system', l10n.settingsThemeSystem, Icons.settings_brightness),
           ])
             SimpleDialogOption(
               onPressed: () {
@@ -250,23 +305,72 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  void _showEditNameDialog(BuildContext context, AppState appState) {
+  void _showLanguagePicker(
+      BuildContext context, AppState appState, AppLocalizations l10n) {
+    showDialog(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text(l10n.settingsLanguage),
+        children: [
+          // System Default
+          SimpleDialogOption(
+            onPressed: () {
+              appState.setLanguage('system');
+              Navigator.pop(context);
+            },
+            child: ListTile(
+              leading: Icon(Icons.language,
+                  color: appState.config.language == 'system'
+                      ? AppColors.primary
+                      : null),
+              title: Text(l10n.settingsLanguageSystem),
+            ),
+          ),
+          // 12 supported languages
+          for (final opt in _languageOptions)
+            SimpleDialogOption(
+              onPressed: () {
+                appState.setLanguage(opt.$1);
+                Navigator.pop(context);
+              },
+              child: ListTile(
+                leading: Icon(Icons.translate,
+                    color: appState.config.language == opt.$1
+                        ? AppColors.primary
+                        : null),
+                title: Text(opt.$2),
+                subtitle: ['en', 'fr', 'de'].contains(opt.$1)
+                    ? null
+                    : Text(opt.$3,
+                        style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textHint)),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditNameDialog(
+      BuildContext context, AppState appState, AppLocalizations l10n) {
     final controller =
         TextEditingController(text: appState.config.userName ?? '');
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Edit Name'),
+        title: Text(l10n.settingsEditName),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(hintText: 'Enter your name'),
+          decoration:
+              InputDecoration(hintText: l10n.welcomeNameHint),
           textCapitalization: TextCapitalization.words,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(l10n.actionCancel),
           ),
           ElevatedButton(
             onPressed: () {
@@ -278,7 +382,7 @@ class SettingsScreen extends StatelessWidget {
               }
               Navigator.pop(context);
             },
-            child: const Text('Save'),
+            child: Text(l10n.actionSave),
           ),
         ],
       ),
@@ -297,11 +401,12 @@ class SettingsScreen extends StatelessWidget {
     return bellId;
   }
 
-  void _showTimerModeDialog(BuildContext context, AppState appState) {
+  void _showTimerModeDialog(
+      BuildContext context, AppState appState, AppLocalizations l10n) {
     showDialog(
       context: context,
       builder: (context) => SimpleDialog(
-        title: const Text('Default Timer Mode'),
+        title: Text(l10n.settingsDefaultMode),
         children: [
           SimpleDialogOption(
             onPressed: () {
@@ -314,8 +419,8 @@ class SettingsScreen extends StatelessWidget {
                   color: appState.config.timerMode == 'countdown'
                       ? AppColors.primary
                       : null),
-              title: const Text('Countdown'),
-              subtitle: const Text('Set a duration, timer counts down'),
+              title: Text(l10n.settingsCountdown),
+              subtitle: Text(l10n.settingsCountdownDesc),
             ),
           ),
           SimpleDialogOption(
@@ -329,8 +434,8 @@ class SettingsScreen extends StatelessWidget {
                   color: appState.config.timerMode == 'stopwatch'
                       ? AppColors.primary
                       : null),
-              title: const Text('Stopwatch'),
-              subtitle: const Text('Open-ended, stop manually'),
+              title: Text(l10n.settingsStopwatch),
+              subtitle: Text(l10n.settingsStopwatchDesc),
             ),
           ),
         ],
@@ -338,12 +443,13 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  void _showDurationPicker(BuildContext context, AppState appState) {
+  void _showDurationPicker(
+      BuildContext context, AppState appState, AppLocalizations l10n) {
     final durations = [5, 10, 15, 20, 25, 30, 45, 60, 90, 120];
     showDialog(
       context: context,
       builder: (context) => SimpleDialog(
-        title: const Text('Default Duration'),
+        title: Text(l10n.settingsDefaultDuration),
         children: durations
             .map((mins) => SimpleDialogOption(
                   onPressed: () {
@@ -352,7 +458,7 @@ class SettingsScreen extends StatelessWidget {
                     Navigator.pop(context);
                   },
                   child: Text(
-                    '$mins minutes',
+                    l10n.settingsDurationMinutes(mins),
                     style: TextStyle(
                       fontWeight:
                           appState.config.countdownDuration == mins * 60
@@ -371,12 +477,12 @@ class SettingsScreen extends StatelessWidget {
   }
 
   void _showIntervalDurationPicker(
-      BuildContext context, AppState appState) {
+      BuildContext context, AppState appState, AppLocalizations l10n) {
     final intervals = [1, 2, 3, 5, 10, 15, 20];
     showDialog(
       context: context,
       builder: (context) => SimpleDialog(
-        title: const Text('Interval Duration'),
+        title: Text(l10n.settingsIntervalDuration),
         children: intervals
             .map((mins) => SimpleDialogOption(
                   onPressed: () {
@@ -385,7 +491,7 @@ class SettingsScreen extends StatelessWidget {
                     Navigator.pop(context);
                   },
                   child: Text(
-                    '$mins minutes',
+                    l10n.settingsDurationMinutes(mins),
                     style: TextStyle(
                       fontWeight:
                           appState.config.intervalDuration == mins * 60
@@ -403,8 +509,8 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  void _showBellPicker(BuildContext context, AppState appState,
-      String title, String currentValue, Function(String) onSelect) {
+  void _showBellPicker(BuildContext context, AppState appState, String title,
+      String currentValue, Function(String) onSelect, AppLocalizations l10n) {
     showDialog(
       context: context,
       builder: (context) => SimpleDialog(
@@ -416,7 +522,7 @@ class SettingsScreen extends StatelessWidget {
               Navigator.pop(context);
             },
             child: Text(
-              'None',
+              l10n.settingsBellNone,
               style: TextStyle(
                 fontWeight: currentValue == 'none'
                     ? FontWeight.w600
@@ -470,11 +576,11 @@ class SettingsScreen extends StatelessWidget {
                 onSelect('custom:${result.files.single.path}');
               }
             },
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.folder_open, size: 20),
-                SizedBox(width: 12),
-                Text('Pick from device...'),
+                const Icon(Icons.folder_open, size: 20),
+                const SizedBox(width: 12),
+                Text(l10n.settingsPickFromDevice),
               ],
             ),
           ),
@@ -494,22 +600,22 @@ class SettingsScreen extends StatelessWidget {
     }
   }
 
-  void _showAddTagDialog(BuildContext context, AppState appState) {
+  void _showAddTagDialog(
+      BuildContext context, AppState appState, AppLocalizations l10n) {
     final controller = TextEditingController();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Add Tag'),
+        title: Text(l10n.settingsAddTagTitle),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration:
-              const InputDecoration(hintText: 'e.g., focused'),
+          decoration: InputDecoration(hintText: l10n.settingsAddTagHint),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(l10n.actionCancel),
           ),
           ElevatedButton(
             onPressed: () {
@@ -519,7 +625,7 @@ class SettingsScreen extends StatelessWidget {
               }
               Navigator.pop(context);
             },
-            child: const Text('Add'),
+            child: Text(l10n.actionAdd),
           ),
         ],
       ),
@@ -527,7 +633,7 @@ class SettingsScreen extends StatelessWidget {
   }
 
   Future<void> _exportData(
-      BuildContext context, AppState appState) async {
+      BuildContext context, AppState appState, AppLocalizations l10n) async {
     try {
       final path = await appState.storageService.writeExportFile();
       await Share.shareXFiles([XFile(path)],
@@ -535,14 +641,14 @@ class SettingsScreen extends StatelessWidget {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Export failed: $e')),
+          SnackBar(content: Text(l10n.settingsExportFailed(e.toString()))),
         );
       }
     }
   }
 
   Future<void> _importData(
-      BuildContext context, AppState appState) async {
+      BuildContext context, AppState appState, AppLocalizations l10n) async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['json'],
@@ -558,21 +664,20 @@ class SettingsScreen extends StatelessWidget {
     final replaceAll = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Import Data'),
-        content: const Text(
-            'Replace all existing data, or merge with current data?'),
+        title: Text(l10n.settingsImport),
+        content: Text(l10n.settingsImportReplaceMsg),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(l10n.actionCancel),
           ),
           OutlinedButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Merge'),
+            child: Text(l10n.settingsMerge),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Replace All'),
+            child: Text(l10n.settingsReplaceAll),
           ),
         ],
       ),
@@ -586,8 +691,8 @@ class SettingsScreen extends StatelessWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(success
-              ? 'Data imported successfully'
-              : 'Invalid import file'),
+              ? l10n.settingsImportSuccess
+              : l10n.settingsImportError),
         ),
       );
     }

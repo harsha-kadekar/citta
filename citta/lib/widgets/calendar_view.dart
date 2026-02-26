@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import '../l10n/intl_locale.dart';
 import '../models/session_model.dart';
 import '../services/stats_service.dart';
 import '../theme/app_theme.dart';
@@ -49,6 +51,7 @@ class _CalendarViewState extends State<CalendarView> {
 
   @override
   Widget build(BuildContext context) {
+    final localeStr = safeIntlLocale(Localizations.localeOf(context).toString());
     final daysInMonth = DateTime(
       _currentMonth.year,
       _currentMonth.month + 1,
@@ -59,6 +62,15 @@ class _CalendarViewState extends State<CalendarView> {
       _currentMonth.month,
       1,
     ).weekday; // 1 = Monday
+
+    // Month name and weekday headers via DateFormat
+    final monthName = DateFormat('MMMM y', localeStr)
+        .format(DateTime(_currentMonth.year, _currentMonth.month));
+    // January 1, 2024 was a Monday — use it to generate Mon–Sun headers
+    final weekdayHeaders = List.generate(
+      7,
+      (i) => DateFormat('E', localeStr).format(DateTime(2024, 1, i + 1)),
+    );
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -84,7 +96,7 @@ class _CalendarViewState extends State<CalendarView> {
                 onPressed: _previousMonth,
               ),
               Text(
-                '${_monthName(_currentMonth.month)} ${_currentMonth.year}',
+                monthName,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               IconButton(
@@ -96,7 +108,7 @@ class _CalendarViewState extends State<CalendarView> {
           const SizedBox(height: 8),
           // Day headers
           Row(
-            children: ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+            children: weekdayHeaders
                 .map((d) => Expanded(
                       child: Center(
                         child: Text(
@@ -138,7 +150,7 @@ class _CalendarViewState extends State<CalendarView> {
                       margin: const EdgeInsets.all(1),
                       decoration: BoxDecoration(
                         color: hasSession
-                            ? AppColors.primary.withValues(alpha:0.2)
+                            ? AppColors.primary.withValues(alpha: 0.2)
                             : null,
                         borderRadius: BorderRadius.circular(8),
                         border: isToday
@@ -176,24 +188,5 @@ class _CalendarViewState extends State<CalendarView> {
     return date.year == now.year &&
         date.month == now.month &&
         date.day == now.day;
-  }
-
-  String _monthName(int month) {
-    const months = [
-      '',
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
-    return months[month];
   }
 }

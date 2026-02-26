@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:citta/l10n/app_localizations.dart';
 import 'home_screen.dart';
 import 'history_screen.dart';
 import 'stats_screen.dart';
@@ -17,6 +18,7 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
@@ -33,22 +35,22 @@ class _MainShellState extends State<MainShell> {
           if (index == 0) _dhyanaVisitCount++;
           _currentIndex = index;
         }),
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.self_improvement),
-            label: 'Dhyana',
+            icon: const Icon(Icons.self_improvement),
+            label: l10n.navDhyana,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label: 'History',
+            icon: const Icon(Icons.history),
+            label: l10n.navHistory,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart_rounded),
-            label: 'Stats',
+            icon: const Icon(Icons.bar_chart_rounded),
+            label: l10n.navStats,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.settings_outlined),
-            label: 'Settings',
+            icon: const Icon(Icons.settings_outlined),
+            label: l10n.navSettings,
           ),
         ],
       ),

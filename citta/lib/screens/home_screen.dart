@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:citta/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import '../providers/app_state.dart';
@@ -148,6 +149,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
+    final l10n = AppLocalizations.of(context)!;
     final quote = appState.quoteService.todayQuote;
     final isSessionActive = _timerService.state == TimerState.running ||
         _timerService.state == TimerState.paused;
@@ -211,7 +213,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             setState(() => _showPreSessionConfig = false),
                       )
                     else ...[
-                      _buildStartButton(),
+                      _buildStartButton(l10n),
                       const SizedBox(height: 16),
                       TextButton.icon(
                         onPressed: () =>
@@ -222,7 +224,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           color: AppColors.textSecondary,
                         ),
                         label: Text(
-                          _getConfigSummary(appState.config),
+                          _getConfigSummary(appState.config, l10n),
                           style: const TextStyle(
                             color: AppColors.textSecondary,
                             fontSize: 13,
@@ -241,7 +243,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildStartButton() {
+  Widget _buildStartButton(AppLocalizations l10n) {
     return GestureDetector(
       onTap: _startSession,
       child: Container(
@@ -252,16 +254,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           color: AppColors.primary,
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withValues(alpha:0.3),
+              color: AppColors.primary.withValues(alpha: 0.3),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
           ],
         ),
-        child: const Center(
+        child: Center(
           child: Text(
-            'Begin',
-            style: TextStyle(
+            l10n.homeBegin,
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 22,
               fontWeight: FontWeight.w500,
@@ -273,10 +275,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  String _getConfigSummary(config) {
-    final mode = config.timerMode == 'stopwatch' ? 'Stopwatch' : 'Countdown';
+  String _getConfigSummary(config, AppLocalizations l10n) {
+    final mode = config.timerMode == 'stopwatch'
+        ? l10n.homeStopwatch
+        : l10n.homeCountdown;
     if (config.timerMode == 'stopwatch') return mode;
     final mins = config.countdownDuration ~/ 60;
-    return '$mode \u00b7 $mins min';
+    return '$mode \u00b7 $mins ${l10n.homeMin}';
   }
 }

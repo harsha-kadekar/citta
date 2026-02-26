@@ -8,6 +8,7 @@ class ConfigModel {
   static const bool defaultIntervalEnabled = false;
   static const bool defaultCalendarViewEnabled = false;
   static const String defaultThemeMode = 'dark';
+  static const String defaultLanguage = 'system';
   static const List<String> defaultTags = ['calm', 'restless', 'deep', 'distracted'];
   static const List<String> defaultQuoteSources = [
     'subhashita',
@@ -31,6 +32,7 @@ class ConfigModel {
   List<String> quoteSources;
   String? userName;
   String themeMode; // 'dark', 'light', or 'system'
+  String language; // 'system', 'en', 'kn', 'sa', 'hi', 'te', 'ta', 'ml', 'fr', 'de', 'ja', 'he', 'zh'
 
   ConfigModel({
     this.timerMode = defaultTimerMode,
@@ -44,6 +46,7 @@ class ConfigModel {
     this.calendarViewEnabled = defaultCalendarViewEnabled,
     this.userName,
     this.themeMode = defaultThemeMode,
+    this.language = defaultLanguage,
     List<String>? tags,
     List<String>? quoteSources,
   })  : tags = tags ?? List.of(defaultTags),
@@ -62,6 +65,7 @@ class ConfigModel {
       calendarViewEnabled: json['calendarViewEnabled'] as bool? ?? defaultCalendarViewEnabled,
       userName: json['userName'] as String?,
       themeMode: json['themeMode'] as String? ?? defaultThemeMode,
+      language: json['language'] as String? ?? defaultLanguage,
       tags: (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList(),
       quoteSources: (json['quoteSources'] as List<dynamic>?)?.map((e) => e as String).toList(),
     );
@@ -80,6 +84,7 @@ class ConfigModel {
       'calendarViewEnabled': calendarViewEnabled,
       'userName': userName,
       'themeMode': themeMode,
+      'language': language,
       'tags': tags,
       'quoteSources': quoteSources,
     };
@@ -97,6 +102,7 @@ class ConfigModel {
     bool? calendarViewEnabled,
     String? userName,
     String? themeMode,
+    String? language,
     List<String>? tags,
     List<String>? quoteSources,
   }) {
@@ -112,6 +118,7 @@ class ConfigModel {
       calendarViewEnabled: calendarViewEnabled ?? this.calendarViewEnabled,
       userName: userName ?? this.userName,
       themeMode: themeMode ?? this.themeMode,
+      language: language ?? this.language,
       tags: tags ?? List.from(this.tags),
       quoteSources: quoteSources ?? List.from(this.quoteSources),
     );

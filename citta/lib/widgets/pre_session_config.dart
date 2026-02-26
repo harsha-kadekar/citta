@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:citta/l10n/app_localizations.dart';
 import '../models/config_model.dart';
 import '../services/timer_service.dart';
 import '../theme/app_theme.dart';
@@ -30,6 +31,7 @@ class PreSessionConfig extends StatelessWidget {
             ? TimerMode.stopwatch
             : TimerMode.countdown);
     final effectiveDuration = adHocDuration ?? config.countdownDuration;
+    final l10n = AppLocalizations.of(context)!;
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -48,7 +50,7 @@ class PreSessionConfig extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'Session Setup',
+            l10n.preSessionSetup,
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 20),
@@ -57,7 +59,7 @@ class PreSessionConfig extends StatelessWidget {
             children: [
               Expanded(
                 child: _ModeButton(
-                  label: 'Countdown',
+                  label: l10n.homeCountdown,
                   icon: Icons.timer,
                   selected: effectiveMode == TimerMode.countdown,
                   onTap: () => onModeChanged(TimerMode.countdown),
@@ -66,7 +68,7 @@ class PreSessionConfig extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: _ModeButton(
-                  label: 'Stopwatch',
+                  label: l10n.homeStopwatch,
                   icon: Icons.timer_off_outlined,
                   selected: effectiveMode == TimerMode.stopwatch,
                   onTap: () => onModeChanged(TimerMode.stopwatch),
@@ -78,7 +80,7 @@ class PreSessionConfig extends StatelessWidget {
           if (effectiveMode == TimerMode.countdown) ...[
             const SizedBox(height: 20),
             Text(
-              '${effectiveDuration ~/ 60} minutes',
+              l10n.settingsDurationMinutes(effectiveDuration ~/ 60),
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             Slider(
@@ -97,14 +99,14 @@ class PreSessionConfig extends StatelessWidget {
               Expanded(
                 child: OutlinedButton(
                   onPressed: onCancel,
-                  child: const Text('Cancel'),
+                  child: Text(l10n.actionCancel),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: ElevatedButton(
                   onPressed: onStart,
-                  child: const Text('Begin'),
+                  child: Text(l10n.actionBegin),
                 ),
               ),
             ],
@@ -136,7 +138,7 @@ class _ModeButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.primary.withValues(alpha:0.1)
+              ? AppColors.primary.withValues(alpha: 0.1)
               : AppColors.surfaceVariant,
           borderRadius: BorderRadius.circular(12),
           border: selected

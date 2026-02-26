@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:citta/l10n/app_localizations.dart';
+import 'package:citta/l10n/intl_locale.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:intl/intl.dart';
 import '../models/session_model.dart';
 import '../theme/app_theme.dart';
 
@@ -10,13 +13,15 @@ class SessionDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final localeStr = safeIntlLocale(Localizations.localeOf(context).toString());
     final date = session.date.toLocal();
     final dateStr =
-        '${_monthName(date.month)} ${date.day}, ${date.year} at ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+        '${DateFormat('MMM d, y', localeStr).format(date)} at ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Session'),
+        title: Text(l10n.sessionTitle),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -49,8 +54,8 @@ class SessionDetailScreen extends StatelessWidget {
                     children: [
                       Text(
                         session.timerMode == 'countdown'
-                            ? 'Countdown'
-                            : 'Stopwatch',
+                            ? l10n.sessionCountdown
+                            : l10n.sessionStopwatch,
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                       if (session.completedFully) ...[
@@ -58,9 +63,9 @@ class SessionDetailScreen extends StatelessWidget {
                         const Icon(Icons.check_circle,
                             size: 16, color: AppColors.success),
                         const SizedBox(width: 4),
-                        const Text(
-                          'Completed',
-                          style: TextStyle(
+                        Text(
+                          l10n.sessionCompleted,
+                          style: const TextStyle(
                             fontSize: 13,
                             color: AppColors.success,
                           ),
@@ -80,7 +85,8 @@ class SessionDetailScreen extends StatelessWidget {
                 children: session.tags
                     .map((tag) => Chip(
                           label: Text(tag),
-                          backgroundColor: AppColors.primaryLight.withValues(alpha:0.2),
+                          backgroundColor:
+                              AppColors.primaryLight.withValues(alpha: 0.2),
                           labelStyle: const TextStyle(
                             fontSize: 13,
                             color: AppColors.primaryDark,
@@ -93,7 +99,7 @@ class SessionDetailScreen extends StatelessWidget {
             if (session.notes != null && session.notes!.isNotEmpty) ...[
               const SizedBox(height: 24),
               Text(
-                'Notes',
+                l10n.sessionNotes,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 12),
@@ -121,10 +127,10 @@ class SessionDetailScreen extends StatelessWidget {
             ],
             if (session.notes == null || session.notes!.isEmpty) ...[
               const SizedBox(height: 24),
-              const Center(
+              Center(
                 child: Text(
-                  'No notes for this session',
-                  style: TextStyle(
+                  l10n.sessionNoNotes,
+                  style: const TextStyle(
                     color: AppColors.textHint,
                     fontStyle: FontStyle.italic,
                   ),
@@ -146,24 +152,5 @@ class SessionDetailScreen extends StatelessWidget {
     }
     if (mins == 0) return '${secs}s';
     return secs > 0 ? '${mins}m ${secs}s' : '${mins}m';
-  }
-
-  String _monthName(int month) {
-    const months = [
-      '',
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return months[month];
   }
 }

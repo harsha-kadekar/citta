@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:citta/l10n/app_localizations.dart';
 import '../models/session_model.dart';
 import '../theme/app_theme.dart';
 import 'notes_screen.dart';
@@ -37,6 +38,7 @@ class _SessionCompleteScreenState extends State<SessionCompleteScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -50,7 +52,7 @@ class _SessionCompleteScreenState extends State<SessionCompleteScreen> {
               ),
               const SizedBox(height: 24),
               Text(
-                'Session Complete',
+                l10n.sessionComplete,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w500,
                     ),
@@ -65,7 +67,7 @@ class _SessionCompleteScreenState extends State<SessionCompleteScreen> {
               const SizedBox(height: 40),
               TextButton(
                 onPressed: _continue,
-                child: const Text('Continue'),
+                child: Text(l10n.actionContinue),
               ),
             ],
           ),

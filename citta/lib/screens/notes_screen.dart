@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:citta/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import '../models/session_model.dart';
 import '../providers/app_state.dart';
@@ -73,16 +74,17 @@ class _NotesScreenState extends State<NotesScreen> {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
+    final l10n = AppLocalizations.of(context)!;
     final availableTags = appState.config.tags;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Session Notes'),
+        title: Text(l10n.notesTitle),
         leading: const SizedBox.shrink(),
         actions: [
           TextButton(
             onPressed: () => _saveSession(skip: true),
-            child: const Text('Skip'),
+            child: Text(l10n.actionSkip),
           ),
         ],
       ),
@@ -120,7 +122,7 @@ class _NotesScreenState extends State<NotesScreen> {
               const SizedBox(height: 24),
               // Notes input
               Text(
-                'How was your practice?',
+                l10n.notesPrompt,
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: 12),
@@ -129,9 +131,8 @@ class _NotesScreenState extends State<NotesScreen> {
                 maxLines: 8,
                 onChanged: _onTextChanged,
                 decoration: InputDecoration(
-                  hintText:
-                      'Write about your experience... (plain text or markdown)',
-                  counterText: '$_wordCount / $_maxWords words',
+                  hintText: l10n.notesHint,
+                  counterText: l10n.notesWordCount(_wordCount),
                   counterStyle: TextStyle(
                     color: _wordCount >= _maxWords
                         ? AppColors.error
@@ -142,7 +143,7 @@ class _NotesScreenState extends State<NotesScreen> {
               const SizedBox(height: 24),
               // Tags
               Text(
-                'Tags',
+                l10n.notesTags,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 12),
@@ -163,7 +164,8 @@ class _NotesScreenState extends State<NotesScreen> {
                         }
                       });
                     },
-                    selectedColor: AppColors.primaryLight.withValues(alpha:0.3),
+                    selectedColor:
+                        AppColors.primaryLight.withValues(alpha: 0.3),
                     checkmarkColor: AppColors.primary,
                   );
                 }).toList(),
@@ -174,7 +176,7 @@ class _NotesScreenState extends State<NotesScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () => _saveSession(),
-                  child: const Text('Save'),
+                  child: Text(l10n.actionSave),
                 ),
               ),
             ],

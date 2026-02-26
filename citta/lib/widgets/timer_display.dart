@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:citta/l10n/app_localizations.dart';
 import '../services/timer_service.dart';
 import '../theme/app_theme.dart';
 
@@ -10,6 +11,7 @@ class TimerDisplay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isCountdown = timerService.mode == TimerMode.countdown;
+    final l10n = AppLocalizations.of(context)!;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -44,8 +46,8 @@ class TimerDisplay extends StatelessWidget {
                     shape: BoxShape.circle,
                     border: Border.all(
                       color: timerService.state == TimerState.paused
-                          ? AppColors.secondary.withValues(alpha:0.3)
-                          : AppColors.primary.withValues(alpha:0.3),
+                          ? AppColors.secondary.withValues(alpha: 0.3)
+                          : AppColors.primary.withValues(alpha: 0.3),
                       width: 4,
                     ),
                   ),
@@ -65,9 +67,9 @@ class TimerDisplay extends StatelessWidget {
                     ),
                   ),
                   if (timerService.state == TimerState.paused)
-                    const Text(
-                      'PAUSED',
-                      style: TextStyle(
+                    Text(
+                      l10n.timerPaused,
+                      style: const TextStyle(
                         fontSize: 12,
                         color: AppColors.secondary,
                         letterSpacing: 3,

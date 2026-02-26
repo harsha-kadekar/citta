@@ -110,17 +110,19 @@ void main() {
     });
 
     test('multiple sessions on same day count as one day for streak', () {
-      final today = DateTime.now();
+      // Pin to noon so subtracting 2 hours never crosses midnight.
+      final now = DateTime.now();
+      final todayNoon = DateTime(now.year, now.month, now.day, 12);
       final sessions = [
         SessionModel(
           id: '1',
-          date: today,
+          date: todayNoon,
           duration: 300,
           timerMode: 'countdown',
         ),
         SessionModel(
           id: '2',
-          date: today.subtract(const Duration(hours: 2)),
+          date: todayNoon.subtract(const Duration(hours: 2)),
           duration: 300,
           timerMode: 'countdown',
         ),
