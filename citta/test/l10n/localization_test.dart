@@ -189,11 +189,11 @@ void main() {
   group('Locale switching', () {
     testWidgets('Hebrew locale results in RTL text direction', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          locale: const Locale('he'),
+        const MaterialApp(
+          locale: Locale('he'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: const Scaffold(body: Text('Test')),
+          home: Scaffold(body: Text('Test')),
         ),
       );
       // Hebrew locale should set RTL direction at the MaterialApp level
