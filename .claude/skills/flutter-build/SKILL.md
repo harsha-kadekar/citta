@@ -7,9 +7,7 @@ Build the Citta Flutter app as a release APK.
 
 ## Setup: resolve paths first
 
-Before running, detect the required paths:
-
-1. **Flutter binary**: run `which flutter` — if not found, check `$HOME/flutter/flutter/bin/flutter`
+1. **Flutter binary**: check `$HOME/flutter/flutter/bin/flutter` first (flutter is not on $PATH on this machine); fall back to `which flutter` if that path does not exist
 2. **JAVA_HOME**: resolve Java 17 home in this order:
    - Run `mise where java@17` to get the exact path
    - If mise is unavailable, look for a `17.*` directory under `$HOME/.local/share/mise/installs/java/`
@@ -18,7 +16,7 @@ Before running, detect the required paths:
 
 ## Run build
 
-From the `citta/` subdirectory of the project, first get dependencies then build:
+From `$HOME/workspace/Citta/citta/`, first get dependencies then build:
 
 ```
 JAVA_HOME=<resolved-java-home> \
@@ -33,5 +31,5 @@ ANDROID_SDK_ROOT=<resolved-android-sdk> \
 ```
 
 ## Report results
-- If successful, report the APK location: `citta/build/app/outputs/flutter-apk/app-release.apk`
-- If it fails, show the error output and suggest what might be wrong
+- If successful, report the APK location and file size
+- If it fails, show the full error output
