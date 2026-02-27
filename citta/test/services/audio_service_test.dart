@@ -100,7 +100,7 @@ void main() {
         bellPlayer.lastAsset,
         'assets/sounds/temple-bells.mp3',
       );
-      expect(bellPlayer.calls, containsAllInOrder(['setAsset:assets/sounds/temple-bells.mp3', 'play']));
+      expect(bellPlayer.calls, containsAllInOrder(['setAsset:assets/sounds/temple-bells.mp3', 'seek:1ms', 'play']));
     });
 
     test('2. does nothing for an unknown bundled name', () async {
@@ -113,7 +113,7 @@ void main() {
       await service.playBell('custom:/path/to/bell.mp3');
 
       expect(bellPlayer.lastFilePath, '/path/to/bell.mp3');
-      expect(bellPlayer.calls, containsAllInOrder(['setFilePath:/path/to/bell.mp3', 'play']));
+      expect(bellPlayer.calls, containsAllInOrder(['setFilePath:/path/to/bell.mp3', 'seek:1ms', 'play']));
     });
 
     test('4. does nothing for an unrecognised prefix', () async {
@@ -141,7 +141,7 @@ void main() {
       await service.previewSound('bundled:singing_bell');
 
       expect(bellPlayer.lastAsset, 'assets/sounds/singing-bell.mp3');
-      expect(bellPlayer.calls, containsAllInOrder(['setAsset:assets/sounds/singing-bell.mp3', 'play']));
+      expect(bellPlayer.calls, containsAllInOrder(['setAsset:assets/sounds/singing-bell.mp3', 'seek:1ms', 'play']));
     });
   });
 
@@ -252,6 +252,59 @@ void main() {
       await service.stopBackgroundMusic();
 
       expect(service.isMusicPlaying, isFalse);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // warmUp()
+  // -------------------------------------------------------------------------
+
+  group('warmUp()', () {
+    test('17. runs full warm-up sequence for a valid bundled ID', () async {
+      await service.warmUp('bundled:temple_bells');
+
+      expect(bellPlayer.calls, containsAllInOrder([
+        'setAsset:assets/sounds/temple-bells.mp3',
+        'setVolume:0.0',
+        'seek:1ms',
+        'play',
+        'stop',
+        'setVolume:1.0',
+      ]));
+    });
+
+    test('18. does nothing for an unknown bundled name', () async {
+      await service.warmUp('bundled:nonexistent');
+
+      expect(bellPlayer.calls, isEmpty);
+    });
+
+    test('19. runs warm-up sequence for a custom file path', () async {
+      await service.warmUp('custom:/path/to/bell.mp3');
+
+      expect(bellPlayer.calls, containsAllInOrder([
+        'setFilePath:/path/to/bell.mp3',
+        'setVolume:0.0',
+        'seek:1ms',
+        'play',
+        'stop',
+        'setVolume:1.0',
+      ]));
+    });
+
+    test('20. does nothing for an unrecognised prefix', () async {
+      await service.warmUp('raw:something');
+
+      expect(bellPlayer.calls, isEmpty);
+    });
+
+    test('21. swallows errors without throwing', () async {
+      bellPlayer.shouldThrow = true;
+
+      await expectLater(
+        service.warmUp('bundled:temple_bells'),
+        completes,
+      );
     });
   });
 }

@@ -92,11 +92,13 @@ class AudioService {
         final assetPath = bundledSounds[name];
         if (assetPath != null) {
           await _bellPlayer.setAsset(assetPath);
+          await _bellPlayer.seek(const Duration(milliseconds: 1));
           await _bellPlayer.play();
         }
       } else if (bellId.startsWith('custom:')) {
         final path = bellId.substring(7);
         await _bellPlayer.setFilePath(path);
+        await _bellPlayer.seek(const Duration(milliseconds: 1));
         await _bellPlayer.play();
       }
     } catch (e) {
@@ -111,6 +113,31 @@ class AudioService {
   /// Preview a bell sound (same as play, used for settings).
   Future<void> previewSound(String bellId) async {
     await playBell(bellId);
+  }
+
+  /// Pre-warms the Android audio subsystem by silently loading and playing
+  /// the configured bell sound for a brief instant. Errors are swallowed —
+  /// this is a best-effort warm-up only.
+  Future<void> warmUp(String bellId) async {
+    try {
+      if (bellId.startsWith('bundled:')) {
+        final name = bellId.substring(8);
+        final assetPath = bundledSounds[name];
+        if (assetPath == null) return;
+        await _bellPlayer.setAsset(assetPath);
+      } else if (bellId.startsWith('custom:')) {
+        await _bellPlayer.setFilePath(bellId.substring(7));
+      } else {
+        return;
+      }
+      await _bellPlayer.setVolume(0);
+      await _bellPlayer.seek(const Duration(milliseconds: 1));
+      await _bellPlayer.play();
+      await _bellPlayer.stop();
+      await _bellPlayer.setVolume(1);
+    } catch (e) {
+      debugPrint('AudioService: warmUp failed (non-fatal): $e');
+    }
   }
 
   /// Start background music playback (looping).
