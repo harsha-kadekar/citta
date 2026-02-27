@@ -63,7 +63,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             child: Text(l10n.actionDelete,
-                style: const TextStyle(color: AppColors.error)),
+                style: TextStyle(color: Theme.of(context).colorScheme.error)),
           ),
         ],
       ),
@@ -113,13 +113,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    _buildFilterChip(l10n.historyFilterAll, _selectedFilterTags.isEmpty, () {
+                    _buildFilterChip(context, l10n.historyFilterAll, _selectedFilterTags.isEmpty, () {
                       setState(() => _selectedFilterTags.clear());
                     }),
                     const SizedBox(width: 8),
                     ...allTags.map((tag) => Padding(
                           padding: const EdgeInsets.only(right: 8),
                           child: _buildFilterChip(
+                            context,
                             tag,
                             _selectedFilterTags.contains(tag),
                             () {
@@ -140,7 +141,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           // Session list
           Expanded(
             child: sessions.isEmpty
-                ? _buildEmptyState(l10n)
+                ? _buildEmptyState(context, l10n)
                 : ListView.builder(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 8),
@@ -155,25 +156,30 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  Widget _buildFilterChip(String label, bool selected, VoidCallback onTap) {
+  Widget _buildFilterChip(BuildContext context, String label, bool selected, VoidCallback onTap) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceVariant = isDark ? DarkAppColors.surfaceVariant : AppColors.surfaceVariant;
+    final textSecondary = isDark ? DarkAppColors.textSecondary : AppColors.textSecondary;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.primary.withValues(alpha: 0.15)
-              : AppColors.surfaceVariant,
+              ? colorScheme.primary.withValues(alpha: 0.15)
+              : surfaceVariant,
           borderRadius: BorderRadius.circular(20),
           border: selected
-              ? Border.all(color: AppColors.primary, width: 1)
+              ? Border.all(color: colorScheme.primary, width: 1)
               : null,
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize: 13,
-            color: selected ? AppColors.primary : AppColors.textSecondary,
+            color: selected ? colorScheme.primary : textSecondary,
             fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
           ),
         ),
@@ -190,6 +196,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
         '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
     final duration = _formatDuration(session.duration);
     final isSelected = _selectedSessionIds.contains(session.id);
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceVariant = isDark ? DarkAppColors.surfaceVariant : AppColors.surfaceVariant;
+    final textSecondary = isDark ? DarkAppColors.textSecondary : AppColors.textSecondary;
+    final textHint = isDark ? DarkAppColors.textHint : AppColors.textHint;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -217,7 +228,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ? Checkbox(
                 value: isSelected,
                 onChanged: (_) => _toggleSessionSelection(session.id),
-                activeColor: AppColors.primary,
+                activeColor: colorScheme.primary,
               )
             : null,
         title: Row(
@@ -239,15 +250,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
             const SizedBox(height: 4),
             Row(
               children: [
-                const Icon(Icons.timer_outlined,
-                    size: 14, color: AppColors.textHint),
+                Icon(Icons.timer_outlined, size: 14, color: textHint),
                 const SizedBox(width: 4),
                 Text(duration,
                     style: Theme.of(context).textTheme.bodyMedium),
                 if (session.completedFully) ...[
                   const SizedBox(width: 8),
-                  const Icon(Icons.check_circle,
-                      size: 14, color: AppColors.success),
+                  Icon(Icons.check_circle, size: 14, color: colorScheme.primary),
                 ],
               ],
             ),
@@ -260,14 +269,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: AppColors.surfaceVariant,
+                            color: surfaceVariant,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
                             tag,
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: 11,
-                                color: AppColors.textSecondary),
+                                color: textSecondary),
                           ),
                         ))
                     .toList(),
@@ -277,25 +286,27 @@ class _HistoryScreenState extends State<HistoryScreen> {
         ),
         trailing: _selectionMode
             ? null
-            : const Icon(Icons.chevron_right,
-                color: AppColors.textHint, size: 20),
+            : Icon(Icons.chevron_right, color: textHint, size: 20),
       ),
     );
   }
 
-  Widget _buildEmptyState(AppLocalizations l10n) {
+  Widget _buildEmptyState(BuildContext context, AppLocalizations l10n) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textHint = isDark ? DarkAppColors.textHint : AppColors.textHint;
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.self_improvement,
-              size: 64, color: AppColors.textHint.withValues(alpha: 0.5)),
+              size: 64, color: textHint.withValues(alpha: 0.5)),
           const SizedBox(height: 16),
           Text(
             l10n.historyEmpty,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
-              color: AppColors.textHint,
+              color: textHint,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -304,7 +315,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             l10n.historyEmptyHint,
             style: TextStyle(
               fontSize: 14,
-              color: AppColors.textHint.withValues(alpha: 0.7),
+              color: textHint.withValues(alpha: 0.7),
             ),
             textAlign: TextAlign.center,
           ),

@@ -33,16 +33,20 @@ class PreSessionConfig extends StatelessWidget {
     final effectiveDuration = adHocDuration ?? config.countdownDuration;
     final l10n = AppLocalizations.of(context)!;
 
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardShadow = isDark ? DarkAppColors.cardShadow : AppColors.cardShadow;
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: AppColors.cardShadow,
+            color: cardShadow,
             blurRadius: 12,
-            offset: Offset(0, 4),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -88,7 +92,7 @@ class PreSessionConfig extends StatelessWidget {
               min: 60,
               max: 7200,
               divisions: 119,
-              activeColor: AppColors.primary,
+              activeColor: colorScheme.primary,
               onChanged: (val) => onDurationChanged(val.round()),
             ),
           ],
@@ -132,24 +136,30 @@ class _ModeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceVariant = isDark ? DarkAppColors.surfaceVariant : AppColors.surfaceVariant;
+    final textSecondary = isDark ? DarkAppColors.textSecondary : AppColors.textSecondary;
+    final textHint = isDark ? DarkAppColors.textHint : AppColors.textHint;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.primary.withValues(alpha: 0.1)
-              : AppColors.surfaceVariant,
+              ? colorScheme.primary.withValues(alpha: 0.1)
+              : surfaceVariant,
           borderRadius: BorderRadius.circular(12),
           border: selected
-              ? Border.all(color: AppColors.primary, width: 1.5)
+              ? Border.all(color: colorScheme.primary, width: 1.5)
               : null,
         ),
         child: Column(
           children: [
             Icon(
               icon,
-              color: selected ? AppColors.primary : AppColors.textHint,
+              color: selected ? colorScheme.primary : textHint,
               size: 24,
             ),
             const SizedBox(height: 4),
@@ -157,8 +167,7 @@ class _ModeButton extends StatelessWidget {
               label,
               style: TextStyle(
                 fontSize: 13,
-                color:
-                    selected ? AppColors.primary : AppColors.textSecondary,
+                color: selected ? colorScheme.primary : textSecondary,
                 fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
               ),
             ),

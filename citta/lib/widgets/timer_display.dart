@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:citta/l10n/app_localizations.dart';
 import '../services/timer_service.dart';
-import '../theme/app_theme.dart';
+
 
 class TimerDisplay extends StatelessWidget {
   final TimerService timerService;
@@ -12,6 +12,7 @@ class TimerDisplay extends StatelessWidget {
   Widget build(BuildContext context) {
     final isCountdown = timerService.mode == TimerMode.countdown;
     final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -30,11 +31,11 @@ class TimerDisplay extends StatelessWidget {
                   child: CircularProgressIndicator(
                     value: timerService.progress,
                     strokeWidth: 4,
-                    backgroundColor: AppColors.divider,
+                    backgroundColor: Theme.of(context).dividerColor,
                     valueColor: AlwaysStoppedAnimation<Color>(
                       timerService.state == TimerState.paused
-                          ? AppColors.secondary
-                          : AppColors.primary,
+                          ? colorScheme.secondary
+                          : colorScheme.primary,
                     ),
                   ),
                 ),
@@ -46,8 +47,8 @@ class TimerDisplay extends StatelessWidget {
                     shape: BoxShape.circle,
                     border: Border.all(
                       color: timerService.state == TimerState.paused
-                          ? AppColors.secondary.withValues(alpha: 0.3)
-                          : AppColors.primary.withValues(alpha: 0.3),
+                          ? colorScheme.secondary.withValues(alpha: 0.3)
+                          : colorScheme.primary.withValues(alpha: 0.3),
                       width: 4,
                     ),
                   ),
@@ -58,20 +59,20 @@ class TimerDisplay extends StatelessWidget {
                 children: [
                   Text(
                     timerService.displayTime,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 48,
                       fontWeight: FontWeight.w300,
-                      color: AppColors.textPrimary,
+                      color: colorScheme.onSurface,
                       letterSpacing: 2,
-                      fontFeatures: [FontFeature.tabularFigures()],
+                      fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
                   if (timerService.state == TimerState.paused)
                     Text(
                       l10n.timerPaused,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.secondary,
+                        color: colorScheme.secondary,
                         letterSpacing: 3,
                         fontWeight: FontWeight.w500,
                       ),

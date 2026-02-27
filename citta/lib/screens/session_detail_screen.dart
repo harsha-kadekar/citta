@@ -19,6 +19,11 @@ class SessionDetailScreen extends StatelessWidget {
     final dateStr =
         '${DateFormat('MMM d, y', localeStr).format(date)} at ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
 
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceVariant = isDark ? DarkAppColors.surfaceVariant : AppColors.surfaceVariant;
+    final textHint = isDark ? DarkAppColors.textHint : AppColors.textHint;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.sessionTitle),
@@ -39,7 +44,7 @@ class SessionDetailScreen extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppColors.surfaceVariant,
+                color: surfaceVariant,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
@@ -60,14 +65,14 @@ class SessionDetailScreen extends StatelessWidget {
                       ),
                       if (session.completedFully) ...[
                         const SizedBox(width: 8),
-                        const Icon(Icons.check_circle,
-                            size: 16, color: AppColors.success),
+                        Icon(Icons.check_circle,
+                            size: 16, color: colorScheme.primary),
                         const SizedBox(width: 4),
                         Text(
                           l10n.sessionCompleted,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
-                            color: AppColors.success,
+                            color: colorScheme.primary,
                           ),
                         ),
                       ],
@@ -86,10 +91,10 @@ class SessionDetailScreen extends StatelessWidget {
                     .map((tag) => Chip(
                           label: Text(tag),
                           backgroundColor:
-                              AppColors.primaryLight.withValues(alpha: 0.2),
-                          labelStyle: const TextStyle(
+                              colorScheme.primary.withValues(alpha: 0.15),
+                          labelStyle: TextStyle(
                             fontSize: 13,
-                            color: AppColors.primaryDark,
+                            color: colorScheme.primary,
                           ),
                         ))
                     .toList(),
@@ -107,9 +112,9 @@ class SessionDetailScreen extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
+                  color: colorScheme.surface,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.divider),
+                  border: Border.all(color: Theme.of(context).dividerColor),
                 ),
                 child: MarkdownBody(
                   data: session.notes!,
@@ -118,7 +123,7 @@ class SessionDetailScreen extends StatelessWidget {
                     h1: Theme.of(context).textTheme.headlineMedium,
                     h2: Theme.of(context).textTheme.headlineSmall,
                     blockquoteDecoration: BoxDecoration(
-                      color: AppColors.surfaceVariant,
+                      color: surfaceVariant,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -130,8 +135,8 @@ class SessionDetailScreen extends StatelessWidget {
               Center(
                 child: Text(
                   l10n.sessionNoNotes,
-                  style: const TextStyle(
-                    color: AppColors.textHint,
+                  style: TextStyle(
+                    color: textHint,
                     fontStyle: FontStyle.italic,
                   ),
                 ),

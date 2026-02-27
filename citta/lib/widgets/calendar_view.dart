@@ -72,16 +72,22 @@ class _CalendarViewState extends State<CalendarView> {
       (i) => DateFormat('E', localeStr).format(DateTime(2024, 1, i + 1)),
     );
 
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardShadow = isDark ? DarkAppColors.cardShadow : AppColors.cardShadow;
+    final textHint = isDark ? DarkAppColors.textHint : AppColors.textHint;
+    final textSecondary = isDark ? DarkAppColors.textSecondary : AppColors.textSecondary;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: AppColors.cardShadow,
+            color: cardShadow,
             blurRadius: 8,
-            offset: Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -113,9 +119,9 @@ class _CalendarViewState extends State<CalendarView> {
                       child: Center(
                         child: Text(
                           d,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: AppColors.textHint,
+                            color: textHint,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -150,12 +156,11 @@ class _CalendarViewState extends State<CalendarView> {
                       margin: const EdgeInsets.all(1),
                       decoration: BoxDecoration(
                         color: hasSession
-                            ? AppColors.primary.withValues(alpha: 0.2)
+                            ? colorScheme.primary.withValues(alpha: 0.2)
                             : null,
                         borderRadius: BorderRadius.circular(8),
                         border: isToday
-                            ? Border.all(
-                                color: AppColors.primary, width: 1.5)
+                            ? Border.all(color: colorScheme.primary, width: 1.5)
                             : null,
                       ),
                       child: Center(
@@ -164,8 +169,8 @@ class _CalendarViewState extends State<CalendarView> {
                           style: TextStyle(
                             fontSize: 13,
                             color: hasSession
-                                ? AppColors.primaryDark
-                                : AppColors.textSecondary,
+                                ? colorScheme.primary
+                                : textSecondary,
                             fontWeight: hasSession
                                 ? FontWeight.w600
                                 : FontWeight.w400,

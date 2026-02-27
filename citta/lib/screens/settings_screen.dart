@@ -666,6 +666,9 @@ class SettingsScreen extends StatelessWidget {
       builder: (context) => AlertDialog(
         title: Text(l10n.settingsImport),
         content: Text(l10n.settingsImportReplaceMsg),
+        actionsAlignment: MainAxisAlignment.end,
+        actionsOverflowAlignment: OverflowBarAlignment.end,
+        actionsOverflowButtonSpacing: 8,
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
