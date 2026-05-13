@@ -61,14 +61,14 @@ Future<AppState> _makeAndInit(
 
 Widget _testApp(AppState appState) => ChangeNotifierProvider<AppState>.value(
       value: appState,
-      child: MaterialApp(
-        localizationsDelegates: const [
+      child: const MaterialApp(
+        localizationsDelegates: [
           AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
         ],
         supportedLocales: AppLocalizations.supportedLocales,
-        home: const HomeScreen(),
+        home: HomeScreen(),
       ),
     );
 
