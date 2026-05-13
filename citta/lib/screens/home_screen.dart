@@ -51,7 +51,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final appState = context.read<AppState>();
     _timerService.onComplete = () {
       HapticFeedback.heavyImpact();
-      if (mounted) _onSessionComplete();
+      if (mounted) _onSessionComplete(completedFully: true);
     };
     _timerService.onIntervalBell = () {
       _playBell(appState.config.bellInterval);
@@ -104,7 +104,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
   }
 
-  void _onSessionComplete() {
+  void _onSessionComplete({required bool completedFully}) {
     WakelockPlus.disable();
     final appState = context.read<AppState>();
     appState.audioService.stopBackgroundMusic();
@@ -117,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       timerMode: _timerService.mode == TimerMode.countdown
           ? 'countdown'
           : 'stopwatch',
-      completedFully: _timerService.state == TimerState.completed,
+      completedFully: completedFully,
     );
 
     Navigator.of(context).push(
@@ -135,7 +135,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void _stopSession() {
     _timerService.stop();
     HapticFeedback.mediumImpact();
-    _onSessionComplete();
+    // Stopwatch sessions are always complete (no fixed target to miss).
+    // Countdown sessions stopped early are incomplete.
+    _onSessionComplete(
+      completedFully: _timerService.mode == TimerMode.stopwatch,
+    );
   }
 
   @override
