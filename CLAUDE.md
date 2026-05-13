@@ -23,9 +23,13 @@ When assigned a GitHub issue, ALWAYS follow this order — no exceptions:
 - Write the minimal code to make the tests pass
 - Run tests and confirm they pass
 
-### Step 5: Refactor
+### Step 5: Analyze
+- Run `flutter analyze` and fix every issue before proceeding
+- No warnings or errors are acceptable
+
+### Step 6: Refactor
 - Clean up the implementation while keeping tests green
-- Run tests again after every meaningful change
+- Run `flutter analyze` and tests again after every meaningful change
 
 ## Hard Rules
 - Never skip the planning step
