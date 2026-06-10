@@ -1,0 +1,4 @@
+storeFile=/path/to/citta-release.jks
+storePassword=your-store-password
+keyAlias=citta
+keyPassword=your-key-password
