@@ -1,4 +1,4 @@
-package com.example.citta
+package com.hkadekar.citta
 
 import io.flutter.embedding.android.FlutterActivity
 
