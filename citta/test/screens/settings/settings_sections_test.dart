@@ -14,6 +14,7 @@ import 'package:citta/screens/settings/timer_section.dart';
 import 'package:citta/screens/settings/bells_section.dart';
 import 'package:citta/screens/settings/tags_section.dart';
 import 'package:citta/screens/settings/data_section.dart';
+import 'package:citta/screens/settings/settings_widgets.dart';
 import 'package:citta/services/audio_service.dart';
 import 'package:citta/services/quote_service.dart';
 import 'package:citta/services/stats_service.dart';
@@ -38,6 +39,8 @@ class _FakeAudioPlayer implements AudioPlayerBase {
 // Helpers
 // ---------------------------------------------------------------------------
 
+// IMPORTANT: call only from setUp(), never inside testWidgets() — real async
+// I/O does not complete under fakeAsync.
 Future<AppState> _makeAndInit(String basePath,
     {ConfigModel? initialConfig}) async {
   final storage = StorageService.withBasePath(basePath);
@@ -78,33 +81,23 @@ void main() {
   // ProfileSection
   // ---------------------------------------------------------------------------
 
-  group('ProfileSection', () {
+  group('ProfileSection – no user name', () {
     late Directory tmpDir;
     late AppState appState;
 
     setUp(() async {
       tmpDir = Directory.systemTemp.createTempSync('citta_settings_test_');
+      appState = await _makeAndInit(tmpDir.path);
     });
-
     tearDown(() => tmpDir.deleteSync(recursive: true));
 
     testWidgets('shows "not set" when userName is null', (tester) async {
-      appState = await _makeAndInit(tmpDir.path);
       await tester.pumpWidget(_wrap(appState, const ProfileSection()));
       await tester.pump();
-      expect(find.textContaining('not set', findRichText: true), findsOneWidget);
-    });
-
-    testWidgets('shows userName when set', (tester) async {
-      appState = await _makeAndInit(tmpDir.path,
-          initialConfig: ConfigModel(userName: 'Arjuna'));
-      await tester.pumpWidget(_wrap(appState, const ProfileSection()));
-      await tester.pump();
-      expect(find.text('Arjuna'), findsOneWidget);
+      expect(find.text('Not set'), findsOneWidget);
     });
 
     testWidgets('tapping name tile opens edit dialog', (tester) async {
-      appState = await _makeAndInit(tmpDir.path);
       await tester.pumpWidget(_wrap(appState, const ProfileSection()));
       await tester.pump();
       await tester.tap(find.byType(ListTile).first);
@@ -114,30 +107,57 @@ void main() {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // AppearanceSection
-  // ---------------------------------------------------------------------------
-
-  group('AppearanceSection', () {
+  group('ProfileSection – with user name', () {
     late Directory tmpDir;
     late AppState appState;
 
     setUp(() async {
       tmpDir = Directory.systemTemp.createTempSync('citta_settings_test_');
+      appState = await _makeAndInit(tmpDir.path,
+          initialConfig: ConfigModel(userName: 'Arjuna'));
     });
+    tearDown(() => tmpDir.deleteSync(recursive: true));
 
+    testWidgets('shows userName when set', (tester) async {
+      await tester.pumpWidget(_wrap(appState, const ProfileSection()));
+      await tester.pump();
+      expect(find.text('Arjuna'), findsOneWidget);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // AppearanceSection
+  // ---------------------------------------------------------------------------
+
+  group('AppearanceSection – light theme', () {
+    late Directory tmpDir;
+    late AppState appState;
+
+    setUp(() async {
+      tmpDir = Directory.systemTemp.createTempSync('citta_settings_test_');
+      appState = await _makeAndInit(tmpDir.path,
+          initialConfig: ConfigModel(themeMode: 'light'));
+    });
     tearDown(() => tmpDir.deleteSync(recursive: true));
 
     testWidgets('shows current theme name', (tester) async {
-      appState = await _makeAndInit(tmpDir.path,
-          initialConfig: ConfigModel(themeMode: 'light'));
       await tester.pumpWidget(_wrap(appState, const AppearanceSection()));
       await tester.pump();
       expect(find.textContaining('Light', findRichText: true), findsOneWidget);
     });
+  });
+
+  group('AppearanceSection – default', () {
+    late Directory tmpDir;
+    late AppState appState;
+
+    setUp(() async {
+      tmpDir = Directory.systemTemp.createTempSync('citta_settings_test_');
+      appState = await _makeAndInit(tmpDir.path);
+    });
+    tearDown(() => tmpDir.deleteSync(recursive: true));
 
     testWidgets('tapping theme tile opens picker dialog', (tester) async {
-      appState = await _makeAndInit(tmpDir.path);
       await tester.pumpWidget(_wrap(appState, const AppearanceSection()));
       await tester.pump();
       await tester.tap(find.byType(ListTile).first);
@@ -146,7 +166,6 @@ void main() {
     });
 
     testWidgets('tapping language tile opens picker dialog', (tester) async {
-      appState = await _makeAndInit(tmpDir.path);
       await tester.pumpWidget(_wrap(appState, const AppearanceSection()));
       await tester.pump();
       await tester.tap(find.byType(ListTile).at(1));
@@ -159,48 +178,32 @@ void main() {
   // TimerSection
   // ---------------------------------------------------------------------------
 
-  group('TimerSection', () {
+  group('TimerSection – countdown mode', () {
     late Directory tmpDir;
     late AppState appState;
 
     setUp(() async {
       tmpDir = Directory.systemTemp.createTempSync('citta_settings_test_');
-    });
-
-    tearDown(() => tmpDir.deleteSync(recursive: true));
-
-    testWidgets('shows Countdown label when timerMode is countdown',
-        (tester) async {
-      appState = await _makeAndInit(tmpDir.path,
-          initialConfig: ConfigModel(timerMode: 'countdown'));
-      await tester.pumpWidget(_wrap(appState, const TimerSection()));
-      await tester.pump();
-      expect(find.textContaining('Countdown', findRichText: true),
-          findsOneWidget);
-    });
-
-    testWidgets('shows duration tile when countdown mode is active',
-        (tester) async {
       appState = await _makeAndInit(tmpDir.path,
           initialConfig:
               ConfigModel(timerMode: 'countdown', countdownDuration: 900));
+    });
+    tearDown(() => tmpDir.deleteSync(recursive: true));
+
+    testWidgets('shows Countdown label', (tester) async {
+      await tester.pumpWidget(_wrap(appState, const TimerSection()));
+      await tester.pump();
+      expect(
+          find.textContaining('Countdown', findRichText: true), findsOneWidget);
+    });
+
+    testWidgets('shows duration tile (15 min)', (tester) async {
       await tester.pumpWidget(_wrap(appState, const TimerSection()));
       await tester.pump();
       expect(find.textContaining('15', findRichText: true), findsOneWidget);
     });
 
-    testWidgets('hides duration tile when stopwatch mode is active',
-        (tester) async {
-      appState = await _makeAndInit(tmpDir.path,
-          initialConfig: ConfigModel(timerMode: 'stopwatch'));
-      await tester.pumpWidget(_wrap(appState, const TimerSection()));
-      await tester.pump();
-      // Only the mode tile — no duration tile
-      expect(find.byType(ListTile), findsOneWidget);
-    });
-
     testWidgets('tapping mode tile opens picker dialog', (tester) async {
-      appState = await _makeAndInit(tmpDir.path);
       await tester.pumpWidget(_wrap(appState, const TimerSection()));
       await tester.pump();
       await tester.tap(find.byType(ListTile).first);
@@ -209,47 +212,72 @@ void main() {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // BellsSection
-  // ---------------------------------------------------------------------------
-
-  group('BellsSection', () {
+  group('TimerSection – stopwatch mode', () {
     late Directory tmpDir;
     late AppState appState;
 
     setUp(() async {
       tmpDir = Directory.systemTemp.createTempSync('citta_settings_test_');
+      appState = await _makeAndInit(tmpDir.path,
+          initialConfig: ConfigModel(timerMode: 'stopwatch'));
     });
-
     tearDown(() => tmpDir.deleteSync(recursive: true));
 
-    testWidgets('renders start bell, end bell tiles and interval switch',
+    testWidgets('hides duration tile in stopwatch mode', (tester) async {
+      await tester.pumpWidget(_wrap(appState, const TimerSection()));
+      await tester.pump();
+      // Only the mode tile — no duration tile
+      expect(find.byType(SettingsTile), findsOneWidget);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // BellsSection
+  // ---------------------------------------------------------------------------
+
+  group('BellsSection – interval disabled', () {
+    late Directory tmpDir;
+    late AppState appState;
+
+    setUp(() async {
+      tmpDir = Directory.systemTemp.createTempSync('citta_settings_test_');
+      appState = await _makeAndInit(tmpDir.path,
+          initialConfig: ConfigModel(intervalEnabled: false));
+    });
+    tearDown(() => tmpDir.deleteSync(recursive: true));
+
+    testWidgets('renders start and end bell tiles and the interval switch',
         (tester) async {
-      appState = await _makeAndInit(tmpDir.path);
       await tester.pumpWidget(_wrap(appState, const BellsSection()));
       await tester.pump();
       expect(find.byType(ListTile), findsWidgets);
       expect(find.byType(SwitchListTile), findsOneWidget);
     });
 
-    testWidgets('interval sub-tiles hidden when interval is disabled',
-        (tester) async {
-      appState = await _makeAndInit(tmpDir.path,
-          initialConfig: ConfigModel(intervalEnabled: false));
+    testWidgets('interval sub-tiles are hidden', (tester) async {
       await tester.pumpWidget(_wrap(appState, const BellsSection()));
       await tester.pump();
-      // start bell + end bell = 2 ListTiles (no duration/sound)
-      expect(find.byType(ListTile), findsNWidgets(2));
+      // start bell + end bell = 2 SettingsTiles; no interval duration/sound
+      expect(find.byType(SettingsTile), findsNWidgets(2));
     });
+  });
 
-    testWidgets('interval sub-tiles visible when interval is enabled',
-        (tester) async {
+  group('BellsSection – interval enabled', () {
+    late Directory tmpDir;
+    late AppState appState;
+
+    setUp(() async {
+      tmpDir = Directory.systemTemp.createTempSync('citta_settings_test_');
       appState = await _makeAndInit(tmpDir.path,
           initialConfig: ConfigModel(intervalEnabled: true));
+    });
+    tearDown(() => tmpDir.deleteSync(recursive: true));
+
+    testWidgets('interval sub-tiles are visible', (tester) async {
       await tester.pumpWidget(_wrap(appState, const BellsSection()));
       await tester.pump();
       // start bell + end bell + interval duration + interval sound = 4
-      expect(find.byType(ListTile), findsNWidgets(4));
+      expect(find.byType(SettingsTile), findsNWidgets(4));
     });
   });
 
@@ -257,34 +285,42 @@ void main() {
   // TagsSection
   // ---------------------------------------------------------------------------
 
-  group('TagsSection', () {
+  group('TagsSection – two tags', () {
     late Directory tmpDir;
     late AppState appState;
 
     setUp(() async {
       tmpDir = Directory.systemTemp.createTempSync('citta_settings_test_');
+      appState = await _makeAndInit(tmpDir.path,
+          initialConfig: ConfigModel(tags: ['calm', 'deep']));
     });
-
     tearDown(() => tmpDir.deleteSync(recursive: true));
 
     testWidgets('renders existing tags as chips', (tester) async {
-      appState = await _makeAndInit(tmpDir.path,
-          initialConfig: ConfigModel(tags: ['calm', 'deep']));
       await tester.pumpWidget(_wrap(appState, const TagsSection()));
       await tester.pump();
       expect(find.widgetWithText(Chip, 'calm'), findsOneWidget);
       expect(find.widgetWithText(Chip, 'deep'), findsOneWidget);
     });
+  });
+
+  group('TagsSection – default', () {
+    late Directory tmpDir;
+    late AppState appState;
+
+    setUp(() async {
+      tmpDir = Directory.systemTemp.createTempSync('citta_settings_test_');
+      appState = await _makeAndInit(tmpDir.path);
+    });
+    tearDown(() => tmpDir.deleteSync(recursive: true));
 
     testWidgets('shows add-tag ActionChip', (tester) async {
-      appState = await _makeAndInit(tmpDir.path);
       await tester.pumpWidget(_wrap(appState, const TagsSection()));
       await tester.pump();
       expect(find.byType(ActionChip), findsOneWidget);
     });
 
     testWidgets('tapping add-tag chip opens dialog', (tester) async {
-      appState = await _makeAndInit(tmpDir.path);
       await tester.pumpWidget(_wrap(appState, const TagsSection()));
       await tester.pump();
       await tester.tap(find.byType(ActionChip));
@@ -303,15 +339,14 @@ void main() {
 
     setUp(() async {
       tmpDir = Directory.systemTemp.createTempSync('citta_settings_test_');
+      appState = await _makeAndInit(tmpDir.path);
     });
-
     tearDown(() => tmpDir.deleteSync(recursive: true));
 
     testWidgets('shows export and import tiles', (tester) async {
-      appState = await _makeAndInit(tmpDir.path);
       await tester.pumpWidget(_wrap(appState, const DataSection()));
       await tester.pump();
-      expect(find.byType(ListTile), findsNWidgets(2));
+      expect(find.byType(SettingsTile), findsNWidgets(2));
     });
   });
 }
