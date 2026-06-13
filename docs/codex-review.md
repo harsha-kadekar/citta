@@ -12,29 +12,18 @@ Issue requirement reviewed against:
 
 ## Findings
 
-### Low: the regression tests still do not cover the real `AppState -> StatsScreen -> CalendarView` path
+No code-review findings in the current branch state.
 
-Files:
-
-- `citta/lib/providers/app_state.dart:27`
-- `citta/lib/providers/app_state.dart:39`
-- `citta/lib/providers/app_state.dart:61`
-- `citta/lib/providers/app_state.dart:78`
-- `citta/lib/widgets/calendar_view.dart:60`
-- `citta/test/widgets/calendar_view_test.dart:27`
-
-The implementation now relies on stable list identity from `AppState.sessions` so that `CalendarView.didUpdateWidget()` can skip regrouping when only config or other unrelated state changes. That production behavior looks correct in code, but the new tests only exercise a synthetic `_SessionsWrapper` that manually reuses the same list reference.
-
-There is still no regression coverage for the actual integration path where `StatsScreen` reads `appState.sessions` and passes it into `CalendarView`. That means a future change to `AppState.sessions` back to `List.unmodifiable(_sessions)` or any other fresh-wrapper getter would silently reintroduce the original bug while the current widget tests continue to pass.
-
-Recommended follow-up:
-
-- Add a test at the `AppState`/`StatsScreen` level that proves config-only rebuilds preserve the `sessions` identity seen by `CalendarView`
-- Or add a smaller `AppState` unit test that asserts `sessions` returns the same object across reads until session data actually changes
-
-The earlier production-path gap is now addressed. `AppState` keeps `_sessions` as an immutable list instance and only replaces that instance when session data actually changes (`citta/lib/providers/app_state.dart:16`, `:27`, `:39`, `:61`, `:78`, `:116`). That makes the `CalendarView.didUpdateWidget()` identity guard meaningful on the real `StatsScreen -> CalendarView` path, so config-only rebuilds no longer force a regroup.
+The implementation itself looks correct. `AppState` keeps `_sessions` as an immutable list instance and only replaces that instance when session data actually changes (`citta/lib/providers/app_state.dart:16`, `:27`, `:39`, `:61`, `:78`, `:118`). That makes the `CalendarView.didUpdateWidget()` identity guard meaningful on the real `StatsScreen -> CalendarView` path, so config-only rebuilds no longer force a regroup.
 
 The formatter churn reduction also looks correct: locale-derived labels are built in `didChangeDependencies()` and the month label is refreshed only when month navigation changes `_currentMonth` (`citta/lib/widgets/calendar_view.dart:37-55`, `:66-83`).
+
+The earlier regression-coverage gap is now addressed by `citta/test/providers/app_state_sessions_identity_test.dart`, which locks down the identity contract that `CalendarView` depends on:
+
+- consecutive `sessions` reads preserve identity when state is unchanged
+- config-only updates preserve the same sessions reference
+- session mutations replace the sessions reference
+- external mutation of the returned list still throws
 
 ## Verification
 
@@ -44,12 +33,12 @@ The formatter churn reduction also looks correct: locale-derived labels are buil
   - `citta/lib/main.dart`
   - `citta/lib/services/stats_service.dart`
   - `citta/lib/widgets/calendar_view.dart`
+  - `citta/test/providers/app_state_sessions_identity_test.dart`
   - `citta/test/widgets/calendar_view_test.dart`
   - related touched tests
-- Ran `/home/harsha/flutter/flutter/bin/flutter test test/widgets/calendar_view_test.dart`
+- Ran `/home/harsha/flutter/flutter/bin/flutter test test/providers/app_state_sessions_identity_test.dart test/widgets/calendar_view_test.dart`
   - Result: passes
-  - Gap: this does not cover the production `StatsScreen` integration path
 
 ## Summary
 
-One low-severity review finding remains: the fix looks correct, but the regression coverage still does not exercise the production `AppState -> StatsScreen -> CalendarView` path that makes the identity-based optimization safe.
+No findings on the current revision. The earlier test-gap concern has been addressed by the new `AppState` identity-contract coverage, and the optimization now looks both correct and adequately defended against regression.
