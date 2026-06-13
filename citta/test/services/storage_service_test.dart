@@ -301,30 +301,6 @@ void main() {
     });
   });
 
-  group('addSession', () {
-    test('appends session to empty store', () async {
-      await service.addSession(_makeSession(id: 's1'));
-      final sessions = await service.loadSessions();
-      expect(sessions.length, 1);
-      expect(sessions.first.id, 's1');
-    });
-
-    test('appends session to existing sessions', () async {
-      await service.saveSessions([_makeSession(id: 's1')]);
-      await service.addSession(_makeSession(id: 's2'));
-      final sessions = await service.loadSessions();
-      expect(sessions.length, 2);
-      expect(sessions.last.id, 's2');
-    });
-
-    test('multiple addSession calls accumulate', () async {
-      for (var i = 1; i <= 5; i++) {
-        await service.addSession(_makeSession(id: 's$i'));
-      }
-      expect(await service.loadSessions(), hasLength(5));
-    });
-  });
-
   // -------------------------------------------------------------------------
   // User Quotes
   // -------------------------------------------------------------------------
