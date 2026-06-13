@@ -51,9 +51,10 @@ Use `git add` with specific file paths — never `git add -A` or `git add .`.
 - Example: `feat(audio): pre-initialize player on app start`
 - Always append: `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>`
 
-## 8. Push
+## 8. Create a pull request
+Push the branch to remote and open a PR — never push directly to master:
 ```
-git push origin master
+git push origin <branch-name>
+gh pr create --title "<title>" --body "<body>"
 ```
-
-Report the commit hash and confirm the push succeeded.
+Return the PR URL so the user can review and merge it.
