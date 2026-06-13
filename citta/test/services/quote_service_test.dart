@@ -37,8 +37,6 @@ class FakeStorageService extends StorageService {
   Future<List<SessionModel>> loadSessions() async => [];
   @override
   Future<void> saveSessions(List<SessionModel> sessions) async {}
-  @override
-  Future<void> addSession(SessionModel session) async {}
 }
 
 // ---------------------------------------------------------------------------

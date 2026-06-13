@@ -146,12 +146,6 @@ class StorageService {
     await _atomicWrite(path, content);
   }
 
-  Future<void> addSession(SessionModel session) async {
-    final sessions = await loadSessions();
-    sessions.add(session);
-    await saveSessions(sessions);
-  }
-
   // --- User Quotes ---
 
   Future<String> get _userQuotesPath async =>
