@@ -13,7 +13,7 @@ class AppState extends ChangeNotifier {
   final StatsService statsService;
 
   ConfigModel _config = ConfigModel();
-  List<SessionModel> _sessions = [];
+  List<SessionModel> _sessions = const [];
   bool _isLoading = true;
 
   AppState({
@@ -24,7 +24,7 @@ class AppState extends ChangeNotifier {
   });
 
   ConfigModel get config => _config;
-  List<SessionModel> get sessions => List.unmodifiable(_sessions);
+  List<SessionModel> get sessions => _sessions;
   bool get isLoading => _isLoading;
   StatsResult get stats => statsService.calculateStats(_sessions);
 
@@ -36,7 +36,7 @@ class AppState extends ChangeNotifier {
     notifyListeners();
 
     _config = await storageService.loadConfig();
-    _sessions = await storageService.loadSessions();
+    _sessions = List.unmodifiable(await storageService.loadSessions());
     await quoteService.initialize();
     audioService.warmUp(_config.bellEnd); // fire-and-forget — completes well before first session
 
@@ -58,7 +58,7 @@ class AppState extends ChangeNotifier {
   // --- Sessions ---
 
   Future<void> addSession(SessionModel session) async {
-    _sessions.add(session);
+    _sessions = List.unmodifiable([..._sessions, session]);
     await storageService.saveSessions(_sessions);
     notifyListeners();
   }
@@ -75,7 +75,9 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> deleteSessions(List<String> sessionIds) async {
-    _sessions.removeWhere((s) => sessionIds.contains(s.id));
+    _sessions = List.unmodifiable(
+      _sessions.where((s) => !sessionIds.contains(s.id)),
+    );
     await storageService.saveSessions(_sessions);
     notifyListeners();
   }
@@ -92,14 +94,16 @@ class AppState extends ChangeNotifier {
 
   Future<void> addTag(String tag) async {
     if (!_config.tags.contains(tag)) {
-      _config.tags.add(tag);
+      _config = _config.copyWith(tags: [..._config.tags, tag]);
       await storageService.saveConfig(_config);
       notifyListeners();
     }
   }
 
   Future<void> removeTag(String tag) async {
-    _config.tags.remove(tag);
+    _config = _config.copyWith(
+      tags: _config.tags.where((t) => t != tag).toList(),
+    );
     await storageService.saveConfig(_config);
     notifyListeners();
   }
@@ -111,7 +115,7 @@ class AppState extends ChangeNotifier {
     if (data == null) return false;
     await storageService.importData(data, replaceAll: replaceAll);
     _config = await storageService.loadConfig();
-    _sessions = await storageService.loadSessions();
+    _sessions = List.unmodifiable(await storageService.loadSessions());
     await quoteService.reloadUserQuotes();
     notifyListeners();
     return true;

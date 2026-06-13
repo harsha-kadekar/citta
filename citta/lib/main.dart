@@ -25,7 +25,7 @@ class CittaApp extends StatelessWidget {
     final storageService = StorageService();
     final quoteService = QuoteService(storageService);
     final audioService = AudioService();
-    final statsService = StatsService();
+    const statsService = StatsService();
 
     return ChangeNotifierProvider(
       create: (_) => AppState(

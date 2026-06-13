@@ -17,6 +17,8 @@ class StatsResult {
 }
 
 class StatsService {
+  const StatsService();
+
   StatsResult calculateStats(List<SessionModel> sessions) {
     if (sessions.isEmpty) {
       return const StatsResult(

@@ -52,7 +52,7 @@ Future<AppState> _makeAndInit(String basePath,
       bellPlayer: _FakeAudioPlayer(),
       musicPlayer: _FakeAudioPlayer(),
     ),
-    statsService: StatsService(),
+    statsService: const StatsService(),
   );
   await appState.initialize();
   return appState;

@@ -6,7 +6,7 @@ void main() {
   late StatsService statsService;
 
   setUp(() {
-    statsService = StatsService();
+    statsService = const StatsService();
   });
 
   group('StatsService', () {

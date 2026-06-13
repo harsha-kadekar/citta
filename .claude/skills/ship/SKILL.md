@@ -26,17 +26,32 @@ The `.claude/` directory is already handled by the user's global gitignore — d
 ## 3. Update .gitignore if needed
 If any untracked files should be ignored, add them to `citta/.gitignore` before staging.
 
-## 4. Stage appropriate files
+## 4. Run code review
+Invoke `/code-review` and work through every finding before proceeding:
+- For each CONFIRMED or PLAUSIBLE finding, apply the fix.
+- Re-run `flutter analyze` and `flutter test` after fixes to confirm nothing broke.
+- Only move on when the review returns no actionable findings.
+
+## 5. Run Codex review
+Ask the user to run the Codex review:
+> "Please run the Codex review now (e.g. via your Codex CLI or UI) and let me know when it's done."
+
+Wait for the user to confirm completion, then read `docs/codex-review.md`:
+- If it reports findings, apply fixes and re-run `flutter analyze` and `flutter test`.
+- Repeat until `docs/codex-review.md` reports no findings.
+- Only move on when the file confirms a clean review.
+
+## 6. Stage appropriate files
 Use `git add` with specific file paths — never `git add -A` or `git add .`.
 
-## 5. Commit
+## 7. Commit
 - Use the Conventional Commits format: https://www.conventionalcommits.org/en/v1.0.0/
 - Format: `<type>(<scope>): <description>` where type is one of:
   `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `ci`, `style`, `perf`
 - Example: `feat(audio): pre-initialize player on app start`
 - Always append: `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>`
 
-## 6. Push
+## 8. Push
 ```
 git push origin master
 ```

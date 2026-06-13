@@ -7,8 +7,13 @@ import '../theme/app_theme.dart';
 
 class CalendarView extends StatefulWidget {
   final List<SessionModel> sessions;
+  final StatsService statsService;
 
-  const CalendarView({super.key, required this.sessions});
+  const CalendarView({
+    super.key,
+    required this.sessions,
+    StatsService? statsService,
+  }) : statsService = statsService ?? const StatsService();
 
   @override
   State<CalendarView> createState() => _CalendarViewState();
@@ -17,18 +22,46 @@ class CalendarView extends StatefulWidget {
 class _CalendarViewState extends State<CalendarView> {
   late DateTime _currentMonth;
   late Map<DateTime, List<SessionModel>> _sessionsByDate;
+  String _localeStr = '';
+  late String _monthName;
+  late List<String> _weekdayHeaders;
 
   @override
   void initState() {
     super.initState();
-    _currentMonth = DateTime(DateTime.now().year, DateTime.now().month);
-    _sessionsByDate = StatsService().groupByDate(widget.sessions);
+    final now = DateTime.now();
+    _currentMonth = DateTime(now.year, now.month);
+    _sessionsByDate = widget.statsService.groupByDate(widget.sessions);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final newLocale = safeIntlLocale(Localizations.localeOf(context).toString());
+    if (newLocale == _localeStr) return;
+    _localeStr = newLocale;
+    _updateMonthName();
+    _buildWeekdayHeaders();
+  }
+
+  void _updateMonthName() {
+    _monthName = DateFormat('MMMM y', _localeStr)
+        .format(DateTime(_currentMonth.year, _currentMonth.month));
+  }
+
+  void _buildWeekdayHeaders() {
+    _weekdayHeaders = List.generate(
+      7,
+      (i) => DateFormat('E', _localeStr).format(DateTime(2024, 1, i + 1)),
+    );
   }
 
   @override
   void didUpdateWidget(CalendarView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _sessionsByDate = StatsService().groupByDate(widget.sessions);
+    if (!identical(widget.sessions, oldWidget.sessions)) {
+      _sessionsByDate = widget.statsService.groupByDate(widget.sessions);
+    }
   }
 
   void _previousMonth() {
@@ -37,6 +70,7 @@ class _CalendarViewState extends State<CalendarView> {
         _currentMonth.year,
         _currentMonth.month - 1,
       );
+      _updateMonthName();
     });
   }
 
@@ -46,12 +80,12 @@ class _CalendarViewState extends State<CalendarView> {
         _currentMonth.year,
         _currentMonth.month + 1,
       );
+      _updateMonthName();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final localeStr = safeIntlLocale(Localizations.localeOf(context).toString());
     final daysInMonth = DateTime(
       _currentMonth.year,
       _currentMonth.month + 1,
@@ -62,15 +96,6 @@ class _CalendarViewState extends State<CalendarView> {
       _currentMonth.month,
       1,
     ).weekday; // 1 = Monday
-
-    // Month name and weekday headers via DateFormat
-    final monthName = DateFormat('MMMM y', localeStr)
-        .format(DateTime(_currentMonth.year, _currentMonth.month));
-    // January 1, 2024 was a Monday — use it to generate Mon–Sun headers
-    final weekdayHeaders = List.generate(
-      7,
-      (i) => DateFormat('E', localeStr).format(DateTime(2024, 1, i + 1)),
-    );
 
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -102,7 +127,7 @@ class _CalendarViewState extends State<CalendarView> {
                 onPressed: _previousMonth,
               ),
               Text(
-                monthName,
+                _monthName,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               IconButton(
@@ -114,7 +139,7 @@ class _CalendarViewState extends State<CalendarView> {
           const SizedBox(height: 8),
           // Day headers
           Row(
-            children: weekdayHeaders
+            children: _weekdayHeaders
                 .map((d) => Expanded(
                       child: Center(
                         child: Text(
