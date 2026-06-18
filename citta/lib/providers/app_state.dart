@@ -38,6 +38,7 @@ class AppState extends ChangeNotifier {
     _config = await storageService.loadConfig();
     _sessions = List.unmodifiable(await storageService.loadSessions());
     await quoteService.initialize();
+    await audioService.init();
     audioService.warmUp(_config.bellEnd); // fire-and-forget — completes well before first session
 
     _isLoading = false;

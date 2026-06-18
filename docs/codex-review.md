@@ -2,43 +2,33 @@
 
 ## Scope
 
-Review of the current local changes for GitHub issue `#12`: `Fix CalendarView unnecessary recomputation and object churn`.
+Review of the current local changes for GitHub issue `#8`: `Define and implement Android audio focus behavior`.
 
 Issue requirement reviewed against:
 
-- Stop unconditional regrouping in `CalendarView.didUpdateWidget()`
-- Avoid recreating date-formatting helpers on every build where practical
-- Ensure regrouping only occurs when relevant session input changes
+- Configure Android audio attributes/focus behavior for both bell and background playback
+- Make interruption behavior explicit: pause, duck, or stop as appropriate
+- Keep internal playback state aligned with actual player state after interruptions or failures
 
 ## Findings
 
 No code-review findings in the current branch state.
 
-The implementation itself looks correct. `AppState` keeps `_sessions` as an immutable list instance and only replaces that instance when session data actually changes (`citta/lib/providers/app_state.dart:16`, `:27`, `:39`, `:61`, `:78`, `:118`). That makes the `CalendarView.didUpdateWidget()` identity guard meaningful on the real `StatsScreen -> CalendarView` path, so config-only rebuilds no longer force a regroup.
-
-The formatter churn reduction also looks correct: locale-derived labels are built in `didChangeDependencies()` and the month label is refreshed only when month navigation changes `_currentMonth` (`citta/lib/widgets/calendar_view.dart:37-55`, `:66-83`).
-
-The earlier regression-coverage gap is now addressed by `citta/test/providers/app_state_sessions_identity_test.dart`, which locks down the identity contract that `CalendarView` depends on:
-
-- consecutive `sessions` reads preserve identity when state is unchanged
-- config-only updates preserve the same sessions reference
-- session mutations replace the sessions reference
-- external mutation of the returned list still throws
+The latest revision closes the earlier state-sync gaps. `handleInterruption()` now clears both flags on failed resume in [audio_service.dart](/home/harsha/workspace/Citta/citta/lib/services/audio_service.dart:202), and `startBackgroundMusic()` also clears `_musicInterrupted` on startup failure in [audio_service.dart](/home/harsha/workspace/Citta/citta/lib/services/audio_service.dart:272). The new regression coverage in [audio_service_test.dart](/home/harsha/workspace/Citta/citta/test/services/audio_service_test.dart:226) and [audio_service_test.dart](/home/harsha/workspace/Citta/citta/test/services/audio_service_test.dart:446) locks both failure paths down.
 
 ## Verification
 
-- Reviewed issue `#12` via `gh issue view 12 --repo harsha-kadekar/citta --json number,title,body,state,url`
+- Reviewed issue `#8` via `gh issue view 8 --repo harsha-kadekar/citta --json number,title,body,state,labels,assignees,url`
 - Inspected the local diff in:
+  - `citta/lib/services/audio_service.dart`
   - `citta/lib/providers/app_state.dart`
-  - `citta/lib/main.dart`
-  - `citta/lib/services/stats_service.dart`
-  - `citta/lib/widgets/calendar_view.dart`
-  - `citta/test/providers/app_state_sessions_identity_test.dart`
-  - `citta/test/widgets/calendar_view_test.dart`
-  - related touched tests
-- Ran `/home/harsha/flutter/flutter/bin/flutter test test/providers/app_state_sessions_identity_test.dart test/widgets/calendar_view_test.dart`
+  - `citta/pubspec.yaml`
+  - `citta/test/services/audio_service_test.dart`
+  - related fake-player test updates
+- Searched for initialization and usage with `rg -n "audioService|AudioService\\(|\\.init\\(" citta/lib citta/test`
+- Ran `/home/harsha/flutter/flutter/bin/flutter test test/services/audio_service_test.dart`
   - Result: passes
 
 ## Summary
 
-No findings on the current revision. The earlier test-gap concern has been addressed by the new `AppState` identity-contract coverage, and the optimization now looks both correct and adequately defended against regression.
+No findings on the current revision. The branch now covers startup wiring, interruption-stream handling, and the previously stale public-state failure paths with focused tests.

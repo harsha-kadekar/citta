@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:audio_session/audio_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:citta/services/audio_service.dart';
@@ -9,54 +12,64 @@ import 'package:citta/services/audio_service.dart';
 class FakeAudioPlayer implements AudioPlayerBase {
   final List<String> calls = [];
   bool shouldThrow = false;
+  bool throwOnPause = false;
+  bool throwOnPlay = false;
 
   String? lastAsset;
   String? lastFilePath;
   LoopMode? lastLoopMode;
   double? lastVolume;
 
-  void _maybeThrow() {
+  void _maybeThrow(String method) {
     if (shouldThrow) throw Exception('simulated audio failure');
+    if (method == 'pause' && throwOnPause) throw Exception('simulated pause failure');
+    if (method == 'play' && throwOnPlay) throw Exception('simulated play failure');
   }
 
   @override
   Future<void> setAsset(String path) async {
-    _maybeThrow();
+    _maybeThrow('setAsset');
     lastAsset = path;
     calls.add('setAsset:$path');
   }
 
   @override
   Future<void> setFilePath(String path) async {
-    _maybeThrow();
+    _maybeThrow('setFilePath');
     lastFilePath = path;
     calls.add('setFilePath:$path');
   }
 
   @override
   Future<void> setLoopMode(LoopMode mode) async {
-    _maybeThrow();
+    _maybeThrow('setLoopMode');
     lastLoopMode = mode;
     calls.add('setLoopMode:$mode');
   }
 
   @override
   Future<void> setVolume(double volume) async {
-    _maybeThrow();
+    _maybeThrow('setVolume');
     lastVolume = volume;
     calls.add('setVolume:$volume');
   }
 
   @override
   Future<void> seek(Duration position) async {
-    _maybeThrow();
+    _maybeThrow('seek');
     calls.add('seek:${position.inMilliseconds}ms');
   }
 
   @override
   Future<void> play() async {
-    _maybeThrow();
+    _maybeThrow('play');
     calls.add('play');
+  }
+
+  @override
+  Future<void> pause() async {
+    _maybeThrow('pause');
+    calls.add('pause');
   }
 
   @override
@@ -68,6 +81,30 @@ class FakeAudioPlayer implements AudioPlayerBase {
   Future<void> dispose() async {
     calls.add('dispose');
   }
+}
+
+// ---------------------------------------------------------------------------
+// Fake AudioSession
+// ---------------------------------------------------------------------------
+
+class FakeAudioSession implements AudioSessionBase {
+  AudioSessionConfiguration? lastConfiguration;
+  final _controller = StreamController<AudioInterruptionEvent>.broadcast();
+
+  @override
+  Future<void> configure(AudioSessionConfiguration configuration) async {
+    lastConfiguration = configuration;
+  }
+
+  @override
+  Stream<AudioInterruptionEvent> get interruptionEventStream =>
+      _controller.stream;
+
+  void emitInterruption(AudioInterruptionEvent event) {
+    _controller.add(event);
+  }
+
+  Future<void> close() => _controller.close();
 }
 
 // ---------------------------------------------------------------------------
@@ -189,6 +226,18 @@ void main() {
 
       expect(service.isMusicPlaying, isFalse);
     });
+
+    test('10b. clears both flags when restart fails while interrupted', () async {
+      await service.startBackgroundMusic('/music.mp3');
+      await service.handleInterruption(began: true, transient: true);
+      // _isMusicPlaying=true, _musicInterrupted=true at this point
+      musicPlayer.shouldThrow = true;
+
+      await service.startBackgroundMusic('/new/music.mp3');
+
+      expect(service.isMusicPlaying, isFalse);
+      expect(service.isMusicInterrupted, isFalse);
+    });
   });
 
   // -------------------------------------------------------------------------
@@ -305,6 +354,198 @@ void main() {
         service.warmUp('bundled:temple_bells'),
         completes,
       );
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // handleInterruption()
+  // -------------------------------------------------------------------------
+
+  group('handleInterruption()', () {
+    test('22. transient interruption while music playing pauses player and keeps isMusicPlaying true',
+        () async {
+      await service.startBackgroundMusic('/music.mp3');
+      musicPlayer.calls.clear();
+
+      await service.handleInterruption(began: true, transient: true);
+
+      expect(musicPlayer.calls, contains('pause'));
+      expect(musicPlayer.calls, isNot(contains('stop')));
+      expect(service.isMusicPlaying, isTrue);
+      expect(service.isMusicInterrupted, isTrue);
+    });
+
+    test('23. focus regained after transient interruption resumes playback',
+        () async {
+      await service.startBackgroundMusic('/music.mp3');
+      await service.handleInterruption(began: true, transient: true);
+      musicPlayer.calls.clear();
+
+      await service.handleInterruption(began: false, transient: true);
+
+      expect(musicPlayer.calls, contains('play'));
+      expect(service.isMusicInterrupted, isFalse);
+      expect(service.isMusicPlaying, isTrue);
+    });
+
+    test('24. permanent interruption while music playing stops both players and clears isMusicPlaying',
+        () async {
+      await service.startBackgroundMusic('/music.mp3');
+      musicPlayer.calls.clear();
+
+      await service.handleInterruption(began: true, transient: false);
+
+      expect(musicPlayer.calls, contains('stop'));
+      expect(bellPlayer.calls, contains('stop'));
+      expect(service.isMusicPlaying, isFalse);
+      expect(service.isMusicInterrupted, isFalse);
+    });
+
+    test('25. transient interruption when no music is playing does nothing to either player',
+        () async {
+      await service.handleInterruption(began: true, transient: true);
+
+      expect(musicPlayer.calls, isEmpty);
+      expect(bellPlayer.calls, isEmpty);
+      expect(service.isMusicInterrupted, isFalse);
+    });
+
+    test('26. focus regained when not interrupted does nothing', () async {
+      await service.startBackgroundMusic('/music.mp3');
+      musicPlayer.calls.clear();
+
+      await service.handleInterruption(began: false, transient: true);
+
+      expect(musicPlayer.calls, isEmpty);
+    });
+
+    test('27. stopBackgroundMusic while interrupted clears interruption state',
+        () async {
+      await service.startBackgroundMusic('/music.mp3');
+      await service.handleInterruption(began: true, transient: true);
+
+      await service.stopBackgroundMusic();
+
+      expect(service.isMusicPlaying, isFalse);
+      expect(service.isMusicInterrupted, isFalse);
+    });
+
+    test('28. permanent interruption stops bell player even when no music is playing',
+        () async {
+      await service.handleInterruption(began: true, transient: false);
+
+      expect(bellPlayer.calls, contains('stop'));
+      expect(musicPlayer.calls, isEmpty);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // handleInterruption() — failure paths
+  // -------------------------------------------------------------------------
+
+  group('handleInterruption() — failure paths', () {
+    test('29. pause fails during transient interruption — isMusicInterrupted stays false',
+        () async {
+      await service.startBackgroundMusic('/music.mp3');
+      musicPlayer.throwOnPause = true;
+
+      await service.handleInterruption(began: true, transient: true);
+
+      expect(service.isMusicInterrupted, isFalse);
+      expect(service.isMusicPlaying, isTrue);
+    });
+
+    test('30. resume fails after transient interruption — both flags cleared, music not playing',
+        () async {
+      await service.startBackgroundMusic('/music.mp3');
+      await service.handleInterruption(began: true, transient: true);
+      musicPlayer.throwOnPlay = true;
+      musicPlayer.calls.clear();
+
+      await service.handleInterruption(began: false, transient: true);
+
+      expect(service.isMusicInterrupted, isFalse);
+      expect(service.isMusicPlaying, isFalse);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // init() — session wiring
+  // -------------------------------------------------------------------------
+
+  group('init()', () {
+    late FakeAudioSession fakeSession;
+    late AudioService sessionService;
+
+    setUp(() {
+      fakeSession = FakeAudioSession();
+      final bell = FakeAudioPlayer();
+      final music = FakeAudioPlayer();
+      sessionService = AudioService.withPlayers(
+        bellPlayer: bell,
+        musicPlayer: music,
+        sessionFactory: () async => fakeSession,
+      );
+    });
+
+    tearDown(() async {
+      await fakeSession.close();
+    });
+
+    test('31. configures session with media usage and gain focus type, no duckOthers',
+        () async {
+      await sessionService.init();
+
+      expect(fakeSession.lastConfiguration, isNotNull);
+      final cfg = fakeSession.lastConfiguration!;
+      expect(cfg.androidAudioAttributes?.usage, AndroidAudioUsage.media);
+      expect(cfg.androidAudioFocusGainType, AndroidAudioFocusGainType.gain);
+      expect(cfg.avAudioSessionCategoryOptions,
+          isNot(AVAudioSessionCategoryOptions.duckOthers));
+    });
+
+    test('32. interruption event from stream triggers handleInterruption',
+        () async {
+      final bell = FakeAudioPlayer();
+      final music = FakeAudioPlayer();
+      sessionService = AudioService.withPlayers(
+        bellPlayer: bell,
+        musicPlayer: music,
+        sessionFactory: () async => fakeSession,
+      );
+      await sessionService.init();
+      await sessionService.startBackgroundMusic('/music.mp3');
+      music.calls.clear();
+
+      fakeSession.emitInterruption(
+        AudioInterruptionEvent(true, AudioInterruptionType.pause),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(music.calls, contains('pause'));
+      expect(sessionService.isMusicInterrupted, isTrue);
+    });
+
+    test('33. calling init() twice registers only one active subscription',
+        () async {
+      final bell = FakeAudioPlayer();
+      final music = FakeAudioPlayer();
+      sessionService = AudioService.withPlayers(
+        bellPlayer: bell,
+        musicPlayer: music,
+        sessionFactory: () async => fakeSession,
+      );
+      await sessionService.init();
+      await sessionService.init();
+      await sessionService.startBackgroundMusic('/music.mp3');
+      music.calls.clear();
+
+      fakeSession.emitInterruption(
+        AudioInterruptionEvent(true, AudioInterruptionType.pause),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(music.calls.where((c) => c == 'pause').length, 1);
     });
   });
 }
