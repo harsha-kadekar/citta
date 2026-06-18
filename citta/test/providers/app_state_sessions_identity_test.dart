@@ -20,6 +20,7 @@ class _FakeAudioPlayer implements AudioPlayerBase {
   @override Future<void> setVolume(double volume) async {}
   @override Future<void> seek(Duration position) async {}
   @override Future<void> play() async {}
+  @override Future<void> pause() async {}
   @override Future<void> stop() async {}
   @override Future<void> dispose() async {}
 }
