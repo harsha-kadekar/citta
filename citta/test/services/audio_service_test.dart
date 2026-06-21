@@ -14,6 +14,7 @@ class FakeAudioPlayer implements AudioPlayerBase {
   bool shouldThrow = false;
   bool throwOnPause = false;
   bool throwOnPlay = false;
+  bool throwOnStop = false;
 
   String? lastAsset;
   String? lastFilePath;
@@ -24,6 +25,7 @@ class FakeAudioPlayer implements AudioPlayerBase {
     if (shouldThrow) throw Exception('simulated audio failure');
     if (method == 'pause' && throwOnPause) throw Exception('simulated pause failure');
     if (method == 'play' && throwOnPlay) throw Exception('simulated play failure');
+    if (method == 'stop' && throwOnStop) throw Exception('simulated stop failure');
   }
 
   @override
@@ -75,6 +77,7 @@ class FakeAudioPlayer implements AudioPlayerBase {
   @override
   Future<void> stop() async {
     calls.add('stop');
+    _maybeThrow('stop');
   }
 
   @override
@@ -437,6 +440,36 @@ void main() {
       expect(bellPlayer.calls, contains('stop'));
       expect(musicPlayer.calls, isEmpty);
     });
+
+    test('34. permanent interruption while transiently interrupted clears both flags and stops both players',
+        () async {
+      await service.startBackgroundMusic('/music.mp3');
+      await service.handleInterruption(began: true, transient: true);
+      bellPlayer.calls.clear();
+      musicPlayer.calls.clear();
+
+      await service.handleInterruption(began: true, transient: false);
+
+      expect(bellPlayer.calls, contains('stop'));
+      expect(musicPlayer.calls, contains('stop'));
+      expect(service.isMusicPlaying, isFalse);
+      expect(service.isMusicInterrupted, isFalse);
+    });
+
+    test('35. focus regained after permanent interruption does nothing',
+        () async {
+      await service.startBackgroundMusic('/music.mp3');
+      await service.handleInterruption(began: true, transient: false);
+      bellPlayer.calls.clear();
+      musicPlayer.calls.clear();
+
+      await service.handleInterruption(began: false, transient: false);
+
+      expect(bellPlayer.calls, isEmpty);
+      expect(musicPlayer.calls, isEmpty);
+      expect(service.isMusicPlaying, isFalse);
+      expect(service.isMusicInterrupted, isFalse);
+    });
   });
 
   // -------------------------------------------------------------------------
@@ -467,6 +500,32 @@ void main() {
       expect(service.isMusicInterrupted, isFalse);
       expect(service.isMusicPlaying, isFalse);
     });
+
+    test('36. music stop throws during permanent interruption — isMusicPlaying still cleared',
+        () async {
+      await service.startBackgroundMusic('/music.mp3');
+      musicPlayer.throwOnStop = true;
+
+      await service.handleInterruption(began: true, transient: false);
+
+      expect(bellPlayer.calls, contains('stop'));
+      expect(musicPlayer.calls, contains('stop'));
+      expect(service.isMusicPlaying, isFalse);
+      expect(service.isMusicInterrupted, isFalse);
+    });
+
+    test('37. two consecutive transient interruptions — second pause also called',
+        () async {
+      await service.startBackgroundMusic('/music.mp3');
+      await service.handleInterruption(began: true, transient: true);
+      musicPlayer.calls.clear();
+
+      await service.handleInterruption(began: true, transient: true);
+
+      expect(musicPlayer.calls, contains('pause'));
+      expect(service.isMusicInterrupted, isTrue);
+      expect(service.isMusicPlaying, isTrue);
+    });
   });
 
   // -------------------------------------------------------------------------
@@ -475,12 +534,14 @@ void main() {
 
   group('init()', () {
     late FakeAudioSession fakeSession;
+    late FakeAudioPlayer bell;
+    late FakeAudioPlayer music;
     late AudioService sessionService;
 
     setUp(() {
       fakeSession = FakeAudioSession();
-      final bell = FakeAudioPlayer();
-      final music = FakeAudioPlayer();
+      bell = FakeAudioPlayer();
+      music = FakeAudioPlayer();
       sessionService = AudioService.withPlayers(
         bellPlayer: bell,
         musicPlayer: music,
@@ -506,13 +567,6 @@ void main() {
 
     test('32. interruption event from stream triggers handleInterruption',
         () async {
-      final bell = FakeAudioPlayer();
-      final music = FakeAudioPlayer();
-      sessionService = AudioService.withPlayers(
-        bellPlayer: bell,
-        musicPlayer: music,
-        sessionFactory: () async => fakeSession,
-      );
       await sessionService.init();
       await sessionService.startBackgroundMusic('/music.mp3');
       music.calls.clear();
@@ -528,13 +582,6 @@ void main() {
 
     test('33. calling init() twice registers only one active subscription',
         () async {
-      final bell = FakeAudioPlayer();
-      final music = FakeAudioPlayer();
-      sessionService = AudioService.withPlayers(
-        bellPlayer: bell,
-        musicPlayer: music,
-        sessionFactory: () async => fakeSession,
-      );
       await sessionService.init();
       await sessionService.init();
       await sessionService.startBackgroundMusic('/music.mp3');
@@ -546,6 +593,53 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       expect(music.calls.where((c) => c == 'pause').length, 1);
+    });
+
+    test('38. AudioInterruptionType.unknown via stream triggers non-transient path — stops both players',
+        () async {
+      await sessionService.init();
+      await sessionService.startBackgroundMusic('/music.mp3');
+      music.calls.clear();
+
+      fakeSession.emitInterruption(
+        AudioInterruptionEvent(true, AudioInterruptionType.unknown),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(bell.calls, contains('stop'));
+      expect(music.calls, contains('stop'));
+      expect(sessionService.isMusicPlaying, isFalse);
+      expect(sessionService.isMusicInterrupted, isFalse);
+    });
+
+    test('39. focus-regained event after transient interruption resumes playback via stream',
+        () async {
+      await sessionService.init();
+      await sessionService.startBackgroundMusic('/music.mp3');
+      fakeSession.emitInterruption(
+        AudioInterruptionEvent(true, AudioInterruptionType.pause),
+      );
+      await Future<void>.delayed(Duration.zero);
+      music.calls.clear();
+
+      fakeSession.emitInterruption(
+        AudioInterruptionEvent(false, AudioInterruptionType.pause),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(music.calls, contains('play'));
+      expect(sessionService.isMusicInterrupted, isFalse);
+      expect(sessionService.isMusicPlaying, isTrue);
+    });
+
+    test('40. init() swallows a session factory exception', () async {
+      sessionService = AudioService.withPlayers(
+        bellPlayer: FakeAudioPlayer(),
+        musicPlayer: FakeAudioPlayer(),
+        sessionFactory: () async => throw Exception('factory failed'),
+      );
+
+      await expectLater(sessionService.init(), completes);
     });
   });
 }
