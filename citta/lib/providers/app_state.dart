@@ -14,6 +14,14 @@ class AppState extends ChangeNotifier {
 
   ConfigModel _config = ConfigModel();
   List<SessionModel> _sessions = const [];
+  List<SessionModel> _sortedSessions = const [];
+  StatsResult _stats = const StatsResult(
+    totalSessions: 0,
+    currentStreak: 0,
+    longestStreak: 0,
+    averageDurationSeconds: 0,
+    totalDurationSeconds: 0,
+  );
   bool _isLoading = true;
 
   AppState({
@@ -26,7 +34,14 @@ class AppState extends ChangeNotifier {
   ConfigModel get config => _config;
   List<SessionModel> get sessions => _sessions;
   bool get isLoading => _isLoading;
-  StatsResult get stats => statsService.calculateStats(_sessions);
+  StatsResult get stats => _stats;
+
+  void _refreshDerivedData() {
+    final sorted = List<SessionModel>.from(_sessions)
+      ..sort((a, b) => b.date.compareTo(a.date));
+    _sortedSessions = List.unmodifiable(sorted);
+    _stats = statsService.calculateStats(_sessions);
+  }
 
   Locale? get locale =>
       _config.language == 'system' ? null : Locale(_config.language);
@@ -41,6 +56,7 @@ class AppState extends ChangeNotifier {
     await audioService.init();
     audioService.warmUp(_config.bellEnd); // fire-and-forget — completes well before first session
 
+    _refreshDerivedData();
     _isLoading = false;
     notifyListeners();
   }
@@ -61,14 +77,11 @@ class AppState extends ChangeNotifier {
   Future<void> addSession(SessionModel session) async {
     _sessions = List.unmodifiable([..._sessions, session]);
     await storageService.saveSessions(_sessions);
+    _refreshDerivedData();
     notifyListeners();
   }
 
-  List<SessionModel> get sortedSessions {
-    final sorted = List<SessionModel>.from(_sessions);
-    sorted.sort((a, b) => b.date.compareTo(a.date));
-    return sorted;
-  }
+  List<SessionModel> get sortedSessions => _sortedSessions;
 
   List<SessionModel> filterByTag(String tag) {
     return _sessions.where((s) => s.tags.contains(tag)).toList()
@@ -80,15 +93,15 @@ class AppState extends ChangeNotifier {
       _sessions.where((s) => !sessionIds.contains(s.id)),
     );
     await storageService.saveSessions(_sessions);
+    _refreshDerivedData();
     notifyListeners();
   }
 
   List<SessionModel> filterByTags(List<String> tags) {
-    if (tags.isEmpty) return sortedSessions;
-    return _sessions
+    if (tags.isEmpty) return _sortedSessions;
+    return _sortedSessions
         .where((s) => tags.any((tag) => s.tags.contains(tag)))
-        .toList()
-      ..sort((a, b) => b.date.compareTo(a.date));
+        .toList();
   }
 
   // --- Tags ---
@@ -117,6 +130,7 @@ class AppState extends ChangeNotifier {
     await storageService.importData(data, replaceAll: replaceAll);
     _config = await storageService.loadConfig();
     _sessions = List.unmodifiable(await storageService.loadSessions());
+    _refreshDerivedData();
     await quoteService.reloadUserQuotes();
     notifyListeners();
     return true;
