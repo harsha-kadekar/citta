@@ -637,11 +637,14 @@ void main() {
       expect(config.quoteSources, ConfigModel.defaultQuoteSources);
     });
 
-    test('tags list is a mutable copy, not shared reference', () {
+    test('two default ConfigModel instances have independent tags lists', () {
       final a = ConfigModel();
       final b = ConfigModel();
-      a.tags.add('extra');
-      expect(b.tags, isNot(contains('extra')));
+      // Both are unmodifiable wrappers — mutation is impossible, so
+      // cross-instance contamination is structurally prevented.
+      expect(() => a.tags.add('extra'), throwsUnsupportedError);
+      expect(b.tags, ConfigModel.defaultTags,
+          reason: 'b.tags must be unaffected by any attempted mutation of a.tags');
     });
   });
 
@@ -686,11 +689,13 @@ void main() {
       expect(updated.countdownDuration, original.countdownDuration);
     });
 
-    test('tags copy is independent of original', () {
-      final original = ConfigModel(tags: ['calm']);
-      final copy = original.copyWith();
-      copy.tags.add('focused');
-      expect(original.tags, ['calm']);
+    test('tags list is unmodifiable', () {
+      final config = ConfigModel(tags: ['calm']);
+      expect(
+        () => config.tags.add('focused'),
+        throwsUnsupportedError,
+        reason: 'tags must be unmodifiable so mutations always go through copyWith',
+      );
     });
   });
 

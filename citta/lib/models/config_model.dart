@@ -1,3 +1,8 @@
+// Sentinel used by ConfigModel.copyWith to distinguish "caller passed null
+// explicitly" (clear the field) from "caller omitted the argument" (keep the
+// existing value).  Using a top-level const avoids allocating on every call.
+const _unset = Object();
+
 class ConfigModel {
   static const String defaultTimerMode = 'countdown';
   static const int defaultCountdownDuration = 900;
@@ -34,6 +39,8 @@ class ConfigModel {
   String themeMode; // 'dark', 'light', or 'system'
   String language; // 'system', 'en', 'kn', 'sa', 'hi', 'te', 'ta', 'ml', 'fr', 'de', 'ja', 'he', 'zh'
 
+  // Public constructor: always wraps caller-supplied lists as unmodifiable so
+  // external mutations cannot corrupt stored state.
   ConfigModel({
     this.timerMode = defaultTimerMode,
     this.countdownDuration = defaultCountdownDuration,
@@ -49,8 +56,28 @@ class ConfigModel {
     this.language = defaultLanguage,
     List<String>? tags,
     List<String>? quoteSources,
-  })  : tags = tags ?? List.of(defaultTags),
-        quoteSources = quoteSources ?? List.of(defaultQuoteSources);
+  })  : tags = List.unmodifiable(tags ?? defaultTags),
+        quoteSources = List.unmodifiable(quoteSources ?? defaultQuoteSources);
+
+  // Private constructor used by copyWith: accepts pre-validated list references
+  // directly without re-wrapping, so the caller can preserve the same reference
+  // and context.select() equality checks work correctly.
+  ConfigModel._internal({
+    required this.timerMode,
+    required this.countdownDuration,
+    required this.bellStart,
+    required this.bellEnd,
+    required this.bellInterval,
+    required this.intervalDuration,
+    required this.intervalEnabled,
+    required this.backgroundMusic,
+    required this.calendarViewEnabled,
+    required this.userName,
+    required this.themeMode,
+    required this.language,
+    required this.tags,
+    required this.quoteSources,
+  });
 
   factory ConfigModel.fromJson(Map<String, dynamic> json) {
     return ConfigModel(
@@ -98,15 +125,17 @@ class ConfigModel {
     String? bellInterval,
     int? intervalDuration,
     bool? intervalEnabled,
-    String? backgroundMusic,
+    // Use Object? + _unset sentinel so callers can pass null to clear these
+    // nullable fields.  String? would make null indistinguishable from "omitted".
+    Object? backgroundMusic = _unset,
     bool? calendarViewEnabled,
-    String? userName,
+    Object? userName = _unset,
     String? themeMode,
     String? language,
     List<String>? tags,
     List<String>? quoteSources,
   }) {
-    return ConfigModel(
+    return ConfigModel._internal(
       timerMode: timerMode ?? this.timerMode,
       countdownDuration: countdownDuration ?? this.countdownDuration,
       bellStart: bellStart ?? this.bellStart,
@@ -114,13 +143,20 @@ class ConfigModel {
       bellInterval: bellInterval ?? this.bellInterval,
       intervalDuration: intervalDuration ?? this.intervalDuration,
       intervalEnabled: intervalEnabled ?? this.intervalEnabled,
-      backgroundMusic: backgroundMusic ?? this.backgroundMusic,
+      backgroundMusic: identical(backgroundMusic, _unset)
+          ? this.backgroundMusic
+          : backgroundMusic as String?,
       calendarViewEnabled: calendarViewEnabled ?? this.calendarViewEnabled,
-      userName: userName ?? this.userName,
+      userName: identical(userName, _unset)
+          ? this.userName
+          : userName as String?,
       themeMode: themeMode ?? this.themeMode,
       language: language ?? this.language,
-      tags: tags ?? List.from(this.tags),
-      quoteSources: quoteSources ?? List.from(this.quoteSources),
+      // Preserve the existing reference when unchanged so that context.select()
+      // equality checks skip unnecessary rebuilds.  Wrap in unmodifiable only
+      // when the caller explicitly provides a new list.
+      tags: tags != null ? List.unmodifiable(tags) : this.tags,
+      quoteSources: quoteSources != null ? List.unmodifiable(quoteSources) : this.quoteSources,
     );
   }
 }

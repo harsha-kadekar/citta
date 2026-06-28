@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:citta/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
+import '../models/quote_model.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import '../providers/app_state.dart';
 import '../services/timer_service.dart';
@@ -152,9 +153,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    final appState = context.watch<AppState>();
     final l10n = AppLocalizations.of(context)!;
-    final quote = appState.quoteService.todayQuote;
+    final quote =
+        context.select<AppState, QuoteModel?>((s) => s.quoteService.todayQuote);
+    final timerMode =
+        context.select<AppState, String>((s) => s.config.timerMode);
+    final countdownDuration =
+        context.select<AppState, int>((s) => s.config.countdownDuration);
     final isSessionActive = _timerService.state == TimerState.running ||
         _timerService.state == TimerState.paused;
 
@@ -205,7 +210,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     // Idle state — show start button
                     if (_showPreSessionConfig)
                       PreSessionConfig(
-                        config: appState.config,
+                        // PreSessionConfig is only visible after setState, so
+                        // reading a snapshot here is always fresh enough.
+                        config: context.read<AppState>().config,
                         adHocMode: _adHocMode,
                         adHocDuration: _adHocDuration,
                         onModeChanged: (mode) =>
@@ -228,7 +235,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           color: AppColors.textSecondary,
                         ),
                         label: Text(
-                          _getConfigSummary(appState.config, l10n),
+                          _getConfigSummary(timerMode, countdownDuration, l10n),
                           style: const TextStyle(
                             color: AppColors.textSecondary,
                             fontSize: 13,
@@ -279,12 +286,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  String _getConfigSummary(config, AppLocalizations l10n) {
-    final mode = config.timerMode == 'stopwatch'
-        ? l10n.homeStopwatch
-        : l10n.homeCountdown;
-    if (config.timerMode == 'stopwatch') return mode;
-    final mins = config.countdownDuration ~/ 60;
+  String _getConfigSummary(
+      String timerMode, int countdownDuration, AppLocalizations l10n) {
+    final mode =
+        timerMode == 'stopwatch' ? l10n.homeStopwatch : l10n.homeCountdown;
+    if (timerMode == 'stopwatch') return mode;
+    final mins = countdownDuration ~/ 60;
     return '$mode \u00b7 $mins ${l10n.homeMin}';
   }
 }

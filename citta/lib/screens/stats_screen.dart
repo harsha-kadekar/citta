@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:citta/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
+import '../models/session_model.dart';
 import '../providers/app_state.dart';
+import '../services/stats_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/calendar_view.dart';
 
@@ -10,10 +12,12 @@ class StatsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final appState = context.watch<AppState>();
     final l10n = AppLocalizations.of(context)!;
-    final stats = appState.stats;
-    final showCalendar = appState.config.calendarViewEnabled;
+    final stats = context.select<AppState, StatsResult>((s) => s.stats);
+    final showCalendar =
+        context.select<AppState, bool>((s) => s.config.calendarViewEnabled);
+    final sessions = context
+        .select<AppState, List<SessionModel>>((s) => s.sessions);
 
     return Scaffold(
       appBar: AppBar(
@@ -28,9 +32,10 @@ class StatsScreen extends StatelessWidget {
                   showCalendar ? AppColors.primary : AppColors.textHint,
             ),
             onPressed: () {
-              final newConfig = appState.config
-                  .copyWith(calendarViewEnabled: !showCalendar);
-              appState.updateConfig(newConfig);
+              final appState = context.read<AppState>();
+              appState.updateConfig(
+                appState.config.copyWith(calendarViewEnabled: !showCalendar),
+              );
             },
             tooltip: l10n.statsToggleCalendar,
           ),
@@ -91,7 +96,7 @@ class StatsScreen extends StatelessWidget {
             // Calendar
             if (showCalendar) ...[
               const SizedBox(height: 24),
-              CalendarView(sessions: appState.sessions),
+              CalendarView(sessions: sessions),
             ],
           ],
         ),

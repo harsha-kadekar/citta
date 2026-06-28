@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:audio_session/audio_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:citta/models/config_model.dart';
 import 'package:citta/models/session_model.dart';
@@ -26,6 +28,12 @@ class _FakeAudioPlayer implements AudioPlayerBase {
   @override Future<void> dispose() async {}
 }
 
+class _FakeAudioSession implements AudioSessionBase {
+  @override Future<void> configure(AudioSessionConfiguration _) async {}
+  @override Stream<AudioInterruptionEvent> get interruptionEventStream =>
+      const Stream.empty();
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -40,6 +48,7 @@ Future<AppState> _makeAndInit(String basePath) async {
     audioService: AudioService.withPlayers(
       bellPlayer: _FakeAudioPlayer(),
       musicPlayer: _FakeAudioPlayer(),
+      sessionFactory: () async => _FakeAudioSession(),
     ),
     statsService: const StatsService(),
   );
