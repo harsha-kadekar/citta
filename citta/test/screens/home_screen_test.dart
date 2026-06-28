@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:io';
+import 'package:audio_session/audio_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -31,6 +33,12 @@ class _FakeAudioPlayer implements AudioPlayerBase {
   @override Future<void> dispose() async {}
 }
 
+class _FakeAudioSession implements AudioSessionBase {
+  @override Future<void> configure(AudioSessionConfiguration _) async {}
+  @override Stream<AudioInterruptionEvent> get interruptionEventStream =>
+      const Stream.empty();
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -53,6 +61,7 @@ Future<AppState> _makeAndInit(
     audioService: AudioService.withPlayers(
       bellPlayer: _FakeAudioPlayer(),
       musicPlayer: _FakeAudioPlayer(),
+      sessionFactory: () async => _FakeAudioSession(),
     ),
     statsService: const StatsService(),
   );
@@ -154,6 +163,36 @@ void main() {
 
         // Drain SessionCompleteScreen's 3-second auto-advance timer.
         await tester.pump(const Duration(seconds: 4));
+      },
+    );
+  });
+
+  group('HomeScreen – unrelated config change leaves screen intact', () {
+    late Directory tmpDir;
+    late AppState appState;
+
+    setUp(() async {
+      tmpDir = Directory.systemTemp.createTempSync('citta_home_test_');
+      appState = await _makeAndInit(tmpDir.path);
+    });
+
+    tearDown(() => tmpDir.deleteSync(recursive: true));
+
+    testWidgets(
+      '3a. toggling calendarViewEnabled does not affect the Begin button or config summary',
+      (tester) async {
+        await tester.pumpWidget(_testApp(appState));
+        await tester.pump();
+
+        expect(find.text('Begin'), findsOneWidget);
+
+        await tester.runAsync(() => appState.updateConfig(
+              appState.config.copyWith(calendarViewEnabled: true),
+            ));
+        await tester.pump();
+
+        expect(find.text('Begin'), findsOneWidget,
+            reason: 'toggling calendarViewEnabled must not crash or clear HomeScreen');
       },
     );
   });

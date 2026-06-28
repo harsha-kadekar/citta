@@ -76,12 +76,22 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final appState = context.watch<AppState>();
     final l10n = AppLocalizations.of(context)!;
-    final allTags = appState.config.tags;
+    final allTags =
+        context.select<AppState, List<String>>((s) => s.config.tags);
+    final sortedSessions =
+        context.select<AppState, List<SessionModel>>((s) => s.sortedSessions);
+
+    // Drop any selected tags that no longer exist in config so a deleted tag
+    // never leaves an invisible active filter.  Mutating the set directly here
+    // (no setState) is safe: this build frame already incorporates the update.
+    _selectedFilterTags.retainAll(allTags);
+
     final sessions = _selectedFilterTags.isEmpty
-        ? appState.sortedSessions
-        : appState.filterByTags(_selectedFilterTags.toList());
+        ? sortedSessions
+        : sortedSessions
+            .where((s) => _selectedFilterTags.any((t) => s.tags.contains(t)))
+            .toList();
 
     return Scaffold(
       appBar: AppBar(
