@@ -137,3 +137,40 @@ The supporting `ConfigModel` changes are also coherent with that goal. [config_m
 ## Summary
 
 No findings on the current revision. The branch narrows the `AppState` subscriptions as requested, keeps the selector-sensitive config list references stable, and the targeted widget/model tests pass.
+
+---
+
+## Scope
+
+Review of the current local changes for GitHub issue `#13`: `Make ConfigModel updates immutable (remove in-place mutation)`.
+
+Issue requirement reviewed against:
+
+- Make `ConfigModel` effectively immutable
+- Remove provider/service in-place mutation of config internals
+- Route config changes through `copyWith()` / a single update path
+
+## Findings
+
+No code-review findings in the current branch state.
+
+The earlier `removeTag()` no-op gap is closed in [app_state.dart](/home/harsha/workspace/Citta/citta/lib/providers/app_state.dart:117), and the provider regression coverage now includes the missing-tag path in [app_state_tags_test.dart](/home/harsha/workspace/Citta/citta/test/providers/app_state_tags_test.dart:137). The `_internal()` immutability guard in [config_model.dart](/home/harsha/workspace/Citta/citta/lib/models/config_model.dart:78) was also revised to remove the earlier mutating assertion behavior.
+
+## Verification
+
+- Reviewed issue `#13` via `gh issue view 13 --repo harsha-kadekar/citta --json number,title,body,state,url`
+- Inspected the local diff in:
+  - `citta/lib/models/config_model.dart`
+  - `citta/lib/services/storage_service.dart`
+  - `citta/test/models/config_model_test.dart`
+  - `citta/test/providers/app_state_tags_test.dart`
+- Read the affected update path in `citta/lib/providers/app_state.dart`
+- Searched for remaining in-place config/list mutation with `rg -n "\\.tags\\.(add|remove|clear|insert|sort)|\\.quoteSources\\.(add|remove|clear|insert|sort)|_config\\.[A-Za-z_]+\\s*=|config\\.[A-Za-z_]+\\s*=" citta/lib citta/test`
+- Ran `/home/harsha/flutter/flutter/bin/flutter test test/models/config_model_test.dart test/providers/app_state_tags_test.dart test/services/storage_service_test.dart`
+  - Result: passes
+- Ran `/home/harsha/flutter/flutter/bin/flutter analyze`
+  - Result: passes
+
+## Summary
+
+No findings on the current revision. The branch now routes the config/tag updates through immutable copies, preserves the intended no-op behavior on both add and remove paths, and the targeted tests plus `flutter analyze` pass.

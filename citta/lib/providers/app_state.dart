@@ -115,6 +115,7 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> removeTag(String tag) async {
+    if (!_config.tags.contains(tag)) return;
     _config = _config.copyWith(
       tags: _config.tags.where((t) => t != tag).toList(),
     );

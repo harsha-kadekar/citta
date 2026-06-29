@@ -1,7 +1,13 @@
-// Sentinel used by ConfigModel.copyWith to distinguish "caller passed null
-// explicitly" (clear the field) from "caller omitted the argument" (keep the
-// existing value).  Using a top-level const avoids allocating on every call.
-const _unset = Object();
+// Private sentinel type used by ConfigModel.copyWith to distinguish "caller
+// passed null explicitly" (clear the field) from "caller omitted the argument"
+// (keep the existing value).  A named private class makes the sentinel
+// unforgeable from outside this library — unlike `const Object()`, external
+// code cannot construct a `_Unset` and accidentally trigger the sentinel path.
+class _Unset {
+  const _Unset();
+}
+
+const _unset = _Unset();
 
 class ConfigModel {
   static const String defaultTimerMode = 'countdown';
@@ -24,20 +30,20 @@ class ConfigModel {
     'mahabharata',
   ];
 
-  String timerMode; // "countdown" or "stopwatch"
-  int countdownDuration; // seconds
-  String bellStart;
-  String bellEnd;
-  String bellInterval;
-  int intervalDuration; // seconds
-  bool intervalEnabled;
-  String? backgroundMusic;
-  bool calendarViewEnabled;
-  List<String> tags;
-  List<String> quoteSources;
-  String? userName;
-  String themeMode; // 'dark', 'light', or 'system'
-  String language; // 'system', 'en', 'kn', 'sa', 'hi', 'te', 'ta', 'ml', 'fr', 'de', 'ja', 'he', 'zh'
+  final String timerMode; // "countdown" or "stopwatch"
+  final int countdownDuration; // seconds
+  final String bellStart;
+  final String bellEnd;
+  final String bellInterval;
+  final int intervalDuration; // seconds
+  final bool intervalEnabled;
+  final String? backgroundMusic;
+  final bool calendarViewEnabled;
+  final List<String> tags;
+  final List<String> quoteSources;
+  final String? userName;
+  final String themeMode; // 'dark', 'light', or 'system'
+  final String language; // 'system', 'en', 'kn', 'sa', 'hi', 'te', 'ta', 'ml', 'fr', 'de', 'ja', 'he', 'zh'
 
   // Public constructor: always wraps caller-supplied lists as unmodifiable so
   // external mutations cannot corrupt stored state.
@@ -56,12 +62,19 @@ class ConfigModel {
     this.language = defaultLanguage,
     List<String>? tags,
     List<String>? quoteSources,
-  })  : tags = List.unmodifiable(tags ?? defaultTags),
-        quoteSources = List.unmodifiable(quoteSources ?? defaultQuoteSources);
+  // When the caller omits tags/quoteSources, reuse the const references
+  // directly so that context.select() equality checks on these lists remain
+  // stable across repeated loadConfig() calls.  Only wrap in List.unmodifiable
+  // when the caller supplies an explicit (mutable) list.
+  })  : tags = tags != null ? List.unmodifiable(tags) : defaultTags,
+        quoteSources =
+            quoteSources != null ? List.unmodifiable(quoteSources) : defaultQuoteSources;
 
   // Private constructor used by copyWith: accepts pre-validated list references
   // directly without re-wrapping, so the caller can preserve the same reference
   // and context.select() equality checks work correctly.
+  // CONTRACT: callers must pass already-unmodifiable lists for tags and
+  // quoteSources — this constructor does NOT wrap them.
   ConfigModel._internal({
     required this.timerMode,
     required this.countdownDuration,
@@ -77,7 +90,28 @@ class ConfigModel {
     required this.language,
     required this.tags,
     required this.quoteSources,
-  });
+  }) {
+    // Verify immutability without mutating: setting list[i]=list[i] writes the
+    // same value back (no observable state change) but throws UnsupportedError
+    // on unmodifiable lists, which is what we require.
+    assert(() {
+      try {
+        if (tags.isNotEmpty) tags[0] = tags[0];
+        return false; // no exception → list is mutable
+      } on UnsupportedError {
+        return true;
+      }
+    }() || tags.isEmpty, '_internal: tags must already be an unmodifiable list');
+    assert(() {
+      try {
+        if (quoteSources.isNotEmpty) quoteSources[0] = quoteSources[0];
+        return false;
+      } on UnsupportedError {
+        return true;
+      }
+    }() || quoteSources.isEmpty,
+        '_internal: quoteSources must already be an unmodifiable list');
+  }
 
   factory ConfigModel.fromJson(Map<String, dynamic> json) {
     return ConfigModel(
@@ -135,6 +169,16 @@ class ConfigModel {
     List<String>? tags,
     List<String>? quoteSources,
   }) {
+    assert(
+      identical(backgroundMusic, _unset) ||
+          backgroundMusic == null ||
+          backgroundMusic is String,
+      'backgroundMusic must be String or null',
+    );
+    assert(
+      identical(userName, _unset) || userName == null || userName is String,
+      'userName must be String or null',
+    );
     return ConfigModel._internal(
       timerMode: timerMode ?? this.timerMode,
       countdownDuration: countdownDuration ?? this.countdownDuration,
@@ -159,4 +203,15 @@ class ConfigModel {
       quoteSources: quoteSources != null ? List.unmodifiable(quoteSources) : this.quoteSources,
     );
   }
+
+  /// Returns a copy with device-local audio paths replaced by bundled defaults.
+  /// Call this whenever loading config from an external source (import, sync,
+  /// QR restore) that may contain file paths from a different device.
+  ConfigModel sanitizeForDevice() => copyWith(
+        bellStart: bellStart.startsWith('custom:') ? defaultBellStart : bellStart,
+        bellEnd: bellEnd.startsWith('custom:') ? defaultBellEnd : bellEnd,
+        bellInterval:
+            bellInterval.startsWith('custom:') ? defaultBellInterval : bellInterval,
+        backgroundMusic: null,
+      );
 }
