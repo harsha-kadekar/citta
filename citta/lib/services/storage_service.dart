@@ -215,20 +215,9 @@ class StorageService {
     Map<String, dynamic> data, {
     bool replaceAll = true,
   }) async {
-    final importedConfig =
-        ConfigModel.fromJson(data['config'] as Map<String, dynamic>);
-
-    // Reset custom audio paths that may not exist on this device
-    if (importedConfig.bellStart.startsWith('custom:')) {
-      importedConfig.bellStart = ConfigModel.defaultBellStart;
-    }
-    if (importedConfig.bellEnd.startsWith('custom:')) {
-      importedConfig.bellEnd = ConfigModel.defaultBellEnd;
-    }
-    if (importedConfig.bellInterval.startsWith('custom:')) {
-      importedConfig.bellInterval = ConfigModel.defaultBellInterval;
-    }
-    importedConfig.backgroundMusic = null;
+    final importedConfig = ConfigModel
+        .fromJson(data['config'] as Map<String, dynamic>)
+        .sanitizeForDevice();
 
     final importedSessions = (data['sessions'] as List<dynamic>)
         .map((e) => SessionModel.fromJson(e as Map<String, dynamic>))
