@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:citta/l10n/app_localizations.dart';
@@ -38,6 +39,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   // Ad-hoc overrides (null means use config default)
   TimerMode? _adHocMode;
   int? _adHocDuration;
+  // Set when a session starts; used to write the in-progress marker.
+  String? _sessionId;
+  DateTime? _sessionStartDate;
   String get _title => _cittaTitles[widget.visitCount % _cittaTitles.length];
 
   @override
@@ -73,9 +77,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused &&
-        _timerService.state == TimerState.running) {
-      _timerService.pause();
+    if (state == AppLifecycleState.paused) {
+      if (_timerService.state == TimerState.running) {
+        _timerService.pause();
+      }
+      unawaited(_saveInProgressMarker());
     }
   }
 
@@ -96,23 +102,57 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       intervalEnabled: config.intervalEnabled,
     );
 
+    _sessionId = const Uuid().v4();
+    _sessionStartDate = DateTime.now();
+
     _setupTimerCallbacks();
     _timerService.start();
-    WakelockPlus.enable();
+    WakelockPlus.enable().catchError(
+      (Object _) {},
+      test: (e) => e is PlatformException,
+    );
     HapticFeedback.mediumImpact();
     setState(() {
       _showPreSessionConfig = false;
     });
+
+    unawaited(_saveInProgressMarker());
+  }
+
+  Future<void> _saveInProgressMarker() async {
+    if (_sessionId == null || !mounted) return;
+    try {
+      await context.read<AppState>().saveInProgressSession(
+        id: _sessionId!,
+        startDate: _sessionStartDate!,
+        elapsedSeconds: _timerService.elapsedSeconds,
+        timerMode: _timerService.mode == TimerMode.countdown
+            ? 'countdown'
+            : 'stopwatch',
+        targetDuration: _timerService.targetDuration,
+      );
+    } catch (_) {
+      // clearInProgressSession handles any partial writes from a failed save
+    }
   }
 
   void _onSessionComplete({required bool completedFully}) {
-    WakelockPlus.disable();
+    // Capture and null immediately so no new marker saves start after this point.
+    final sessionId = _sessionId!;
+    _sessionId = null;
+    _sessionStartDate = null;
+
+    WakelockPlus.disable().catchError(
+      (Object _) {},
+      test: (e) => e is PlatformException,
+    );
     final appState = context.read<AppState>();
     appState.audioService.stopBackgroundMusic();
     _playBell(appState.config.bellEnd);
+    appState.clearInProgressSession();
 
     final session = SessionModel(
-      id: const Uuid().v4(),
+      id: sessionId,
       date: DateTime.now(),
       duration: _timerService.elapsedSeconds,
       timerMode: _timerService.mode == TimerMode.countdown
@@ -145,7 +185,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   @override
   void dispose() {
-    WakelockPlus.disable();
+    WakelockPlus.disable().catchError(
+      (Object _) {},
+      test: (e) => e is PlatformException,
+    );
     WidgetsBinding.instance.removeObserver(this);
     _timerService.dispose();
     super.dispose();

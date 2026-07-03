@@ -236,4 +236,131 @@ void main() {
       },
     );
   });
+
+  group('HomeScreen – in-progress session marker', () {
+    late Directory tmpDir;
+    late AppState appState;
+    late StorageService storage;
+
+    setUp(() async {
+      tmpDir = Directory.systemTemp.createTempSync('citta_home_test_');
+      appState = await _makeAndInit(tmpDir.path);
+      storage = StorageService.withBasePath(tmpDir.path);
+    });
+
+    tearDown(() => tmpDir.deleteSync(recursive: true));
+
+    testWidgets(
+      '4. starting a session writes the in-progress marker',
+      (tester) async {
+        await tester.pumpWidget(_testApp(appState));
+        await tester.pump();
+
+        await tester.tap(find.text('Begin'));
+        await tester.pump();
+
+        // Phase 1: let real I/O complete (fire-and-forget save on native thread).
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
+        // Phase 2: drain fakeAsync queue so I/O completion callbacks execute.
+        await tester.pump();
+        // Phase 3: read the file in real async.
+        final data = await tester.runAsync(() => storage.loadInProgressSession());
+
+        expect(data, isNotNull,
+            reason: 'in-progress marker must be written when a session starts');
+        expect(data!['elapsedSeconds'], 0);
+      },
+    );
+
+    testWidgets(
+      '5. backgrounding a running session updates the marker with elapsed seconds',
+      (tester) async {
+        await tester.pumpWidget(_testApp(appState));
+        await tester.pump();
+
+        await tester.tap(find.text('Begin'));
+        // Advance 5 seconds so elapsedSeconds > 0.
+        await tester.pump(const Duration(seconds: 5));
+
+        // Simulate app going to background.
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+        await tester.pump();
+
+        // Phase 1: let real I/O complete.
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
+        // Phase 2: drain fakeAsync queue.
+        await tester.pump();
+        // Phase 3: read the file.
+        final data = await tester.runAsync(() => storage.loadInProgressSession());
+
+        expect(data, isNotNull);
+        expect((data!['elapsedSeconds'] as int) >= 5, isTrue,
+            reason: 'marker must record elapsed seconds on background');
+      },
+    );
+
+    testWidgets(
+      '7. backgrounding a paused session updates the marker with current elapsed seconds',
+      (tester) async {
+        await tester.pumpWidget(_testApp(appState));
+        await tester.pump();
+
+        await tester.tap(find.text('Begin'));
+        // Advance 5 seconds so elapsedSeconds > 0.
+        await tester.pump(const Duration(seconds: 5));
+
+        // Manually pause the session.
+        await tester.tap(find.byIcon(Icons.pause_rounded));
+        await tester.pump();
+
+        // Simulate app going to background while the timer is already paused.
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+        await tester.pump();
+
+        // Phase 1: let real I/O complete.
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
+        // Phase 2: drain fakeAsync queue.
+        await tester.pump();
+        // Phase 3: read the file.
+        final data = await tester.runAsync(() => storage.loadInProgressSession());
+
+        expect(data, isNotNull,
+            reason: 'marker must be written even when the session was already paused before backgrounding');
+        expect((data!['elapsedSeconds'] as int) >= 5, isTrue,
+            reason: 'marker must record elapsed seconds from the paused session');
+      },
+    );
+
+    testWidgets(
+      '6. stopping a session normally clears the in-progress marker',
+      (tester) async {
+        await tester.pumpWidget(_testApp(appState));
+        await tester.pump();
+
+        await tester.tap(find.text('Begin'));
+        await tester.pump();
+
+        // Ensure marker was written first.
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
+        await tester.pump();
+        final dataBefore = await tester.runAsync(() => storage.loadInProgressSession());
+        expect(dataBefore, isNotNull, reason: 'marker must exist before stop');
+
+        await tester.tap(find.byIcon(Icons.stop_rounded));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 350));
+
+        // Wait for clearInProgressSession I/O.
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
+        await tester.pump();
+        final dataAfter = await tester.runAsync(() => storage.loadInProgressSession());
+
+        expect(dataAfter, isNull,
+            reason: 'in-progress marker must be cleared when session completes normally');
+
+        // Drain SessionCompleteScreen's 3-second auto-advance timer.
+        await tester.pump(const Duration(seconds: 4));
+      },
+    );
+  });
 }

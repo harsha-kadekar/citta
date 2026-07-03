@@ -146,6 +146,54 @@ class StorageService {
     await _atomicWrite(path, content);
   }
 
+  // --- In-Progress Session ---
+
+  Future<String> get _inProgressPath async =>
+      '${await basePath}/in_progress_session.json';
+
+  Future<void> saveInProgressSession({
+    required String id,
+    required DateTime startDate,
+    required int elapsedSeconds,
+    required String timerMode,
+    required int targetDuration,
+  }) async {
+    final path = await _inProgressPath;
+    final json = {
+      'id': id,
+      'startDate': startDate.toUtc().toIso8601String(),
+      'elapsedSeconds': elapsedSeconds,
+      'timerMode': timerMode,
+      'targetDuration': targetDuration,
+    };
+    final content = const JsonEncoder.withIndent('  ').convert(json);
+    await _atomicWrite(path, content);
+  }
+
+  Future<Map<String, dynamic>?> loadInProgressSession() async {
+    final path = await _inProgressPath;
+    await recoverIfNeeded(path);
+    final file = File(path);
+    if (!await file.exists()) return null;
+    try {
+      final content = await file.readAsString();
+      return jsonDecode(content) as Map<String, dynamic>;
+    } catch (_) {
+      await _saveCorrupt(path);
+      return null;
+    }
+  }
+
+  Future<void> clearInProgressSession() async {
+    final path = await _inProgressPath;
+    final file = File(path);
+    if (await file.exists()) await file.delete();
+    final tmp = File('$path.tmp');
+    final bak = File('$path.bak');
+    if (await tmp.exists()) await tmp.delete();
+    if (await bak.exists()) await bak.delete();
+  }
+
   // --- User Quotes ---
 
   Future<String> get _userQuotesPath async =>
