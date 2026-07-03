@@ -174,3 +174,47 @@ The earlier `removeTag()` no-op gap is closed in [app_state.dart](/home/harsha/w
 ## Summary
 
 No findings on the current revision. The branch now routes the config/tag updates through immutable copies, preserves the intended no-op behavior on both add and remove paths, and the targeted tests plus `flutter analyze` pass.
+
+---
+
+## Scope
+
+Review of the current local changes for GitHub issue `#14`: `Decide and implement interrupted-session recovery behavior`.
+
+Issue requirement reviewed against:
+
+- Make interrupted-session behavior explicit instead of accidental
+- Avoid silently losing in-progress state when the app backgrounds or the process is killed
+- Keep recovery behavior coherent with session history and stats
+
+## Findings
+
+No code-review findings in the current branch state.
+
+The earlier gaps appear closed. [home_screen.dart](/home/harsha/workspace/Citta/citta/lib/screens/home_screen.dart:79) now persists the in-progress marker on every `paused` lifecycle event, including sessions that were already manually paused, and [home_screen_test.dart](/home/harsha/workspace/Citta/citta/test/screens/home_screen_test.dart:299) adds widget coverage for that path. The recovery logic in [app_state.dart](/home/harsha/workspace/Citta/citta/lib/providers/app_state.dart:75) now discards `elapsedSeconds == 0` markers instead of promoting them into session history, with regression coverage in [app_state_interrupted_session_test.dart](/home/harsha/workspace/Citta/citta/test/providers/app_state_interrupted_session_test.dart:118).
+
+## Verification
+
+- Reviewed issue `#14` via `gh issue view 14 --json number,title,body,state,url`
+- Inspected the local diff in:
+  - `citta/lib/providers/app_state.dart`
+  - `citta/lib/screens/home_screen.dart`
+  - `citta/lib/services/storage_service.dart`
+  - `citta/test/providers/app_state_interrupted_session_test.dart`
+  - `citta/test/screens/home_screen_test.dart`
+  - `citta/test/services/storage_service_test.dart`
+- Read the surrounding implementation in:
+  - `citta/lib/services/timer_service.dart`
+  - `citta/lib/models/session_model.dart`
+  - `citta/lib/services/stats_service.dart`
+- Searched lifecycle and marker call sites with `rg -n "onPause|onResume|pause\\(|resume\\(|clearInProgressSession|saveInProgressSession|loadInProgressSession" citta/lib citta/test`
+- Ran `/home/harsha/flutter/flutter/bin/flutter test test/providers/app_state_interrupted_session_test.dart`
+  - Result: passes
+- Ran `/home/harsha/flutter/flutter/bin/flutter test test/screens/home_screen_test.dart`
+  - Result: passes
+- Ran `/home/harsha/flutter/flutter/bin/flutter test test/services/storage_service_test.dart`
+  - Result: passes
+
+## Summary
+
+No findings on the current revision. The branch now checkpoints paused sessions before background/process death, discards zero-second interrupted markers on recovery, and the targeted provider, widget, and storage tests pass.

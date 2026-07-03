@@ -56,10 +56,57 @@ class AppState extends ChangeNotifier {
     await audioService.init();
     audioService.warmUp(_config.bellEnd); // fire-and-forget — completes well before first session
 
+    try {
+      await _recoverInterruptedSession();
+    } catch (_) {
+      await storageService.clearInProgressSession().catchError((_) {});
+    }
+
     _refreshDerivedData();
     _isLoading = false;
     notifyListeners();
   }
+
+  Future<void> _recoverInterruptedSession() async {
+    final data = await storageService.loadInProgressSession();
+    if (data == null) return;
+
+    final id = data['id'] as String;
+    final elapsed = data['elapsedSeconds'] as int? ?? 0;
+    if (!_sessions.any((s) => s.id == id) && elapsed > 0) {
+      final session = SessionModel(
+        id: id,
+        date: DateTime.parse(data['startDate'] as String),
+        duration: elapsed,
+        timerMode: data['timerMode'] as String? ?? 'countdown',
+        completedFully: false,
+      );
+      _sessions = List.unmodifiable([..._sessions, session]);
+      await storageService.saveSessions(_sessions);
+    }
+
+    await storageService.clearInProgressSession();
+  }
+
+  // --- In-Progress Session ---
+
+  Future<void> saveInProgressSession({
+    required String id,
+    required DateTime startDate,
+    required int elapsedSeconds,
+    required String timerMode,
+    required int targetDuration,
+  }) =>
+      storageService.saveInProgressSession(
+        id: id,
+        startDate: startDate,
+        elapsedSeconds: elapsedSeconds,
+        timerMode: timerMode,
+        targetDuration: targetDuration,
+      );
+
+  Future<void> clearInProgressSession() =>
+      storageService.clearInProgressSession();
 
   // --- Config ---
 

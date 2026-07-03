@@ -782,4 +782,88 @@ void main() {
       expect(QuoteModel.fromJson(json).reference, '');
     });
   });
+
+  // -------------------------------------------------------------------------
+  // In-Progress Session
+  // -------------------------------------------------------------------------
+
+  group('saveInProgressSession / loadInProgressSession roundtrip', () {
+    test('persists and restores all fields', () async {
+      final startDate = DateTime.utc(2024, 6, 15, 8, 0);
+      await service.saveInProgressSession(
+        id: 'session-ip-1',
+        startDate: startDate,
+        elapsedSeconds: 300,
+        timerMode: 'countdown',
+        targetDuration: 1200,
+      );
+
+      final data = await service.loadInProgressSession();
+
+      expect(data, isNotNull);
+      expect(data!['id'], 'session-ip-1');
+      expect(DateTime.parse(data['startDate'] as String).toUtc(), startDate);
+      expect(data['elapsedSeconds'], 300);
+      expect(data['timerMode'], 'countdown');
+      expect(data['targetDuration'], 1200);
+    });
+
+    test('overwrites previous marker on repeated saves', () async {
+      await service.saveInProgressSession(
+        id: 'first',
+        startDate: DateTime.utc(2024),
+        elapsedSeconds: 100,
+        timerMode: 'countdown',
+        targetDuration: 600,
+      );
+      await service.saveInProgressSession(
+        id: 'second',
+        startDate: DateTime.utc(2024),
+        elapsedSeconds: 200,
+        timerMode: 'stopwatch',
+        targetDuration: 0,
+      );
+
+      final data = await service.loadInProgressSession();
+      expect(data!['id'], 'second');
+      expect(data['elapsedSeconds'], 200);
+      expect(data['timerMode'], 'stopwatch');
+    });
+  });
+
+  group('loadInProgressSession', () {
+    test('returns null when file does not exist', () async {
+      expect(await service.loadInProgressSession(), isNull);
+    });
+
+    test('returns null and saves .bak_corrupt on corrupt JSON', () async {
+      final path = '${tempDir.path}/in_progress_session.json';
+      await File(path).writeAsString('not valid json!!!');
+
+      final data = await service.loadInProgressSession();
+
+      expect(data, isNull);
+      expect(await File('$path.bak_corrupt').exists(), true);
+    });
+  });
+
+  group('clearInProgressSession', () {
+    test('deletes the in-progress file', () async {
+      await service.saveInProgressSession(
+        id: 'x',
+        startDate: DateTime.utc(2024),
+        elapsedSeconds: 60,
+        timerMode: 'countdown',
+        targetDuration: 600,
+      );
+
+      await service.clearInProgressSession();
+
+      expect(await service.loadInProgressSession(), isNull);
+    });
+
+    test('is idempotent when file does not exist', () async {
+      await expectLater(service.clearInProgressSession(), completes);
+    });
+  });
 }
