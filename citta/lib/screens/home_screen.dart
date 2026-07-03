@@ -225,13 +225,22 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
                 children: [
-                  // Quote card (hidden during session)
-                  if (!isSessionActive && quote != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8, bottom: 16),
-                      child: QuoteCard(quote: quote),
+                  // Quote card (hidden during session), aligned to the bottom
+                  // of the top flex section. SingleChildScrollView clips the
+                  // card on narrow-height viewports without a layout error.
+                  Expanded(
+                    child: SingleChildScrollView(
+                      reverse: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      child: !isSessionActive && quote != null
+                          ? Padding(
+                              padding:
+                                  const EdgeInsets.only(top: 8, bottom: 16),
+                              child: QuoteCard(quote: quote),
+                            )
+                          : const SizedBox.shrink(),
                     ),
-                  const Spacer(),
+                  ),
                   // Timer display
                   if (isSessionActive ||
                       _timerService.state == TimerState.completed) ...[
