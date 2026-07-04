@@ -322,6 +322,11 @@ class AppLocalizationsTa extends AppLocalizations {
   String get sessionTitle => 'அமர்வு';
 
   @override
+  String sessionDateAt(String date, String time) {
+    return '$date, $time';
+  }
+
+  @override
   String get sessionCountdown => 'எண்ணிக்கை';
 
   @override

@@ -131,6 +131,7 @@
 
   "sessionComplete": "המפגש הסתיים",
   "sessionTitle": "מפגש",
+  "sessionDateAt": "{date} בשעה {time}",
   "sessionCountdown": "ספירה לאחור",
   "sessionStopwatch": "שעון עצר",
   "sessionCompleted": "הושלם",

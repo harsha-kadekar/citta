@@ -312,6 +312,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sessionTitle => '会话';
 
   @override
+  String sessionDateAt(String date, String time) {
+    return '$date $time';
+  }
+
+  @override
   String get sessionCountdown => '倒计时';
 
   @override

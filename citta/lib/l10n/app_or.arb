@@ -131,6 +131,7 @@
 
   "sessionComplete": "ସ‌ଶନ ସ‌ମ୍ପୂର୍ଣ",
   "sessionTitle": "ସ‌ଶନ",
+  "sessionDateAt": "{date}, {time}",
   "sessionCountdown": "Countdown",
   "sessionStopwatch": "Stopwatch",
   "sessionCompleted": "ସ‌ମ୍ପୂର୍ଣ",

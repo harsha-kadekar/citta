@@ -131,6 +131,7 @@
 
   "sessionComplete": "அமர்வு முடிந்தது",
   "sessionTitle": "அமர்வு",
+  "sessionDateAt": "{date}, {time}",
   "sessionCountdown": "எண்ணிக்கை",
   "sessionStopwatch": "நிறுத்த கடிகாரம்",
   "sessionCompleted": "முடிந்தது",

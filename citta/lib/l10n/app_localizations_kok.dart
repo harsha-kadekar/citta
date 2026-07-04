@@ -320,6 +320,11 @@ class AppLocalizationsKok extends AppLocalizations {
   String get sessionTitle => 'सेशन';
 
   @override
+  String sessionDateAt(String date, String time) {
+    return '$date, $time';
+  }
+
+  @override
   String get sessionCountdown => 'Countdown';
 
   @override

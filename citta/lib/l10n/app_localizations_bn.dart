@@ -319,6 +319,11 @@ class AppLocalizationsBn extends AppLocalizations {
   String get sessionTitle => 'সেশন';
 
   @override
+  String sessionDateAt(String date, String time) {
+    return '$date, $time';
+  }
+
+  @override
   String get sessionCountdown => 'Countdown';
 
   @override

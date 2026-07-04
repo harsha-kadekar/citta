@@ -131,6 +131,7 @@
 
   "sessionComplete": "اكتملت الجلسة",
   "sessionTitle": "الجلسة",
+  "sessionDateAt": "{date} في {time}",
   "sessionCountdown": "Countdown",
   "sessionStopwatch": "Stopwatch",
   "sessionCompleted": "مكتمل",

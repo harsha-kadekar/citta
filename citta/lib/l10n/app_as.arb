@@ -131,6 +131,7 @@
 
   "sessionComplete": "অধিৱেশন সম্পূৰ্ণ",
   "sessionTitle": "অধিৱেশন",
+  "sessionDateAt": "{date}, {time}",
   "sessionCountdown": "Countdown",
   "sessionStopwatch": "Stopwatch",
   "sessionCompleted": "সম্পূৰ্ণ",

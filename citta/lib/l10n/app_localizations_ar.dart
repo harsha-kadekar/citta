@@ -319,6 +319,11 @@ class AppLocalizationsAr extends AppLocalizations {
   String get sessionTitle => 'الجلسة';
 
   @override
+  String sessionDateAt(String date, String time) {
+    return '$date في $time';
+  }
+
+  @override
   String get sessionCountdown => 'Countdown';
 
   @override

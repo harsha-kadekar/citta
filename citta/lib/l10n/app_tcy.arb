@@ -131,6 +131,7 @@
 
   "sessionComplete": "ಸೆಶನ್ ಮುಗಿಪ್ಪಿ",
   "sessionTitle": "ಸೆಶನ್",
+  "sessionDateAt": "{date}, {time}",
   "sessionCountdown": "Countdown",
   "sessionStopwatch": "Stopwatch",
   "sessionCompleted": "ಮುಗಿಪ್ಪಿ",

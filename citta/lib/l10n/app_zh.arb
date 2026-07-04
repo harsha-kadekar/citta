@@ -131,6 +131,7 @@
 
   "sessionComplete": "会话完成",
   "sessionTitle": "会话",
+  "sessionDateAt": "{date} {time}",
   "sessionCountdown": "倒计时",
   "sessionStopwatch": "秒表",
   "sessionCompleted": "已完成",

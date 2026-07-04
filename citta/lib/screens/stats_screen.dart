@@ -5,6 +5,7 @@ import '../models/session_model.dart';
 import '../providers/app_state.dart';
 import '../services/stats_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/formatters.dart';
 import '../widgets/calendar_view.dart';
 
 class StatsScreen extends StatelessWidget {
@@ -87,7 +88,8 @@ class StatsScreen extends StatelessWidget {
                     icon: Icons.schedule,
                     iconColor: AppColors.accent,
                     label: l10n.statsAverage,
-                    value: _formatDuration(stats.averageDurationSeconds),
+                    value: formatDuration(stats.averageDurationSeconds,
+                        style: DurationDisplayStyle.compact),
                     unit: '',
                   ),
                 ),
@@ -102,12 +104,6 @@ class StatsScreen extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _formatDuration(int seconds) {
-    if (seconds == 0) return '0m';
-    final mins = seconds ~/ 60;
-    return '${mins}m';
   }
 }
 

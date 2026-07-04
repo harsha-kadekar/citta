@@ -131,6 +131,7 @@
 
   "sessionComplete": "Sessione completata",
   "sessionTitle": "Sessione",
+  "sessionDateAt": "{date} alle {time}",
   "sessionCountdown": "Countdown",
   "sessionStopwatch": "Stopwatch",
   "sessionCompleted": "Completato",

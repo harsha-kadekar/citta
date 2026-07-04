@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import '../l10n/intl_locale.dart';
 import '../models/session_model.dart';
 import '../services/stats_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/formatters.dart';
 
 class CalendarView extends StatefulWidget {
   final List<SessionModel> sessions;
@@ -37,7 +36,7 @@ class _CalendarViewState extends State<CalendarView> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final newLocale = safeIntlLocale(Localizations.localeOf(context).toString());
+    final newLocale = currentLocaleStr(context);
     if (newLocale == _localeStr) return;
     _localeStr = newLocale;
     _updateMonthName();
@@ -45,14 +44,16 @@ class _CalendarViewState extends State<CalendarView> {
   }
 
   void _updateMonthName() {
-    _monthName = DateFormat('MMMM y', _localeStr)
-        .format(DateTime(_currentMonth.year, _currentMonth.month));
+    _monthName = formatMonthYear(
+      DateTime(_currentMonth.year, _currentMonth.month),
+      _localeStr,
+    );
   }
 
   void _buildWeekdayHeaders() {
     _weekdayHeaders = List.generate(
       7,
-      (i) => DateFormat('E', _localeStr).format(DateTime(2024, 1, i + 1)),
+      (i) => formatWeekdayShort(DateTime(2024, 1, i + 1), _localeStr),
     );
   }
 
