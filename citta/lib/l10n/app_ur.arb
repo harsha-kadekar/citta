@@ -131,6 +131,7 @@
 
   "sessionComplete": "سیشن مکمل",
   "sessionTitle": "سیشن",
+  "sessionDateAt": "{date} کو {time}",
   "sessionCountdown": "Countdown",
   "sessionStopwatch": "Stopwatch",
   "sessionCompleted": "مکمل",

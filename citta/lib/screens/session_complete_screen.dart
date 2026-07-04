@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:citta/l10n/app_localizations.dart';
 import '../models/session_model.dart';
 import '../theme/app_theme.dart';
+import '../utils/formatters.dart';
 import 'notes_screen.dart';
 
 class SessionCompleteScreen extends StatefulWidget {
@@ -29,13 +30,6 @@ class _SessionCompleteScreenState extends State<SessionCompleteScreen> {
     );
   }
 
-  String _formatDuration(int seconds) {
-    final mins = seconds ~/ 60;
-    final secs = seconds % 60;
-    if (mins == 0) return '${secs}s';
-    return secs > 0 ? '${mins}m ${secs}s' : '${mins}m';
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -59,7 +53,7 @@ class _SessionCompleteScreenState extends State<SessionCompleteScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                _formatDuration(widget.session.duration),
+                formatDuration(widget.session.duration),
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       color: AppColors.textSecondary,
                     ),

@@ -321,6 +321,11 @@ class AppLocalizationsHe extends AppLocalizations {
   String get sessionTitle => 'מפגש';
 
   @override
+  String sessionDateAt(String date, String time) {
+    return '$date בשעה $time';
+  }
+
+  @override
   String get sessionCountdown => 'ספירה לאחור';
 
   @override

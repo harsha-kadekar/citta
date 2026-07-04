@@ -131,6 +131,7 @@
 
   "sessionComplete": "সেশন সম্পূর্ণ",
   "sessionTitle": "সেশন",
+  "sessionDateAt": "{date}, {time}",
   "sessionCountdown": "Countdown",
   "sessionStopwatch": "Stopwatch",
   "sessionCompleted": "সম্পূর্ণ",

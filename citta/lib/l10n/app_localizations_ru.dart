@@ -320,6 +320,11 @@ class AppLocalizationsRu extends AppLocalizations {
   String get sessionTitle => 'Сессия';
 
   @override
+  String sessionDateAt(String date, String time) {
+    return '$date в $time';
+  }
+
+  @override
   String get sessionCountdown => 'Countdown';
 
   @override

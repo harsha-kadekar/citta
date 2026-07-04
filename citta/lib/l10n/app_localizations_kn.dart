@@ -321,6 +321,11 @@ class AppLocalizationsKn extends AppLocalizations {
   String get sessionTitle => 'ಸೆಷನ್';
 
   @override
+  String sessionDateAt(String date, String time) {
+    return '$date, $time';
+  }
+
+  @override
   String get sessionCountdown => 'ಕೌಂಟ್‌ಡೌನ್';
 
   @override

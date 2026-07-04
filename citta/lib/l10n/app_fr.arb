@@ -131,6 +131,7 @@
 
   "sessionComplete": "Séance terminée",
   "sessionTitle": "Séance",
+  "sessionDateAt": "{date} à {time}",
   "sessionCountdown": "Compte à rebours",
   "sessionStopwatch": "Chronomètre",
   "sessionCompleted": "Terminé",

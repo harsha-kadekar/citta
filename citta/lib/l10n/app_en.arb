@@ -322,6 +322,14 @@
   "sessionTitle": "Session",
   "@sessionTitle": {},
 
+  "sessionDateAt": "{date} at {time}",
+  "@sessionDateAt": {
+    "placeholders": {
+      "date": { "type": "String" },
+      "time": { "type": "String" }
+    }
+  },
+
   "sessionCountdown": "Countdown",
   "@sessionCountdown": {},
 

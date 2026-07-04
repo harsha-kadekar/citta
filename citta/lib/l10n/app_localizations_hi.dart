@@ -321,6 +321,11 @@ class AppLocalizationsHi extends AppLocalizations {
   String get sessionTitle => 'सत्र';
 
   @override
+  String sessionDateAt(String date, String time) {
+    return '$date को $time';
+  }
+
+  @override
   String get sessionCountdown => 'काउंटडाउन';
 
   @override

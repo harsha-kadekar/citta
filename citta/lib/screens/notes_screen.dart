@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/session_model.dart';
 import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
+import '../utils/formatters.dart';
 
 class NotesScreen extends StatefulWidget {
   final SessionModel session;
@@ -58,13 +59,6 @@ class _NotesScreenState extends State<NotesScreen> {
     }
   }
 
-  String _formatDuration(int seconds) {
-    final mins = seconds ~/ 60;
-    final secs = seconds % 60;
-    if (mins == 0) return '${secs}s';
-    return secs > 0 ? '${mins}m ${secs}s' : '${mins}m';
-  }
-
   @override
   void dispose() {
     _notesController.dispose();
@@ -108,7 +102,7 @@ class _NotesScreenState extends State<NotesScreen> {
                         color: AppColors.primary, size: 20),
                     const SizedBox(width: 8),
                     Text(
-                      _formatDuration(widget.session.duration),
+                      formatDuration(widget.session.duration),
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     if (widget.session.completedFully) ...[

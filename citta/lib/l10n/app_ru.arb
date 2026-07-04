@@ -131,6 +131,7 @@
 
   "sessionComplete": "Сессия завершена",
   "sessionTitle": "Сессия",
+  "sessionDateAt": "{date} в {time}",
   "sessionCountdown": "Countdown",
   "sessionStopwatch": "Stopwatch",
   "sessionCompleted": "Завершено",

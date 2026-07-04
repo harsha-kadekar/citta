@@ -320,6 +320,11 @@ class AppLocalizationsUr extends AppLocalizations {
   String get sessionTitle => 'سیشن';
 
   @override
+  String sessionDateAt(String date, String time) {
+    return '$date کو $time';
+  }
+
+  @override
   String get sessionCountdown => 'Countdown';
 
   @override

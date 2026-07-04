@@ -320,6 +320,11 @@ class AppLocalizationsIt extends AppLocalizations {
   String get sessionTitle => 'Sessione';
 
   @override
+  String sessionDateAt(String date, String time) {
+    return '$date alle $time';
+  }
+
+  @override
   String get sessionCountdown => 'Countdown';
 
   @override

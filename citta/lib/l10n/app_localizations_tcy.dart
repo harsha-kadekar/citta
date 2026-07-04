@@ -320,6 +320,11 @@ class AppLocalizationsTcy extends AppLocalizations {
   String get sessionTitle => 'ಸೆಶನ್';
 
   @override
+  String sessionDateAt(String date, String time) {
+    return '$date, $time';
+  }
+
+  @override
   String get sessionCountdown => 'Countdown';
 
   @override

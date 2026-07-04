@@ -131,6 +131,7 @@
 
   "sessionComplete": "सत्रं पूर्णम्",
   "sessionTitle": "सत्रम्",
+  "sessionDateAt": "{date}, {time}",
   "sessionCountdown": "गणना",
   "sessionStopwatch": "कालमापकम्",
   "sessionCompleted": "पूर्णम्",

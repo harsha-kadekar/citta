@@ -131,6 +131,7 @@
 
   "sessionComplete": "ਸੈਸ਼ਨ ਪੂਰਾ",
   "sessionTitle": "ਸੈਸ਼ਨ",
+  "sessionDateAt": "{date} ਨੂੰ {time}",
   "sessionCountdown": "Countdown",
   "sessionStopwatch": "Stopwatch",
   "sessionCompleted": "ਪੂਰਾ",

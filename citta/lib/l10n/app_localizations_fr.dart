@@ -323,6 +323,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get sessionTitle => 'Séance';
 
   @override
+  String sessionDateAt(String date, String time) {
+    return '$date à $time';
+  }
+
+  @override
   String get sessionCountdown => 'Compte à rebours';
 
   @override

@@ -131,6 +131,7 @@
 
   "sessionComplete": "セッション完了",
   "sessionTitle": "セッション",
+  "sessionDateAt": "{date} {time}",
   "sessionCountdown": "カウントダウン",
   "sessionStopwatch": "ストップウォッチ",
   "sessionCompleted": "完了",

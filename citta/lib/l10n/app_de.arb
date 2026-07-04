@@ -131,6 +131,7 @@
 
   "sessionComplete": "Sitzung abgeschlossen",
   "sessionTitle": "Sitzung",
+  "sessionDateAt": "{date} um {time}",
   "sessionCountdown": "Countdown",
   "sessionStopwatch": "Stoppuhr",
   "sessionCompleted": "Abgeschlossen",

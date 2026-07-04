@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:citta/l10n/app_localizations.dart';
-import 'package:citta/l10n/intl_locale.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
 import '../models/session_model.dart';
 import '../theme/app_theme.dart';
+import '../utils/formatters.dart';
 import 'session_detail_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -200,11 +199,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget _buildSessionCard(
       BuildContext context, SessionModel session, AppLocalizations l10n) {
     final date = session.date.toLocal();
-    final localeStr = safeIntlLocale(Localizations.localeOf(context).toString());
-    final dateStr = DateFormat('MMM d, y', localeStr).format(date);
-    final timeStr =
-        '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-    final duration = _formatDuration(session.duration);
+    final localeStr = currentLocaleStr(context);
+    final dateStr = formatSessionDate(date, localeStr);
+    final timeStr = formatSessionTime(date, localeStr);
+    final duration = formatDuration(session.duration);
     final isSelected = _selectedSessionIds.contains(session.id);
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -332,12 +330,5 @@ class _HistoryScreenState extends State<HistoryScreen> {
         ],
       ),
     );
-  }
-
-  String _formatDuration(int seconds) {
-    final mins = seconds ~/ 60;
-    final secs = seconds % 60;
-    if (mins == 0) return '${secs}s';
-    return secs > 0 ? '${mins}m ${secs}s' : '${mins}m';
   }
 }

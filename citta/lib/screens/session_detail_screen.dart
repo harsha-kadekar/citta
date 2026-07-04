@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:citta/l10n/app_localizations.dart';
-import 'package:citta/l10n/intl_locale.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
-import 'package:intl/intl.dart';
 import '../models/session_model.dart';
 import '../theme/app_theme.dart';
+import '../utils/formatters.dart';
 
 class SessionDetailScreen extends StatelessWidget {
   final SessionModel session;
@@ -14,10 +13,10 @@ class SessionDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final localeStr = safeIntlLocale(Localizations.localeOf(context).toString());
+    final localeStr = currentLocaleStr(context);
     final date = session.date.toLocal();
-    final dateStr =
-        '${DateFormat('MMM d, y', localeStr).format(date)} at ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    final dateStr = l10n.sessionDateAt(
+        formatSessionDate(date, localeStr), formatSessionTime(date, localeStr));
 
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -50,7 +49,8 @@ class SessionDetailScreen extends StatelessWidget {
               child: Column(
                 children: [
                   Text(
-                    _formatDuration(session.duration),
+                    formatDuration(session.duration,
+                        style: DurationDisplayStyle.full),
                     style: Theme.of(context).textTheme.headlineLarge,
                   ),
                   const SizedBox(height: 4),
@@ -146,16 +146,5 @@ class SessionDetailScreen extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _formatDuration(int seconds) {
-    final hours = seconds ~/ 3600;
-    final mins = (seconds % 3600) ~/ 60;
-    final secs = seconds % 60;
-    if (hours > 0) {
-      return '${hours}h ${mins}m';
-    }
-    if (mins == 0) return '${secs}s';
-    return secs > 0 ? '${mins}m ${secs}s' : '${mins}m';
   }
 }

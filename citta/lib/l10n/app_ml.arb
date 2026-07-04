@@ -131,6 +131,7 @@
 
   "sessionComplete": "സെഷൻ പൂർത്തിയായി",
   "sessionTitle": "സെഷൻ",
+  "sessionDateAt": "{date}, {time}",
   "sessionCountdown": "കൗണ്ട്ഡൗൺ",
   "sessionStopwatch": "സ്റ്റോപ്‌വാച്ച്",
   "sessionCompleted": "പൂർത്തിയായി",

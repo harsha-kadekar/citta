@@ -1,0 +1,38 @@
+# Codex Review
+
+## Scope
+
+Review of the current local changes for GitHub issue `#15`: `Extract shared duration and date formatter utilities`.
+
+Issue requirement reviewed against:
+
+- Extract duplicated duration formatting into a shared utility
+- Extract shared date/time helpers
+- Keep UI output consistent and improve localization/locale handling
+
+## Findings
+
+No code-review findings in the current branch state.
+
+The earlier locale-formatting gap appears closed. [formatters.dart](/home/harsha/workspace/Citta/citta/lib/utils/formatters.dart:49) now uses `DateFormat.yMMMd(localeStr)` for locale-appropriate abbreviated dates, and [formatters.dart](/home/harsha/workspace/Citta/citta/lib/utils/formatters.dart:54) uses `DateFormat.jm(localeStr)` so time formatting follows the locale’s conventional 12h/24h presentation. The updated wiring in [session_detail_screen.dart](/home/harsha/workspace/Citta/citta/lib/screens/session_detail_screen.dart:18) and [history_screen.dart](/home/harsha/workspace/Citta/citta/lib/screens/history_screen.dart:203) passes the locale through consistently, and the added regression coverage in [formatters_test.dart](/home/harsha/workspace/Citta/citta/test/utils/formatters_test.dart:81) and [formatters_test.dart](/home/harsha/workspace/Citta/citta/test/utils/formatters_test.dart:98) now checks both English and non-English date/time behavior.
+
+## Verification
+
+- Reviewed issue `#15` via `gh issue view 15 --json number,title,body,state,url`
+- Inspected the local diff in:
+  - `citta/lib/utils/formatters.dart`
+  - `citta/test/utils/formatters_test.dart`
+  - `citta/lib/screens/history_screen.dart`
+  - `citta/lib/screens/notes_screen.dart`
+  - `citta/lib/screens/session_complete_screen.dart`
+  - `citta/lib/screens/session_detail_screen.dart`
+  - `citta/lib/screens/stats_screen.dart`
+  - `citta/lib/widgets/calendar_view.dart`
+  - generated `citta/lib/l10n/*` changes related to `sessionDateAt`
+- Searched formatter usage and remaining date/time formatting call sites with `rg -n "String _formatDuration|DateFormat\\(|padLeft\\(2, '0'\\)|formatSessionTime\\(|formatSessionDate\\(|currentLocaleStr\\(" citta/lib citta/test`
+- Ran `/home/harsha/flutter/flutter/bin/flutter test test/utils/formatters_test.dart`
+  - Result: passes
+
+## Summary
+
+No findings on the current revision. The shared formatter utility now centralizes the duplicated logic without preserving the earlier locale-formatting bug, and the targeted formatter tests pass.

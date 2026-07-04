@@ -131,6 +131,7 @@
 
   "sessionComplete": "सत्र पूर्ण",
   "sessionTitle": "सत्र",
+  "sessionDateAt": "{date}, {time}",
   "sessionCountdown": "उलटगणती",
   "sessionStopwatch": "स्टॉपवॉच",
   "sessionCompleted": "पूर्ण",
