@@ -33,3 +33,37 @@ No code-review findings in the current branch state.
 ## Summary
 
 The earlier missing-file issue is resolved now that [audio_picker.dart](/home/harsha/workspace/Citta/citta/lib/screens/settings/audio_picker.dart:1) is tracked. The normalization itself still looks correct: background music is stored with the same `custom:<path>` convention as bell selections, `AudioService.startBackgroundMusic()` remains backward-compatible with legacy raw paths, and the targeted settings/audio tests pass.
+
+---
+
+## Scope
+
+Review of the current local changes for GitHub issue `#18`: `Clean up StorageService.basePath lazy initialization`.
+
+Issue requirement reviewed against:
+
+- Make `StorageService.basePath` single-flight under concurrent first access
+- Preserve retry behavior if the initial path resolution fails
+- Keep the change narrow to this low-priority cleanup area
+
+## Findings
+
+No code-review findings in the current branch state.
+
+The implementation now memoizes the in-flight `Future<String>` in [storage_service.dart](/home/harsha/workspace/Citta/citta/lib/services/storage_service.dart:10), which closes the concurrent first-call race described in the issue without changing the public API. The failure path in [storage_service.dart](/home/harsha/workspace/Citta/citta/lib/services/storage_service.dart:20) also clears the cached future before rethrowing, so transient resolution failures do not get stuck permanently. The new focused tests in [storage_service_test.dart](/home/harsha/workspace/Citta/citta/test/services/storage_service_test.dart:138) cover both behaviors directly.
+
+## Verification
+
+- Reviewed issue `#18` via `gh issue view 18 --repo harsha-kadekar/citta --json title,body,state,url,labels`
+- Inspected the local diff in:
+  - `citta/lib/services/storage_service.dart`
+  - `citta/test/services/storage_service_test.dart`
+  - `citta/pubspec.yaml`
+- Ran `/home/harsha/flutter/flutter/bin/flutter test test/services/storage_service_test.dart`
+  - Result: passes
+- Ran `/home/harsha/flutter/flutter/bin/flutter analyze lib/services/storage_service.dart test/services/storage_service_test.dart`
+  - Result: passes
+
+## Summary
+
+No findings on the current revision. The branch addresses the exact race called out in issue `#18`, preserves retry semantics after failure, and the targeted tests plus analyzer run pass.
