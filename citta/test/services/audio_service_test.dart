@@ -15,23 +15,55 @@ class FakeAudioPlayer implements AudioPlayerBase {
   bool throwOnPause = false;
   bool throwOnPlay = false;
   bool throwOnStop = false;
+  bool throwOnSeek = false;
+  bool throwOnMuteVolume = false;
+  bool throwOnRestoreVolume = false;
+  bool throwOnPlayOnce = false;
 
   String? lastAsset;
   String? lastFilePath;
   LoopMode? lastLoopMode;
   double? lastVolume;
 
+  // Lets a test pause execution right before a named method's body runs, to
+  // deterministically construct interleavings (e.g. proving two calls are
+  // serialized rather than racing on shared player state).
+  String? _gateMethod;
+  Completer<void>? _gate;
+
+  void gateOn(String method) {
+    _gateMethod = method;
+    _gate = Completer<void>();
+  }
+
+  void releaseGate() {
+    _gate?.complete();
+    _gateMethod = null;
+    _gate = null;
+  }
+
+  Future<void> _maybeAwaitGate(String method) async {
+    if (_gateMethod == method) {
+      await _gate!.future;
+    }
+  }
+
   void _maybeThrow(String method) {
     if (shouldThrow) throw Exception('simulated audio failure');
     if (method == 'pause' && throwOnPause) throw Exception('simulated pause failure');
     if (method == 'play' && throwOnPlay) throw Exception('simulated play failure');
     if (method == 'stop' && throwOnStop) throw Exception('simulated stop failure');
+    if (method == 'seek' && throwOnSeek) throw Exception('simulated seek failure');
   }
 
   @override
   Future<void> setAsset(String path) async {
     _maybeThrow('setAsset');
     lastAsset = path;
+    // Mirrors _RealAudioPlayer, which disposes and recreates the underlying
+    // just_audio player (default volume 1.0) on every setAsset/setFilePath
+    // call — any prior mute doesn't survive a fresh load in production.
+    lastVolume = 1.0;
     calls.add('setAsset:$path');
   }
 
@@ -39,6 +71,7 @@ class FakeAudioPlayer implements AudioPlayerBase {
   Future<void> setFilePath(String path) async {
     _maybeThrow('setFilePath');
     lastFilePath = path;
+    lastVolume = 1.0;
     calls.add('setFilePath:$path');
   }
 
@@ -51,19 +84,32 @@ class FakeAudioPlayer implements AudioPlayerBase {
 
   @override
   Future<void> setVolume(double volume) async {
+    await _maybeAwaitGate('setVolume');
     _maybeThrow('setVolume');
+    if (volume == 0 && throwOnMuteVolume) {
+      throw Exception('simulated setVolume(0) failure');
+    }
+    if (volume == 1 && throwOnRestoreVolume) {
+      throw Exception('simulated setVolume(1) failure');
+    }
     lastVolume = volume;
     calls.add('setVolume:$volume');
   }
 
   @override
   Future<void> seek(Duration position) async {
+    await _maybeAwaitGate('seek');
     _maybeThrow('seek');
     calls.add('seek:${position.inMilliseconds}ms');
   }
 
   @override
   Future<void> play() async {
+    await _maybeAwaitGate('play');
+    if (throwOnPlayOnce) {
+      throwOnPlayOnce = false;
+      throw Exception('simulated one-shot play failure');
+    }
     _maybeThrow('play');
     calls.add('play');
   }
@@ -357,6 +403,202 @@ void main() {
         service.warmUp('bundled:temple_bells'),
         completes,
       );
+    });
+
+    test('41. restores volume to 1.0 when seek() throws after setVolume(0)',
+        () async {
+      bellPlayer.throwOnSeek = true;
+
+      await service.warmUp('bundled:temple_bells');
+
+      expect(bellPlayer.lastVolume, 1.0);
+    });
+
+    test('42. restores volume to 1.0 when play() throws after setVolume(0)',
+        () async {
+      bellPlayer.throwOnPlay = true;
+
+      await service.warmUp('bundled:temple_bells');
+
+      expect(bellPlayer.lastVolume, 1.0);
+    });
+
+    test('43. restores volume to 1.0 when stop() throws after setVolume(0)',
+        () async {
+      bellPlayer.throwOnStop = true;
+
+      await service.warmUp('bundled:temple_bells');
+
+      expect(bellPlayer.lastVolume, 1.0);
+    });
+
+    test('44. restores volume to 1.0 when setVolume(0) itself throws',
+        () async {
+      bellPlayer.throwOnMuteVolume = true;
+
+      await service.warmUp('bundled:temple_bells');
+
+      expect(bellPlayer.lastVolume, 1.0);
+    });
+
+    test(
+        '45. does not throw when both the sequence and the volume-restore itself fail',
+        () async {
+      bellPlayer.throwOnStop = true;
+      bellPlayer.throwOnRestoreVolume = true;
+
+      await expectLater(
+        service.warmUp('bundled:temple_bells'),
+        completes,
+      );
+    });
+
+    test(
+        '46. playBell() is unaffected by a prior muted player, since loading a '
+        'new source resets volume like the real player', () async {
+      // Simulate a player left muted by some prior operation, independent of
+      // whether warmUp()'s own restore logic ran.
+      await bellPlayer.setVolume(0);
+      bellPlayer.calls.clear();
+
+      await service.playBell('bundled:singing_bell');
+
+      expect(bellPlayer.lastVolume, 1.0);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // concurrency — warmUp() and playBell() share one _bellPlayer
+  // -------------------------------------------------------------------------
+
+  group('concurrency', () {
+    test(
+        '47. serializes warmUp() and playBell() so they never interleave on '
+        'the shared player', () async {
+      bellPlayer.gateOn('setVolume'); // blocks warmUp() right after setAsset
+
+      final warmUpFuture = service.warmUp('bundled:temple_bells');
+      await Future<void>.delayed(Duration.zero);
+
+      final playBellFuture = service.playBell('bundled:singing_bell');
+      await Future<void>.delayed(Duration.zero);
+
+      // playBell() must be queued behind the still-blocked warmUp(), not
+      // running concurrently against the same player.
+      expect(
+        bellPlayer.calls,
+        isNot(contains('setAsset:assets/sounds/singing-bell.mp3')),
+      );
+
+      bellPlayer.releaseGate();
+      await warmUpFuture;
+      await playBellFuture;
+
+      final warmUpRestoreIndex = bellPlayer.calls.indexOf('setVolume:1.0');
+      final playBellAssetIndex =
+          bellPlayer.calls.indexOf('setAsset:assets/sounds/singing-bell.mp3');
+      expect(warmUpRestoreIndex, greaterThanOrEqualTo(0));
+      expect(playBellAssetIndex, greaterThan(warmUpRestoreIndex));
+    });
+
+    test(
+        '48. a bell queued behind an in-flight warmUp() does not play after '
+        'stopAll() invalidates it', () async {
+      bellPlayer.gateOn('setVolume'); // blocks warmUp() right after setAsset
+
+      final warmUpFuture = service.warmUp('bundled:temple_bells');
+      await Future<void>.delayed(Duration.zero);
+
+      final playBellFuture = service.playBell('bundled:singing_bell');
+      await Future<void>.delayed(Duration.zero);
+
+      await service.stopAll();
+
+      bellPlayer.releaseGate();
+      await warmUpFuture;
+      await playBellFuture;
+
+      expect(
+        bellPlayer.calls,
+        isNot(contains('setAsset:assets/sounds/singing-bell.mp3')),
+      );
+      expect(bellPlayer.calls, isNot(contains('play')));
+    });
+
+    test(
+        'aborts an in-flight warmUp() before play() when stopAll() '
+        'invalidates it mid-sequence, but still restores volume', () async {
+      bellPlayer.gateOn('seek'); // blocks after setAsset + setVolume(0)
+
+      final warmUpFuture = service.warmUp('bundled:temple_bells');
+      await Future<void>.delayed(Duration.zero);
+
+      await service.stopAll();
+
+      bellPlayer.releaseGate();
+      await warmUpFuture;
+
+      expect(bellPlayer.calls, isNot(contains('play')));
+      expect(bellPlayer.lastVolume, 1.0);
+    });
+
+    test(
+        'a bell queued behind an in-flight warmUp() does not play after a '
+        'non-transient interruption invalidates it', () async {
+      bellPlayer.gateOn('setVolume'); // blocks warmUp() right after setAsset
+
+      final warmUpFuture = service.warmUp('bundled:temple_bells');
+      await Future<void>.delayed(Duration.zero);
+
+      final playBellFuture = service.playBell('bundled:singing_bell');
+      await Future<void>.delayed(Duration.zero);
+
+      await service.handleInterruption(began: true, transient: false);
+
+      bellPlayer.releaseGate();
+      await warmUpFuture;
+      await playBellFuture;
+
+      expect(
+        bellPlayer.calls,
+        isNot(contains('setAsset:assets/sounds/singing-bell.mp3')),
+      );
+    });
+
+    test(
+        'a bell requested after stopAll() plays normally (generation only '
+        'invalidates work queued before the stop)', () async {
+      await service.stopAll();
+      bellPlayer.calls.clear();
+
+      await service.playBell('bundled:singing_bell');
+
+      expect(
+        bellPlayer.calls,
+        containsAllInOrder([
+          'setAsset:assets/sounds/singing-bell.mp3',
+          'seek:1ms',
+          'play',
+        ]),
+      );
+    });
+
+    test(
+        'a retry after a stop-induced failure does not resurrect a pre-stop '
+        'bell request', () async {
+      bellPlayer.gateOn('play');
+      bellPlayer.throwOnPlayOnce = true;
+
+      final playBellFuture = service.playBell('bundled:temple_bells');
+      await Future<void>.delayed(Duration.zero); // let it reach the play() gate
+
+      // Invalidate the in-flight request's generation while it's stuck.
+      await service.stopAll();
+
+      bellPlayer.releaseGate();
+      await playBellFuture;
+
+      expect(bellPlayer.calls, isNot(contains('play')));
     });
   });
 

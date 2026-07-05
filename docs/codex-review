@@ -67,3 +67,34 @@ The implementation now memoizes the in-flight `Future<String>` in [storage_servi
 ## Summary
 
 No findings on the current revision. The branch addresses the exact race called out in issue `#18`, preserves retry semantics after failure, and the targeted tests plus analyzer run pass.
+
+---
+
+## Scope
+
+Review of the current local changes for GitHub issue `#21`: `Bug: AudioService.warmUp can leave bell player permanently muted after failure`.
+
+Issue requirement reviewed against:
+
+- Ensure `warmUp()` restores bell-player volume after failures
+- Avoid introducing new bell playback regressions while fixing warm-up
+- Keep interruption and stop behavior consistent with existing semantics
+
+## Findings
+
+No code-review findings in the current branch state.
+
+## Verification
+
+- Reviewed issue `#21` via `gh issue view 21 --repo harsha-kadekar/citta --json number,title,body,state,url,labels`
+- Inspected the local diff in:
+  - `citta/lib/services/audio_service.dart`
+  - `citta/test/services/audio_service_test.dart`
+- Ran `/home/harsha/flutter/flutter/bin/flutter test test/services/audio_service_test.dart`
+  - Result: passes
+- Ran `/home/harsha/flutter/flutter/bin/flutter analyze lib/services/audio_service.dart test/services/audio_service_test.dart`
+  - Result: passes
+
+## Summary
+
+No findings on the current revision. The fix now covers the full issue chain in [audio_service.dart](/home/harsha/workspace/Citta/citta/lib/services/audio_service.dart:105): `warmUp()` restores bell volume in a `finally` path, queued bell work is invalidated across `stopAll()` and non-transient interruptions, and `playBell()` carries the original generation through its retry so a stop-induced first failure cannot resurrect a pre-stop bell request. The expanded concurrency tests in [audio_service_test.dart](/home/harsha/workspace/Citta/citta/test/services/audio_service_test.dart:474) exercise the earlier stop/interruption races directly, and the focused test/analyzer runs pass.

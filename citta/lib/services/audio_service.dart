@@ -94,6 +94,26 @@ class AudioService {
   bool _musicInterrupted = false;
   StreamSubscription<AudioInterruptionEvent>? _interruptionSubscription;
 
+  /// Serializes playBell()/warmUp() bodies so they never interleave on the
+  /// shared _bellPlayer — _RealAudioPlayer.setAsset/setFilePath dispose and
+  /// recreate the underlying player, so a concurrent call landing mid-sequence
+  /// would operate on a player instance the other call has already replaced.
+  /// Deliberately NOT used for stop() calls (handleInterruption/stopAll),
+  /// which must take effect immediately rather than wait behind this queue.
+  Future<void> _bellQueue = Future<void>.value();
+
+  /// Bumped by an immediate stop path (stopAll, non-transient interruption)
+  /// to invalidate any playBell()/warmUp() request queued or in-flight before
+  /// the bump — otherwise queued work would still audibly play after a stop
+  /// that was meant to silence everything.
+  int _bellGeneration = 0;
+
+  Future<T> _queueBellOp<T>(Future<T> Function() operation) {
+    final result = _bellQueue.then((_) => operation());
+    _bellQueue = result.then((_) {}, onError: (_) {});
+    return result;
+  }
+
   /// Bell player uses [handleInterruptions: false] — bells are short one-shot
   /// sounds that play without requesting or managing audio focus themselves.
   /// Background music uses the default [handleInterruptions: true] and holds
@@ -184,6 +204,7 @@ class AudioService {
         }
       } else {
         // Non-transient (e.g. phone call): stop all audio immediately.
+        _bellGeneration++;
         try {
           await _bellPlayer.stop();
         } catch (e) {
@@ -240,25 +261,36 @@ class AudioService {
     return allowRawPath ? (isAsset: false, path: id) : null;
   }
 
+  Future<void> _attemptPlayBell(String bellId, int generation) async {
+    if (generation != _bellGeneration) return;
+    final source = _resolveSource(bellId);
+    if (source == null) return;
+    if (source.isAsset) {
+      await _bellPlayer.setAsset(source.path);
+    } else {
+      await _bellPlayer.setFilePath(source.path);
+    }
+    await _bellPlayer.seek(const Duration(milliseconds: 1));
+    if (generation != _bellGeneration) return;
+    await _bellPlayer.play();
+  }
+
   /// Play a bell sound identified by its config string (e.g., "bundled:tibetan_bowl" or "custom:/path/to/file.mp3")
   /// Retries once on failure — ExoPlayer bypass mode can fail on first attempt on some Android versions.
-  Future<void> playBell(String bellId, {bool isRetry = false}) async {
+  ///
+  /// [generation] carries the original request's generation through the
+  /// retry — re-reading _bellGeneration on retry would let a request that a
+  /// stop already invalidated come back to life just because the first,
+  /// stop-induced failure triggered a retry after the generation moved on.
+  Future<void> playBell(String bellId, {bool isRetry = false, int? generation}) async {
+    final effectiveGeneration = generation ?? _bellGeneration;
     try {
-      final source = _resolveSource(bellId);
-      if (source != null) {
-        if (source.isAsset) {
-          await _bellPlayer.setAsset(source.path);
-        } else {
-          await _bellPlayer.setFilePath(source.path);
-        }
-        await _bellPlayer.seek(const Duration(milliseconds: 1));
-        await _bellPlayer.play();
-      }
+      await _queueBellOp(() => _attemptPlayBell(bellId, effectiveGeneration));
     } catch (e) {
       debugPrint('AudioService: playBell failed for "$bellId": $e');
       if (!isRetry) {
         debugPrint('AudioService: retrying playBell for "$bellId"');
-        await playBell(bellId, isRetry: true);
+        await playBell(bellId, isRetry: true, generation: effectiveGeneration);
       }
     }
   }
@@ -272,22 +304,32 @@ class AudioService {
   /// the configured bell sound for a brief instant. Errors are swallowed —
   /// this is a best-effort warm-up only.
   Future<void> warmUp(String bellId) async {
-    try {
-      final source = _resolveSource(bellId);
-      if (source == null) return;
-      if (source.isAsset) {
-        await _bellPlayer.setAsset(source.path);
-      } else {
-        await _bellPlayer.setFilePath(source.path);
+    final source = _resolveSource(bellId);
+    if (source == null) return;
+    final generation = _bellGeneration;
+    await _queueBellOp(() async {
+      if (generation != _bellGeneration) return;
+      try {
+        if (source.isAsset) {
+          await _bellPlayer.setAsset(source.path);
+        } else {
+          await _bellPlayer.setFilePath(source.path);
+        }
+        await _bellPlayer.setVolume(0);
+        await _bellPlayer.seek(const Duration(milliseconds: 1));
+        if (generation != _bellGeneration) return;
+        await _bellPlayer.play();
+        await _bellPlayer.stop();
+      } catch (e) {
+        debugPrint('AudioService: warmUp failed (non-fatal): $e');
+      } finally {
+        try {
+          await _bellPlayer.setVolume(1);
+        } catch (e) {
+          debugPrint('AudioService: warmUp volume restore failed: $e');
+        }
       }
-      await _bellPlayer.setVolume(0);
-      await _bellPlayer.seek(const Duration(milliseconds: 1));
-      await _bellPlayer.play();
-      await _bellPlayer.stop();
-      await _bellPlayer.setVolume(1);
-    } catch (e) {
-      debugPrint('AudioService: warmUp failed (non-fatal): $e');
-    }
+    });
   }
 
   /// Start background music playback (looping).
@@ -334,6 +376,7 @@ class AudioService {
 
   /// Stop all audio.
   Future<void> stopAll() async {
+    _bellGeneration++;
     await _bellPlayer.stop();
     await stopBackgroundMusic();
   }
