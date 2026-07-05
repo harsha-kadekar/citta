@@ -214,21 +214,43 @@ class AudioService {
     }
   }
 
+  /// Resolves a `bundled:<name>` / `custom:<path>` selection id to a
+  /// concrete playable source — the single place that decodes this
+  /// convention, shared by bell and background-music playback.
+  ///
+  /// Set [allowBundled] to false for callers (background music) that don't
+  /// support bundled options, so a string that happens to start with
+  /// `bundled:` is treated as a raw/custom path instead. Set [allowRawPath]
+  /// for callers that must also accept legacy configs saved before the
+  /// `custom:` prefix convention existed. Returns null when the id names an
+  /// unknown bundled sound, or an unrecognized id with [allowRawPath] false
+  /// (e.g. "none").
+  ({bool isAsset, String path})? _resolveSource(
+    String id, {
+    bool allowBundled = true,
+    bool allowRawPath = false,
+  }) {
+    if (allowBundled && id.startsWith('bundled:')) {
+      final assetPath = bundledSounds[id.substring(8)];
+      return assetPath == null ? null : (isAsset: true, path: assetPath);
+    }
+    if (id.startsWith('custom:')) {
+      return (isAsset: false, path: id.substring(7));
+    }
+    return allowRawPath ? (isAsset: false, path: id) : null;
+  }
+
   /// Play a bell sound identified by its config string (e.g., "bundled:tibetan_bowl" or "custom:/path/to/file.mp3")
   /// Retries once on failure — ExoPlayer bypass mode can fail on first attempt on some Android versions.
   Future<void> playBell(String bellId, {bool isRetry = false}) async {
     try {
-      if (bellId.startsWith('bundled:')) {
-        final name = bellId.substring(8);
-        final assetPath = bundledSounds[name];
-        if (assetPath != null) {
-          await _bellPlayer.setAsset(assetPath);
-          await _bellPlayer.seek(const Duration(milliseconds: 1));
-          await _bellPlayer.play();
+      final source = _resolveSource(bellId);
+      if (source != null) {
+        if (source.isAsset) {
+          await _bellPlayer.setAsset(source.path);
+        } else {
+          await _bellPlayer.setFilePath(source.path);
         }
-      } else if (bellId.startsWith('custom:')) {
-        final path = bellId.substring(7);
-        await _bellPlayer.setFilePath(path);
         await _bellPlayer.seek(const Duration(milliseconds: 1));
         await _bellPlayer.play();
       }
@@ -251,15 +273,12 @@ class AudioService {
   /// this is a best-effort warm-up only.
   Future<void> warmUp(String bellId) async {
     try {
-      if (bellId.startsWith('bundled:')) {
-        final name = bellId.substring(8);
-        final assetPath = bundledSounds[name];
-        if (assetPath == null) return;
-        await _bellPlayer.setAsset(assetPath);
-      } else if (bellId.startsWith('custom:')) {
-        await _bellPlayer.setFilePath(bellId.substring(7));
+      final source = _resolveSource(bellId);
+      if (source == null) return;
+      if (source.isAsset) {
+        await _bellPlayer.setAsset(source.path);
       } else {
-        return;
+        await _bellPlayer.setFilePath(source.path);
       }
       await _bellPlayer.setVolume(0);
       await _bellPlayer.seek(const Duration(milliseconds: 1));
@@ -272,13 +291,16 @@ class AudioService {
   }
 
   /// Start background music playback (looping).
+  ///
+  /// [path] follows the same `custom:<path>` convention as bell IDs (see
+  /// [playBell]) — background music has no bundled options, so this is the
+  /// only prefix in use. Raw, unprefixed paths are still accepted so configs
+  /// saved before this convention was introduced keep working.
   Future<void> startBackgroundMusic(String path) async {
     try {
-      if (path.startsWith('custom:')) {
-        await _musicPlayer.setFilePath(path.substring(7));
-      } else {
-        await _musicPlayer.setFilePath(path);
-      }
+      final source =
+          _resolveSource(path, allowBundled: false, allowRawPath: true)!;
+      await _musicPlayer.setFilePath(source.path);
       await _musicPlayer.setLoopMode(LoopMode.all);
       await _musicPlayer.setVolume(0.3);
       await _musicPlayer.play();

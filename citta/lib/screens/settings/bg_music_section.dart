@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:citta/l10n/app_localizations.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
+import 'audio_picker.dart';
 import 'settings_widgets.dart';
 
 class BgMusicSection extends StatelessWidget {
@@ -38,10 +38,10 @@ class BgMusicSection extends StatelessWidget {
 
   Future<void> _pickBackgroundMusic(
       BuildContext context, AppState appState) async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.audio);
-    if (result != null && result.files.single.path != null) {
-      appState.updateConfig(appState.config
-          .copyWith(backgroundMusic: result.files.single.path));
+    final selection = await pickCustomAudioSelection();
+    if (selection != null) {
+      appState.updateConfig(
+          appState.config.copyWith(backgroundMusic: selection));
     }
   }
 }

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:citta/l10n/app_localizations.dart';
 import '../../providers/app_state.dart';
 import '../../services/audio_service.dart';
 import '../../theme/app_theme.dart';
+import 'audio_picker.dart';
 import 'settings_widgets.dart';
 
 String bellDisplayName(String bellId) {
@@ -155,12 +155,8 @@ class BellsSection extends StatelessWidget {
           SimpleDialogOption(
             onPressed: () async {
               Navigator.pop(context);
-              final result = await FilePicker.platform.pickFiles(
-                type: FileType.audio,
-              );
-              if (result != null && result.files.single.path != null) {
-                onSelect('custom:${result.files.single.path}');
-              }
+              final selection = await pickCustomAudioSelection();
+              if (selection != null) onSelect(selection);
             },
             child: Row(
               children: [
