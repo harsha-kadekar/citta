@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/material.dart';
@@ -81,6 +82,47 @@ Widget _testApp(AppState appState) => ChangeNotifierProvider<AppState>.value(
         home: HomeScreen(),
       ),
     );
+
+/// Reads the in-progress marker file directly, without going through
+/// [StorageService.loadInProgressSession] (which calls `recoverIfNeeded` —
+/// that method assumes a dangling `.tmp` file with no main file means a
+/// previous run crashed, and "recovers" by renaming `.tmp` to the main path.
+/// Calling it while [StorageService.saveInProgressSession]'s atomic write is
+/// still in flight steals its `.tmp` file out from under it, corrupting the
+/// write). This helper only ever reads the settled main file, so it's safe
+/// to call repeatedly while a write may still be in progress.
+Future<Map<String, dynamic>?> _readMarkerFile(String path) async {
+  final file = File(path);
+  if (!await file.exists()) return null;
+  try {
+    final content = await file.readAsString();
+    return jsonDecode(content) as Map<String, dynamic>;
+  } catch (_) {
+    // Transient: caught mid-rename or mid-write. Caller retries.
+    return null;
+  }
+}
+
+/// Polls the in-progress marker file at [markerPath] until [predicate] is
+/// satisfied or [timeout] elapses. The marker is written by a fire-and-forget
+/// disk I/O call, so a fixed delay before reading it back is prone to
+/// flaking under slow/loaded runners; polling waits only as long as needed.
+Future<Map<String, dynamic>?> _waitForMarker(
+  WidgetTester tester,
+  String markerPath,
+  bool Function(Map<String, dynamic>? data) predicate, {
+  Duration timeout = const Duration(seconds: 5),
+}) async {
+  final deadline = DateTime.now().add(timeout);
+  while (true) {
+    final data = await tester.runAsync(() => _readMarkerFile(markerPath));
+    if (predicate(data) || DateTime.now().isAfter(deadline)) return data;
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 20)),
+    );
+    await tester.pump();
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -240,12 +282,12 @@ void main() {
   group('HomeScreen – in-progress session marker', () {
     late Directory tmpDir;
     late AppState appState;
-    late StorageService storage;
+    late String markerPath;
 
     setUp(() async {
       tmpDir = Directory.systemTemp.createTempSync('citta_home_test_');
       appState = await _makeAndInit(tmpDir.path);
-      storage = StorageService.withBasePath(tmpDir.path);
+      markerPath = '${tmpDir.path}/in_progress_session.json';
     });
 
     tearDown(() => tmpDir.deleteSync(recursive: true));
@@ -259,12 +301,11 @@ void main() {
         await tester.tap(find.text('Begin'));
         await tester.pump();
 
-        // Phase 1: let real I/O complete (fire-and-forget save on native thread).
-        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
-        // Phase 2: drain fakeAsync queue so I/O completion callbacks execute.
-        await tester.pump();
-        // Phase 3: read the file in real async.
-        final data = await tester.runAsync(() => storage.loadInProgressSession());
+        final data = await _waitForMarker(
+          tester,
+          markerPath,
+          (data) => data != null,
+        );
 
         expect(data, isNotNull,
             reason: 'in-progress marker must be written when a session starts');
@@ -286,12 +327,11 @@ void main() {
         tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
         await tester.pump();
 
-        // Phase 1: let real I/O complete.
-        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
-        // Phase 2: drain fakeAsync queue.
-        await tester.pump();
-        // Phase 3: read the file.
-        final data = await tester.runAsync(() => storage.loadInProgressSession());
+        final data = await _waitForMarker(
+          tester,
+          markerPath,
+          (data) => data != null && (data['elapsedSeconds'] as int) >= 5,
+        );
 
         expect(data, isNotNull);
         expect((data!['elapsedSeconds'] as int) >= 5, isTrue,
@@ -317,12 +357,11 @@ void main() {
         tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
         await tester.pump();
 
-        // Phase 1: let real I/O complete.
-        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
-        // Phase 2: drain fakeAsync queue.
-        await tester.pump();
-        // Phase 3: read the file.
-        final data = await tester.runAsync(() => storage.loadInProgressSession());
+        final data = await _waitForMarker(
+          tester,
+          markerPath,
+          (data) => data != null && (data['elapsedSeconds'] as int) >= 5,
+        );
 
         expect(data, isNotNull,
             reason: 'marker must be written even when the session was already paused before backgrounding');
@@ -341,9 +380,11 @@ void main() {
         await tester.pump();
 
         // Ensure marker was written first.
-        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
-        await tester.pump();
-        final dataBefore = await tester.runAsync(() => storage.loadInProgressSession());
+        final dataBefore = await _waitForMarker(
+          tester,
+          markerPath,
+          (data) => data != null,
+        );
         expect(dataBefore, isNotNull, reason: 'marker must exist before stop');
 
         await tester.tap(find.byIcon(Icons.stop_rounded));
@@ -351,9 +392,11 @@ void main() {
         await tester.pump(const Duration(milliseconds: 350));
 
         // Wait for clearInProgressSession I/O.
-        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
-        await tester.pump();
-        final dataAfter = await tester.runAsync(() => storage.loadInProgressSession());
+        final dataAfter = await _waitForMarker(
+          tester,
+          markerPath,
+          (data) => data == null,
+        );
 
         expect(dataAfter, isNull,
             reason: 'in-progress marker must be cleared when session completes normally');
