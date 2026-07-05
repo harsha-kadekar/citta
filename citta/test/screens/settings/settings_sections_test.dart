@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:audio_session/audio_session.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:provider/provider.dart';
 
 import 'package:citta/l10n/app_localizations.dart';
@@ -14,6 +16,7 @@ import 'package:citta/screens/settings/profile_section.dart';
 import 'package:citta/screens/settings/appearance_section.dart';
 import 'package:citta/screens/settings/timer_section.dart';
 import 'package:citta/screens/settings/bells_section.dart';
+import 'package:citta/screens/settings/bg_music_section.dart';
 import 'package:citta/screens/settings/tags_section.dart';
 import 'package:citta/screens/settings/data_section.dart';
 import 'package:citta/screens/settings/settings_widgets.dart';
@@ -42,6 +45,34 @@ class _FakeAudioSession implements AudioSessionBase {
   @override Future<void> configure(AudioSessionConfiguration _) async {}
   @override Stream<AudioInterruptionEvent> get interruptionEventStream =>
       const Stream.empty();
+}
+
+// Stubs FilePicker.platform so tests can simulate a user picking a file
+// without touching the real OS file picker.
+class _FakeFilePicker extends FilePicker with MockPlatformInterfaceMixin {
+  _FakeFilePicker(this._resultPath);
+  final String? _resultPath;
+
+  @override
+  Future<FilePickerResult?> pickFiles({
+    String? dialogTitle,
+    String? initialDirectory,
+    FileType type = FileType.any,
+    List<String>? allowedExtensions,
+    Function(FilePickerStatus)? onFileLoading,
+    bool allowCompression = true,
+    int compressionQuality = 30,
+    bool allowMultiple = false,
+    bool withData = false,
+    bool withReadStream = false,
+    bool lockParentWindow = false,
+    bool readSequential = false,
+  }) async {
+    if (_resultPath == null) return null;
+    return FilePickerResult([
+      PlatformFile(path: _resultPath, name: 'music.mp3', size: 0),
+    ]);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -357,6 +388,75 @@ void main() {
       await tester.pumpWidget(_wrap(appState, const DataSection()));
       await tester.pump();
       expect(find.byType(SettingsTile), findsNWidgets(2));
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // BgMusicSection
+  // ---------------------------------------------------------------------------
+
+  group('BgMusicSection – picking a file', () {
+    late Directory tmpDir;
+    late AppState appState;
+
+    setUp(() async {
+      tmpDir = Directory.systemTemp.createTempSync('citta_settings_test_');
+      appState = await _makeAndInit(tmpDir.path);
+      FilePicker.platform = _FakeFilePicker('/storage/music/track.mp3');
+    });
+    tearDown(() => tmpDir.deleteSync(recursive: true));
+
+    testWidgets('stores the picked path with a custom: prefix',
+        (tester) async {
+      await tester.pumpWidget(_wrap(appState, const BgMusicSection()));
+      await tester.pump();
+      await tester.tap(find.byType(SettingsTile));
+      await tester.pumpAndSettle();
+      expect(appState.config.backgroundMusic,
+          equals('custom:/storage/music/track.mp3'));
+    });
+  });
+
+  group('BgMusicSection – cancelling the file picker', () {
+    late Directory tmpDir;
+    late AppState appState;
+
+    setUp(() async {
+      tmpDir = Directory.systemTemp.createTempSync('citta_settings_test_');
+      appState = await _makeAndInit(tmpDir.path);
+      FilePicker.platform = _FakeFilePicker(null);
+    });
+    tearDown(() => tmpDir.deleteSync(recursive: true));
+
+    testWidgets('leaves backgroundMusic unset when the picker returns null',
+        (tester) async {
+      await tester.pumpWidget(_wrap(appState, const BgMusicSection()));
+      await tester.pump();
+      await tester.tap(find.byType(SettingsTile));
+      await tester.pumpAndSettle();
+      expect(appState.config.backgroundMusic, isNull);
+    });
+  });
+
+  group('BgMusicSection – legacy raw-path config', () {
+    late Directory tmpDir;
+    late AppState appState;
+
+    setUp(() async {
+      tmpDir = Directory.systemTemp.createTempSync('citta_settings_test_');
+      appState = await _makeAndInit(tmpDir.path,
+          initialConfig: ConfigModel(backgroundMusic: '/legacy/music.mp3'));
+    });
+    tearDown(() => tmpDir.deleteSync(recursive: true));
+
+    testWidgets('renders as selected and can be removed', (tester) async {
+      await tester.pumpWidget(_wrap(appState, const BgMusicSection()));
+      await tester.pump();
+      expect(find.byIcon(Icons.clear), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.clear));
+      await tester.pump();
+      expect(appState.config.backgroundMusic, isNull);
     });
   });
 }
