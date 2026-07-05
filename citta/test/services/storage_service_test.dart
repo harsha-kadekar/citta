@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:citta/models/config_model.dart';
 import 'package:citta/models/quote_model.dart';
 import 'package:citta/models/session_model.dart';
@@ -9,6 +11,15 @@ import 'package:citta/services/storage_service.dart';
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+class _FakePathProviderPlatform extends PathProviderPlatform {
+  _FakePathProviderPlatform(this._resolve);
+
+  final Future<String> Function() _resolve;
+
+  @override
+  Future<String?> getApplicationDocumentsPath() => _resolve();
+}
 
 SessionModel _makeSession({
   String id = 'session-1',
@@ -117,6 +128,63 @@ void main() {
       expect(await File(path).readAsString(), '{"from": "tmp"}');
       expect(await File('$path.tmp').exists(), false);
       expect(await File('$path.bak').exists(), false);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // basePath
+  // -------------------------------------------------------------------------
+
+  group('basePath', () {
+    late PathProviderPlatform originalPlatform;
+
+    setUp(() {
+      originalPlatform = PathProviderPlatform.instance;
+    });
+
+    tearDown(() {
+      PathProviderPlatform.instance = originalPlatform;
+    });
+
+    test('resolves the platform directory only once under concurrent calls',
+        () async {
+      var callCount = 0;
+      PathProviderPlatform.instance = _FakePathProviderPlatform(() async {
+        callCount++;
+        await Future.delayed(const Duration(milliseconds: 10));
+        return tempDir.path;
+      });
+
+      final freshService = StorageService();
+
+      final results = await Future.wait([
+        freshService.basePath,
+        freshService.basePath,
+        freshService.basePath,
+      ]);
+
+      expect(callCount, 1);
+      expect(results, [tempDir.path, tempDir.path, tempDir.path]);
+    });
+
+    test('retries instead of caching a failed resolution', () async {
+      var callCount = 0;
+      PathProviderPlatform.instance = _FakePathProviderPlatform(() async {
+        callCount++;
+        if (callCount == 1) {
+          throw PlatformException(code: 'error', message: 'transient failure');
+        }
+        return tempDir.path;
+      });
+
+      final freshService = StorageService();
+
+      await expectLater(
+        freshService.basePath,
+        throwsA(isA<PlatformException>()),
+      );
+      expect(await freshService.basePath, tempDir.path);
+      expect(callCount, 2);
     });
   });
 

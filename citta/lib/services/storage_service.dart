@@ -7,18 +7,24 @@ import '../models/session_model.dart';
 import '../models/quote_model.dart';
 
 class StorageService {
-  String? _basePath;
+  Future<String>? _basePathFuture;
 
   StorageService();
 
   @visibleForTesting
-  StorageService.withBasePath(String basePath) : _basePath = basePath;
+  StorageService.withBasePath(String basePath)
+      : _basePathFuture = Future.value(basePath);
 
-  Future<String> get basePath async {
-    if (_basePath != null) return _basePath!;
-    final dir = await getApplicationDocumentsDirectory();
-    _basePath = dir.path;
-    return _basePath!;
+  Future<String> get basePath => _basePathFuture ??= _resolveBasePath();
+
+  Future<String> _resolveBasePath() async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      return dir.path;
+    } catch (e) {
+      _basePathFuture = null;
+      rethrow;
+    }
   }
 
   // --- Atomic Write ---
