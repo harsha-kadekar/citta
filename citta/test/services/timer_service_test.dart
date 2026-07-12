@@ -1,3 +1,4 @@
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:citta/services/timer_service.dart';
 
@@ -106,31 +107,37 @@ void main() {
       expect(startCalled, true);
     });
 
-    test('onComplete is called when countdown finishes', () async {
-      bool completeCalled = false;
-      timerService.configure(targetDuration: 1);
-      timerService.onComplete = () => completeCalled = true;
-      timerService.start();
+    test('onComplete is called when countdown finishes', () {
+      // Uses a virtual clock instead of a real delay: TimerService's
+      // Timer.periodic is driven deterministically by fakeAsync, so this
+      // test doesn't race real wall-clock scheduling under a loaded runner.
+      fakeAsync((async) {
+        bool completeCalled = false;
+        timerService.configure(targetDuration: 1);
+        timerService.onComplete = () => completeCalled = true;
+        timerService.start();
 
-      // Wait for timer to complete
-      await Future.delayed(const Duration(seconds: 2));
-      expect(completeCalled, true);
-      expect(timerService.state, TimerState.completed);
+        async.elapse(const Duration(seconds: 2));
+        expect(completeCalled, true);
+        expect(timerService.state, TimerState.completed);
+      });
     });
 
-    test('onIntervalBell is called at intervals', () async {
-      int intervalCount = 0;
-      timerService.configure(
-        targetDuration: 10,
-        intervalDuration: 1,
-        intervalEnabled: true,
-      );
-      timerService.onIntervalBell = () => intervalCount++;
-      timerService.start();
+    test('onIntervalBell is called at intervals', () {
+      fakeAsync((async) {
+        int intervalCount = 0;
+        timerService.configure(
+          targetDuration: 10,
+          intervalDuration: 1,
+          intervalEnabled: true,
+        );
+        timerService.onIntervalBell = () => intervalCount++;
+        timerService.start();
 
-      await Future.delayed(const Duration(seconds: 3, milliseconds: 500));
-      timerService.stop();
-      expect(intervalCount, greaterThanOrEqualTo(2));
+        async.elapse(const Duration(seconds: 3, milliseconds: 500));
+        timerService.stop();
+        expect(intervalCount, greaterThanOrEqualTo(2));
+      });
     });
   });
 }
