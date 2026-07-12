@@ -5,6 +5,12 @@ enum TimerMode { countdown, stopwatch }
 
 enum TimerState { idle, running, paused, completed }
 
+/// Ticks on a real `Timer.periodic` — there's no injectable clock/ticker.
+/// A plain `test()` (unlike `testWidgets()`, which Flutter wraps in a fake
+/// clock automatically) runs on the real event loop, so any test that starts
+/// this service and waits on `onComplete`/`onIntervalBell`/`elapsedSeconds`
+/// must wrap itself in `fakeAsync()` (see test/services/timer_service_test.dart)
+/// or it will race real wall-clock scheduling and can flake under a loaded runner.
 class TimerService extends ChangeNotifier {
   TimerMode _mode = TimerMode.countdown;
   TimerState _state = TimerState.idle;

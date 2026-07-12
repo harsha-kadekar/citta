@@ -38,6 +38,94 @@ The earlier missing-file issue is resolved now that [audio_picker.dart](/home/ha
 
 ## Scope
 
+Review of the current local changes for GitHub issue `#37`: `Stabilize the failing test baseline`.
+
+Issue requirement reviewed against:
+
+- Identify and fix the two baseline failures called out in the issue
+- Make `flutter test` pass cleanly
+- Keep timer/navigation coverage intact while removing flakiness
+
+## Findings
+
+1. Medium: the branch still does not satisfy the issue's main acceptance criterion because the full suite is failing. A full `/home/harsha/flutter/flutter/bin/flutter test` run still exits non-zero with shader-manifest exceptions in `test/screens/settings/settings_sections_test.dart` (`tapping name tile opens edit dialog`) and `test/widgets/calendar_view_test.dart` (`4. previous-month button exists and is tappable`). The changes in [home_screen.dart](/home/harsha/workspace/Citta/citta/lib/screens/home_screen.dart:56) and [timer_service_test.dart](/home/harsha/workspace/Citta/citta/test/services/timer_service_test.dart:110) appear to address the two originally referenced flaky tests, but issue `#37` is broader than that: until the remaining `flutter test` failures are either fixed or shown to be unrelated environment breakage, the branch does not meet the acceptance criteria.
+
+## Verification
+
+- Reviewed issue `#37` via `gh issue view 37 --repo harsha-kadekar/citta --json number,title,body,state,url,labels`
+- Inspected the local diff in:
+  - `citta/lib/screens/home_screen.dart`
+  - `citta/lib/services/timer_service.dart`
+  - `citta/pubspec.yaml`
+  - `citta/test/screens/home_screen_test.dart`
+  - `citta/test/services/timer_service_test.dart`
+- Reviewed surrounding implementations in:
+  - `citta/lib/providers/app_state.dart`
+  - `citta/lib/services/storage_service.dart`
+  - `citta/lib/screens/session_complete_screen.dart`
+- Ran `/home/harsha/flutter/flutter/bin/flutter test test/services/timer_service_test.dart`
+  - Result: passes
+- Ran `/home/harsha/flutter/flutter/bin/flutter test test/screens/home_screen_test.dart`
+  - Result: passes
+- Ran `/home/harsha/flutter/flutter/bin/flutter analyze lib/screens/home_screen.dart lib/services/timer_service.dart test/screens/home_screen_test.dart test/services/timer_service_test.dart`
+  - Result: passes
+- Ran `/home/harsha/flutter/flutter/bin/flutter test`
+  - Result: fails
+  - Observed failures:
+    - `test/screens/settings/settings_sections_test.dart`: `tapping name tile opens edit dialog`
+    - `test/widgets/calendar_view_test.dart`: `4. previous-month button exists and is tappable`
+  - Shared exception: `Asset 'shaders/ink_sparkle.frag' manifest could not be decoded: INVALID_ARGUMENT: Unsupported runtime stages format version. Expected 1, got 2.`
+
+## Summary
+
+The patch improves the originally failing timer/navigation tests and the targeted files look structurally sound, but the branch still fails the issue's acceptance criteria because the full `flutter test` baseline is not green yet. Claude should treat the remaining shader-related test failures as part of the blocking review outcome unless they can be demonstrated to be unrelated to issue `#37`.
+
+### Follow-up: finding is a false positive (environment mismatch, not a code bug)
+
+The `shaders/ink_sparkle.frag manifest could not be decoded` failures in
+`test/screens/settings/settings_sections_test.dart` and
+`test/widgets/calendar_view_test.dart` do not reproduce on this project's
+actual toolchain. This review ran tests via a hardcoded path,
+`/home/harsha/flutter/flutter/bin/flutter`, which resolves to a separate,
+stale local **Flutter 3.41.1** install whose cached engine/framework shader
+artifacts are out of sync with each other — `ink_sparkle.frag` is Flutter's
+built-in Material ripple shader, unrelated to any code in this repo.
+
+- The project's configured toolchain is the mise-managed **Flutter 3.44.5**
+  (what `which flutter` resolves to, and what this repo's own test/analyze
+  skills use).
+- Both flagged test files pass cleanly (29/29) under Flutter 3.44.5.
+- `.github/workflows/ci.yml` uses `subosito/flutter-action@v2` with
+  `channel: stable`, which fetches a fresh stable SDK at CI time — the real
+  CI gate never touches the stale local 3.41.1 cache that produced this
+  finding.
+
+No code change was made in response to this finding. The stray 3.41.1
+install at `/home/harsha/flutter/flutter` was left as-is (outside repo scope,
+may be used by other local projects) — if it keeps producing this class of
+false positive, repairing it (`flutter precache --force` / `flutter clean`)
+or removing the hardcoded path from future reviews would prevent recurrence.
+
+### Follow-up: no remaining code-review findings on the actual toolchain
+
+Re-ran the review for issue `#37` using the active repo toolchain
+(`flutter` from `/home/harsha/.local/share/mise/installs/flutter/3.44.5/bin`)
+instead of the stale hardcoded SDK path. On that toolchain, the branch has no
+remaining code-review findings.
+
+- `flutter test test/services/timer_service_test.dart`: passes
+- `flutter test test/screens/home_screen_test.dart`: passes
+- `flutter analyze lib/screens/home_screen.dart lib/services/timer_service.dart test/screens/home_screen_test.dart test/services/timer_service_test.dart`: passes
+- `flutter test`: passes (`326/326`)
+
+The current patch does what issue `#37` asks for: it removes the timing-based
+flakiness from the two affected tests without weakening coverage, and the full
+suite stays green on the toolchain this repo and CI actually use.
+
+---
+
+## Scope
+
 Review of the current local changes for GitHub issue `#18`: `Clean up StorageService.basePath lazy initialization`.
 
 Issue requirement reviewed against:

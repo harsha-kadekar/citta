@@ -56,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final appState = context.read<AppState>();
     _timerService.onComplete = () {
       HapticFeedback.heavyImpact();
-      if (mounted) _onSessionComplete(completedFully: true);
+      if (mounted) unawaited(_onSessionComplete(completedFully: true));
     };
     _timerService.onIntervalBell = () {
       _playBell(appState.config.bellInterval);
@@ -81,6 +81,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (_timerService.state == TimerState.running) {
         _timerService.pause();
       }
+      // Fire-and-forget real disk I/O — a test asserting on its completion
+      // must poll the marker file (see _waitForMarker in home_screen_test.dart)
+      // rather than relying on tester.pump(), which can't drive real I/O.
       unawaited(_saveInProgressMarker());
     }
   }
@@ -116,6 +119,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _showPreSessionConfig = false;
     });
 
+    // Fire-and-forget real disk I/O — a test asserting on its completion
+    // must poll the marker file (see _waitForMarker in home_screen_test.dart)
+    // rather than relying on tester.pump(), which can't drive real I/O.
     unawaited(_saveInProgressMarker());
   }
 
@@ -136,7 +142,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  void _onSessionComplete({required bool completedFully}) {
+  Future<void> _onSessionComplete({required bool completedFully}) async {
+    // Guard against reentrancy (e.g. natural completion and a manual stop
+    // firing close together): the second call becomes a no-op instead of a
+    // null-check throw, which — now that this method is async and invoked
+    // via unawaited() — would otherwise surface as an unhandled Future
+    // rejection rather than a loud synchronous crash.
+    if (_sessionId == null) return;
+
     // Capture and null immediately so no new marker saves start after this point.
     final sessionId = _sessionId!;
     _sessionId = null;
@@ -149,7 +162,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final appState = context.read<AppState>();
     appState.audioService.stopBackgroundMusic();
     _playBell(appState.config.bellEnd);
-    appState.clearInProgressSession();
 
     final session = SessionModel(
       id: sessionId,
@@ -161,16 +173,31 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       completedFully: completedFully,
     );
 
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => SessionCompleteScreen(session: session),
-      ),
-    ).then((_) {
-      _timerService.reset();
-      _adHocMode = null;
-      _adHocDuration = null;
-      setState(() {});
-    });
+    // Push immediately so the UI transition isn't delayed by the marker
+    // clear below; only the clear itself needs to be awaited so it can't
+    // outlive this method as a dangling, unobservable write.
+    unawaited(
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => SessionCompleteScreen(session: session),
+        ),
+      ).then((_) {
+        _timerService.reset();
+        _adHocMode = null;
+        _adHocDuration = null;
+        setState(() {});
+      }),
+    );
+
+    try {
+      await appState.clearInProgressSession();
+    } catch (_) {
+      // Best-effort: StorageService.recoverIfNeeded does NOT repair a marker
+      // left behind by a failed delete here (it only repairs a missing main
+      // file via a dangling .tmp/.bak). The real protection against a stale
+      // marker resurrecting a duplicate session on next launch is the id-dedup
+      // check in AppState._recoverInterruptedSession.
+    }
   }
 
   void _stopSession() {
@@ -178,9 +205,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     HapticFeedback.mediumImpact();
     // Stopwatch sessions are always complete (no fixed target to miss).
     // Countdown sessions stopped early are incomplete.
-    _onSessionComplete(
+    unawaited(_onSessionComplete(
       completedFully: _timerService.mode == TimerMode.stopwatch,
-    );
+    ));
   }
 
   @override

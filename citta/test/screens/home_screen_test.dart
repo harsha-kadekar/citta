@@ -124,6 +124,30 @@ Future<Map<String, dynamic>?> _waitForMarker(
   }
 }
 
+/// Asserts the in-progress marker at [markerPath] exists, via [_waitForMarker].
+/// Call before stopping/completing a session so a later "marker cleared"
+/// check can't pass trivially on a marker that was never written.
+Future<void> _expectMarkerWritten(
+  WidgetTester tester,
+  String markerPath,
+) async {
+  final data = await _waitForMarker(tester, markerPath, (data) => data != null);
+  expect(data, isNotNull, reason: 'marker must exist before stop');
+}
+
+/// Asserts the in-progress marker at [markerPath] has been cleared, via
+/// [_waitForMarker]. This drains the real, unmocked clearInProgressSession
+/// disk write before the test returns, so it can't leak into a later test's
+/// FakeAsync zone and surface as a misattributed failure there.
+Future<void> _expectMarkerCleared(
+  WidgetTester tester,
+  String markerPath,
+) async {
+  final data = await _waitForMarker(tester, markerPath, (data) => data == null);
+  expect(data, isNull,
+      reason: 'in-progress marker must be cleared once the session stops');
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -135,11 +159,13 @@ void main() {
   group('HomeScreen – manually stop countdown', () {
     late Directory tmpDir;
     late AppState appState;
+    late String markerPath;
 
     setUp(() async {
       tmpDir = Directory.systemTemp.createTempSync('citta_home_test_');
       // Default config is countdown — no initialConfig override needed.
       appState = await _makeAndInit(tmpDir.path);
+      markerPath = '${tmpDir.path}/in_progress_session.json';
     });
 
     tearDown(() => tmpDir.deleteSync(recursive: true));
@@ -153,6 +179,8 @@ void main() {
         await tester.tap(find.text('Begin'));
         await tester.pump();
 
+        await _expectMarkerWritten(tester, markerPath);
+
         await tester.tap(find.byIcon(Icons.stop_rounded));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 350)); // push animation
@@ -163,6 +191,8 @@ void main() {
         );
         expect(screen.session.completedFully, isFalse);
 
+        await _expectMarkerCleared(tester, markerPath);
+
         // Drain SessionCompleteScreen's 3-second auto-advance timer.
         await tester.pump(const Duration(seconds: 4));
       },
@@ -172,6 +202,7 @@ void main() {
   group('HomeScreen – stop stopwatch', () {
     late Directory tmpDir;
     late AppState appState;
+    late String markerPath;
 
     setUp(() async {
       tmpDir = Directory.systemTemp.createTempSync('citta_home_test_');
@@ -180,6 +211,7 @@ void main() {
         tmpDir.path,
         initialConfig: ConfigModel(timerMode: 'stopwatch'),
       );
+      markerPath = '${tmpDir.path}/in_progress_session.json';
     });
 
     tearDown(() => tmpDir.deleteSync(recursive: true));
@@ -193,6 +225,8 @@ void main() {
         await tester.tap(find.text('Begin'));
         await tester.pump();
 
+        await _expectMarkerWritten(tester, markerPath);
+
         await tester.tap(find.byIcon(Icons.stop_rounded));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 350));
@@ -202,6 +236,8 @@ void main() {
           find.byType(SessionCompleteScreen),
         );
         expect(screen.session.completedFully, isTrue);
+
+        await _expectMarkerCleared(tester, markerPath);
 
         // Drain SessionCompleteScreen's 3-second auto-advance timer.
         await tester.pump(const Duration(seconds: 4));
@@ -242,6 +278,7 @@ void main() {
   group('HomeScreen – natural countdown completion', () {
     late Directory tmpDir;
     late AppState appState;
+    late String markerPath;
 
     setUp(() async {
       tmpDir = Directory.systemTemp.createTempSync('citta_home_test_');
@@ -250,6 +287,7 @@ void main() {
         tmpDir.path,
         initialConfig: ConfigModel(countdownDuration: 1),
       );
+      markerPath = '${tmpDir.path}/in_progress_session.json';
     });
 
     tearDown(() => tmpDir.deleteSync(recursive: true));
@@ -263,6 +301,8 @@ void main() {
         await tester.tap(find.text('Begin'));
         await tester.pump();
 
+        await _expectMarkerWritten(tester, markerPath);
+
         // Advance fake time past the 1-second target so onComplete fires.
         await tester.pump(const Duration(seconds: 2));
         await tester.pump(const Duration(milliseconds: 350)); // push animation
@@ -272,6 +312,8 @@ void main() {
           find.byType(SessionCompleteScreen),
         );
         expect(screen.session.completedFully, isTrue);
+
+        await _expectMarkerCleared(tester, markerPath);
 
         // Drain SessionCompleteScreen's 3-second auto-advance timer.
         await tester.pump(const Duration(seconds: 4));
@@ -379,27 +421,13 @@ void main() {
         await tester.tap(find.text('Begin'));
         await tester.pump();
 
-        // Ensure marker was written first.
-        final dataBefore = await _waitForMarker(
-          tester,
-          markerPath,
-          (data) => data != null,
-        );
-        expect(dataBefore, isNotNull, reason: 'marker must exist before stop');
+        await _expectMarkerWritten(tester, markerPath);
 
         await tester.tap(find.byIcon(Icons.stop_rounded));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 350));
 
-        // Wait for clearInProgressSession I/O.
-        final dataAfter = await _waitForMarker(
-          tester,
-          markerPath,
-          (data) => data == null,
-        );
-
-        expect(dataAfter, isNull,
-            reason: 'in-progress marker must be cleared when session completes normally');
+        await _expectMarkerCleared(tester, markerPath);
 
         // Drain SessionCompleteScreen's 3-second auto-advance timer.
         await tester.pump(const Duration(seconds: 4));
