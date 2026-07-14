@@ -1,16 +1,49 @@
-import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:citta/services/timer_service.dart';
 
+// ---------------------------------------------------------------------------
+// Fake TimerTicker
+// ---------------------------------------------------------------------------
+
+/// Synchronous [TimerTickerBase] test double. Call [tick] to advance time by
+/// one interval per call — no `Zone`/event-loop involvement, so timer
+/// progression is fully deterministic in tests.
+class FakeTimerTicker implements TimerTickerBase {
+  void Function()? _onTick;
+  Duration? _interval;
+  bool _running = false;
+
+  bool get isRunning => _running;
+  Duration? get interval => _interval;
+
+  @override
+  void start(Duration interval, void Function() onTick) {
+    _interval = interval;
+    _onTick = onTick;
+    _running = true;
+  }
+
+  @override
+  void cancel() {
+    _running = false;
+  }
+
+  /// Synchronously fires the tick callback [times] times, as if [times]
+  /// intervals had elapsed.
+  void tick([int times = 1]) {
+    for (var i = 0; i < times && _running; i++) {
+      _onTick?.call();
+    }
+  }
+}
+
 void main() {
   late TimerService timerService;
+  late FakeTimerTicker fakeTicker;
 
   setUp(() {
-    timerService = TimerService();
-  });
-
-  tearDown(() {
-    timerService.dispose();
+    fakeTicker = FakeTimerTicker();
+    timerService = TimerService(ticker: fakeTicker);
   });
 
   group('TimerService - Configuration', () {
@@ -55,36 +88,42 @@ void main() {
   });
 
   group('TimerService - State Transitions', () {
-    test('start changes state to running', () {
+    test('start changes state to running and begins ticking', () {
       timerService.start();
       expect(timerService.state, TimerState.running);
+      expect(fakeTicker.isRunning, true);
+      expect(fakeTicker.interval, const Duration(seconds: 1));
     });
 
-    test('pause changes state to paused', () {
+    test('pause changes state to paused and cancels the ticker', () {
       timerService.start();
       timerService.pause();
       expect(timerService.state, TimerState.paused);
+      expect(fakeTicker.isRunning, false);
     });
 
-    test('resume changes state back to running', () {
+    test('resume changes state back to running and restarts the ticker', () {
       timerService.start();
       timerService.pause();
       timerService.resume();
       expect(timerService.state, TimerState.running);
+      expect(fakeTicker.isRunning, true);
     });
 
-    test('stop changes state to completed', () {
+    test('stop changes state to completed and cancels the ticker', () {
       timerService.start();
       timerService.stop();
       expect(timerService.state, TimerState.completed);
+      expect(fakeTicker.isRunning, false);
     });
 
-    test('reset returns to idle', () {
+    test('reset returns to idle and cancels the ticker', () {
       timerService.start();
       timerService.stop();
       timerService.reset();
       expect(timerService.state, TimerState.idle);
       expect(timerService.elapsedSeconds, 0);
+      expect(fakeTicker.isRunning, false);
     });
 
     test('cannot pause when idle', () {
@@ -97,6 +136,12 @@ void main() {
       timerService.resume(); // already running
       expect(timerService.state, TimerState.running);
     });
+
+    test('dispose cancels the ticker', () {
+      timerService.start();
+      timerService.dispose();
+      expect(fakeTicker.isRunning, false);
+    });
   });
 
   group('TimerService - Callbacks', () {
@@ -108,36 +153,29 @@ void main() {
     });
 
     test('onComplete is called when countdown finishes', () {
-      // Uses a virtual clock instead of a real delay: TimerService's
-      // Timer.periodic is driven deterministically by fakeAsync, so this
-      // test doesn't race real wall-clock scheduling under a loaded runner.
-      fakeAsync((async) {
-        bool completeCalled = false;
-        timerService.configure(targetDuration: 1);
-        timerService.onComplete = () => completeCalled = true;
-        timerService.start();
+      bool completeCalled = false;
+      timerService.configure(targetDuration: 1);
+      timerService.onComplete = () => completeCalled = true;
+      timerService.start();
 
-        async.elapse(const Duration(seconds: 2));
-        expect(completeCalled, true);
-        expect(timerService.state, TimerState.completed);
-      });
+      fakeTicker.tick(2);
+      expect(completeCalled, true);
+      expect(timerService.state, TimerState.completed);
     });
 
     test('onIntervalBell is called at intervals', () {
-      fakeAsync((async) {
-        int intervalCount = 0;
-        timerService.configure(
-          targetDuration: 10,
-          intervalDuration: 1,
-          intervalEnabled: true,
-        );
-        timerService.onIntervalBell = () => intervalCount++;
-        timerService.start();
+      int intervalCount = 0;
+      timerService.configure(
+        targetDuration: 10,
+        intervalDuration: 1,
+        intervalEnabled: true,
+      );
+      timerService.onIntervalBell = () => intervalCount++;
+      timerService.start();
 
-        async.elapse(const Duration(seconds: 3, milliseconds: 500));
-        timerService.stop();
-        expect(intervalCount, greaterThanOrEqualTo(2));
-      });
+      fakeTicker.tick(3);
+      timerService.stop();
+      expect(intervalCount, greaterThanOrEqualTo(2));
     });
   });
 }

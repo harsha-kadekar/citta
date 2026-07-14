@@ -5,20 +5,42 @@ enum TimerMode { countdown, stopwatch }
 
 enum TimerState { idle, running, paused, completed }
 
-/// Ticks on a real `Timer.periodic` — there's no injectable clock/ticker.
-/// A plain `test()` (unlike `testWidgets()`, which Flutter wraps in a fake
-/// clock automatically) runs on the real event loop, so any test that starts
-/// this service and waits on `onComplete`/`onIntervalBell`/`elapsedSeconds`
-/// must wrap itself in `fakeAsync()` (see test/services/timer_service_test.dart)
-/// or it will race real wall-clock scheduling and can flake under a loaded runner.
+/// Abstraction over periodic ticking to allow fake injection in tests.
+abstract class TimerTickerBase {
+  void start(Duration interval, void Function() onTick);
+  void cancel();
+}
+
+class _RealTimerTicker implements TimerTickerBase {
+  Timer? _timer;
+
+  @override
+  void start(Duration interval, void Function() onTick) {
+    _timer?.cancel();
+    _timer = Timer.periodic(interval, (_) => onTick());
+  }
+
+  @override
+  void cancel() {
+    _timer?.cancel();
+    _timer = null;
+  }
+}
+
+/// Ticks via an injectable [TimerTickerBase], defaulting to a real
+/// `Timer.periodic` in production. Tests can inject a fake ticker to drive
+/// timer progression synchronously instead of racing the real event loop.
 class TimerService extends ChangeNotifier {
+  TimerService({TimerTickerBase? ticker})
+    : _ticker = ticker ?? _RealTimerTicker();
+
   TimerMode _mode = TimerMode.countdown;
   TimerState _state = TimerState.idle;
   int _targetDuration = 1200; // seconds (for countdown)
   int _elapsedSeconds = 0;
   int _intervalDuration = 300; // seconds
   bool _intervalEnabled = false;
-  Timer? _timer;
+  final TimerTickerBase _ticker;
   int _lastIntervalFired = 0;
 
   // Callbacks
@@ -88,7 +110,7 @@ class TimerService extends ChangeNotifier {
 
   void pause() {
     if (_state != TimerState.running) return;
-    _timer?.cancel();
+    _ticker.cancel();
     _state = TimerState.paused;
     notifyListeners();
   }
@@ -101,13 +123,13 @@ class TimerService extends ChangeNotifier {
   }
 
   void stop() {
-    _timer?.cancel();
+    _ticker.cancel();
     _state = TimerState.completed;
     notifyListeners();
   }
 
   void reset() {
-    _timer?.cancel();
+    _ticker.cancel();
     _elapsedSeconds = 0;
     _lastIntervalFired = 0;
     _state = TimerState.idle;
@@ -115,8 +137,7 @@ class TimerService extends ChangeNotifier {
   }
 
   void _startTicking() {
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+    _ticker.start(const Duration(seconds: 1), () {
       _elapsedSeconds++;
 
       // Check interval bell
@@ -135,7 +156,7 @@ class TimerService extends ChangeNotifier {
       // Check countdown completion
       if (_mode == TimerMode.countdown &&
           _elapsedSeconds >= _targetDuration) {
-        _timer?.cancel();
+        _ticker.cancel();
         _state = TimerState.completed;
         onComplete?.call();
       }
@@ -146,7 +167,7 @@ class TimerService extends ChangeNotifier {
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _ticker.cancel();
     super.dispose();
   }
 }
