@@ -47,6 +47,7 @@ class TimerService extends ChangeNotifier {
   VoidCallback? onComplete;
   VoidCallback? onIntervalBell;
   VoidCallback? onStart;
+  VoidCallback? onTick;
 
   TimerMode get mode => _mode;
   TimerState get state => _state;
@@ -161,6 +162,7 @@ class TimerService extends ChangeNotifier {
         onComplete?.call();
       }
 
+      onTick?.call();
       notifyListeners();
     });
   }

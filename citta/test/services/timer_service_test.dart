@@ -177,5 +177,28 @@ void main() {
       timerService.stop();
       expect(intervalCount, greaterThanOrEqualTo(2));
     });
+
+    test('onTick is called once per tick with the post-increment elapsed '
+        'seconds', () {
+      final seenElapsed = <int>[];
+      timerService.onTick = () => seenElapsed.add(timerService.elapsedSeconds);
+      timerService.start();
+
+      fakeTicker.tick(3);
+      expect(seenElapsed, [1, 2, 3]);
+    });
+
+    test('onTick is not called while paused', () {
+      int tickCount = 0;
+      timerService.onTick = () => tickCount++;
+      timerService.start();
+      fakeTicker.tick(2);
+      timerService.pause();
+
+      // Ticker is cancelled while paused, so further tick() calls are no-ops
+      // (mirrors how a real Timer.periodic wouldn't fire once cancelled).
+      fakeTicker.tick(2);
+      expect(tickCount, 2);
+    });
   });
 }

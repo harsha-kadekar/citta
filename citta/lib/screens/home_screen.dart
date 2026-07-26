@@ -34,6 +34,11 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+  // How often (in elapsed seconds) an active session is checkpointed to
+  // disk, so a crash mid-session loses at most this much progress without
+  // needing the app to be backgrounded first.
+  static const _checkpointIntervalSeconds = 30;
+
   late TimerService _timerService;
   bool _showPreSessionConfig = false;
   // Ad-hoc overrides (null means use config default)
@@ -42,6 +47,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   // Set when a session starts; used to write the in-progress marker.
   String? _sessionId;
   DateTime? _sessionStartDate;
+  // Serializes marker file saves/clears so overlapping fire-and-forget calls
+  // (start, pause, resume, background, periodic checkpoint) can't interleave
+  // their multi-step atomic writes on the same file and let a stale write
+  // clobber a fresher one.
+  Future<void> _markerOpChain = Future.value();
   String get _title => _cittaTitles[widget.visitCount % _cittaTitles.length];
 
   @override
@@ -66,6 +76,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (appState.config.backgroundMusic != null) {
         appState.audioService
             .startBackgroundMusic(appState.config.backgroundMusic!);
+      }
+    };
+    _timerService.onTick = () {
+      if (_timerService.elapsedSeconds % _checkpointIntervalSeconds == 0) {
+        unawaited(_saveInProgressMarker());
       }
     };
   }
@@ -125,21 +140,44 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     unawaited(_saveInProgressMarker());
   }
 
-  Future<void> _saveInProgressMarker() async {
-    if (_sessionId == null || !mounted) return;
+  Future<void> _saveInProgressMarker() {
+    if (_sessionId == null || !mounted) return Future.value();
     try {
-      await context.read<AppState>().saveInProgressSession(
-        id: _sessionId!,
-        startDate: _sessionStartDate!,
-        elapsedSeconds: _timerService.elapsedSeconds,
-        timerMode: _timerService.mode == TimerMode.countdown
-            ? 'countdown'
-            : 'stopwatch',
-        targetDuration: _timerService.targetDuration,
-      );
+      // Snapshot state now, not when the queued write eventually runs, so a
+      // save enqueued at pause-time can't pick up seconds ticked after it.
+      final appState = context.read<AppState>();
+      final id = _sessionId!;
+      final startDate = _sessionStartDate!;
+      final elapsedSeconds = _timerService.elapsedSeconds;
+      final timerMode = _timerService.mode == TimerMode.countdown
+          ? 'countdown'
+          : 'stopwatch';
+      final targetDuration = _timerService.targetDuration;
+      return _enqueueMarkerOp(() async {
+        try {
+          await appState.saveInProgressSession(
+            id: id,
+            startDate: startDate,
+            elapsedSeconds: elapsedSeconds,
+            timerMode: timerMode,
+            targetDuration: targetDuration,
+          );
+        } catch (_) {
+          // clearInProgressSession handles any partial writes from a failed save
+        }
+      });
     } catch (_) {
-      // clearInProgressSession handles any partial writes from a failed save
+      return Future.value();
     }
+  }
+
+  Future<void> _enqueueMarkerOp(Future<void> Function() op) {
+    final chained = _markerOpChain.then((_) => op());
+    // Reset regardless of success/failure so one failing op (e.g. a clear
+    // that throws) can't permanently poison every later enqueue — mirrors
+    // AudioService._queueBellOp's handling of the same hazard.
+    _markerOpChain = chained.then((_) {}, onError: (_) {});
+    return chained;
   }
 
   Future<void> _onSessionComplete({required bool completedFully}) async {
@@ -190,7 +228,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
 
     try {
-      await appState.clearInProgressSession();
+      // Routed through the same marker-op chain as saves, so a checkpoint
+      // enqueued just before completion can't run after the clear and
+      // resurrect the marker for a session that's already been recorded.
+      await _enqueueMarkerOp(appState.clearInProgressSession);
     } catch (_) {
       // Best-effort: StorageService.recoverIfNeeded does NOT repair a marker
       // left behind by a failed delete here (it only repairs a missing main
@@ -198,6 +239,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       // marker resurrecting a duplicate session on next launch is the id-dedup
       // check in AppState._recoverInterruptedSession.
     }
+  }
+
+  void _pauseSession() {
+    _timerService.pause();
+    HapticFeedback.lightImpact();
+    // Pausing is a meaningful transition worth checkpointing immediately,
+    // rather than waiting for the periodic on-tick cadence (which doesn't
+    // fire while paused) or the app being backgrounded.
+    unawaited(_saveInProgressMarker());
+  }
+
+  void _resumeSession() {
+    _timerService.resume();
+    HapticFeedback.lightImpact();
+    unawaited(_saveInProgressMarker());
   }
 
   void _stopSession() {
@@ -275,14 +331,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     const SizedBox(height: 40),
                     TimerControls(
                       timerService: _timerService,
-                      onPause: () {
-                        _timerService.pause();
-                        HapticFeedback.lightImpact();
-                      },
-                      onResume: () {
-                        _timerService.resume();
-                        HapticFeedback.lightImpact();
-                      },
+                      onPause: _pauseSession,
+                      onResume: _resumeSession,
                       onStop: _stopSession,
                     ),
                   ] else ...[
