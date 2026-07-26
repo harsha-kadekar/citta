@@ -40,6 +40,24 @@ class _FakeAudioSession implements AudioSessionBase {
       const Stream.empty();
 }
 
+/// Throws on its first [clearInProgressSession] call, then behaves normally —
+/// simulates a transient I/O failure to verify a failing marker op doesn't
+/// permanently disable later checkpoints (see home_screen.dart's
+/// _enqueueMarkerOp, which must reset its chain regardless of success/failure).
+class _ThrowOnceClearStorageService extends StorageService {
+  _ThrowOnceClearStorageService(super.basePath) : super.withBasePath();
+  bool _hasThrown = false;
+
+  @override
+  Future<void> clearInProgressSession() async {
+    if (!_hasThrown) {
+      _hasThrown = true;
+      throw Exception('simulated transient clear failure');
+    }
+    return super.clearInProgressSession();
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -56,6 +74,23 @@ Future<AppState> _makeAndInit(
   if (initialConfig != null) {
     await storage.saveConfig(initialConfig);
   }
+  final appState = AppState(
+    storageService: storage,
+    quoteService: QuoteService(storage),
+    audioService: AudioService.withPlayers(
+      bellPlayer: _FakeAudioPlayer(),
+      musicPlayer: _FakeAudioPlayer(),
+      sessionFactory: () async => _FakeAudioSession(),
+    ),
+    statsService: const StatsService(),
+  );
+  await appState.initialize();
+  return appState;
+}
+
+/// Like [_makeAndInit] but wires in a caller-supplied [StorageService], for
+/// tests that need a fake with injected failure behavior.
+Future<AppState> _makeAndInitWithStorage(StorageService storage) async {
   final appState = AppState(
     storageService: storage,
     quoteService: QuoteService(storage),
@@ -117,6 +152,25 @@ Future<Map<String, dynamic>?> _waitForMarker(
   while (true) {
     final data = await tester.runAsync(() => _readMarkerFile(markerPath));
     if (predicate(data) || DateTime.now().isAfter(deadline)) return data;
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 20)),
+    );
+    await tester.pump();
+  }
+}
+
+/// Polls the widget tree via [predicate] until it's satisfied or [timeout]
+/// elapses — same real-I/O-draining technique as [_waitForMarker], for
+/// waits gated on a real disk write (e.g. NotesScreen's save-then-pop)
+/// rather than the in-progress marker file specifically.
+Future<void> _waitForCondition(
+  WidgetTester tester,
+  bool Function() predicate, {
+  Duration timeout = const Duration(seconds: 5),
+}) async {
+  final deadline = DateTime.now().add(timeout);
+  while (true) {
+    if (predicate() || DateTime.now().isAfter(deadline)) return;
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 20)),
     );
@@ -431,6 +485,192 @@ void main() {
 
         // Drain SessionCompleteScreen's 3-second auto-advance timer.
         await tester.pump(const Duration(seconds: 4));
+      },
+    );
+  });
+
+  group('HomeScreen – continuous checkpointing (issue #39)', () {
+    late Directory tmpDir;
+    late AppState appState;
+    late String markerPath;
+
+    setUp(() async {
+      tmpDir = Directory.systemTemp.createTempSync('citta_home_test_');
+      appState = await _makeAndInit(tmpDir.path);
+      markerPath = '${tmpDir.path}/in_progress_session.json';
+    });
+
+    tearDown(() => tmpDir.deleteSync(recursive: true));
+
+    testWidgets(
+      '8. a session running past 30s without backgrounding checkpoints the '
+      'marker, so a crash before backgrounding does not lose all progress',
+      (tester) async {
+        await tester.pumpWidget(_testApp(appState));
+        await tester.pump();
+
+        await tester.tap(find.text('Begin'));
+        await tester.pump();
+
+        // Never backgrounded — the only thing that can update the marker
+        // past the initial elapsedSeconds=0 write is periodic checkpointing.
+        await tester.pump(const Duration(seconds: 31));
+
+        final data = await _waitForMarker(
+          tester,
+          markerPath,
+          (data) => data != null && (data['elapsedSeconds'] as int) >= 30,
+        );
+
+        expect(data, isNotNull,
+            reason: 'marker must be periodically checkpointed while running');
+        expect((data!['elapsedSeconds'] as int) >= 30, isTrue,
+            reason: 'checkpoint must reflect elapsed time, not the initial 0');
+      },
+    );
+
+    testWidgets(
+      '9. pausing a running session immediately checkpoints the marker',
+      (tester) async {
+        await tester.pumpWidget(_testApp(appState));
+        await tester.pump();
+
+        await tester.tap(find.text('Begin'));
+        // Advance only 5s — well short of the periodic checkpoint cadence,
+        // so any updated marker must come from the pause transition itself.
+        await tester.pump(const Duration(seconds: 5));
+
+        await tester.tap(find.byIcon(Icons.pause_rounded));
+        await tester.pump();
+
+        final data = await _waitForMarker(
+          tester,
+          markerPath,
+          (data) => data != null && (data['elapsedSeconds'] as int) >= 5,
+        );
+
+        expect(data, isNotNull);
+        expect((data!['elapsedSeconds'] as int) >= 5, isTrue,
+            reason: 'pausing must checkpoint the marker immediately');
+      },
+    );
+
+    testWidgets(
+      '10. resuming a paused session checkpoints the marker again',
+      (tester) async {
+        await tester.pumpWidget(_testApp(appState));
+        await tester.pump();
+
+        await tester.tap(find.text('Begin'));
+        await tester.pump(const Duration(seconds: 5));
+
+        await tester.tap(find.byIcon(Icons.pause_rounded));
+        await tester.pump();
+        await _waitForMarker(
+          tester,
+          markerPath,
+          (data) => data != null && (data['elapsedSeconds'] as int) >= 5,
+        );
+
+        // Delete the marker to simulate it being lost, so the only way it
+        // can reappear is if resume() writes its own fresh checkpoint —
+        // the periodic 30s cadence can't have fired yet at this point.
+        await tester.runAsync(() => File(markerPath).delete());
+
+        await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+        await tester.pump();
+
+        final data = await _waitForMarker(
+          tester,
+          markerPath,
+          (data) => data != null,
+        );
+
+        expect(data, isNotNull,
+            reason: 'resuming must checkpoint the marker immediately, not '
+                'just rely on the periodic cadence');
+        expect((data!['elapsedSeconds'] as int) >= 5, isTrue);
+      },
+    );
+  });
+
+  group('HomeScreen – marker queue resilience (issue #39 code review)', () {
+    late Directory tmpDir;
+    late String markerPath;
+    late AppState appState;
+
+    setUp(() async {
+      tmpDir = Directory.systemTemp.createTempSync('citta_home_test_');
+      markerPath = '${tmpDir.path}/in_progress_session.json';
+      appState = await _makeAndInitWithStorage(
+        _ThrowOnceClearStorageService(tmpDir.path),
+      );
+    });
+
+    tearDown(() => tmpDir.deleteSync(recursive: true));
+
+    testWidgets(
+      '11. a clear that throws does not permanently disable later '
+      'checkpoints',
+      (tester) async {
+        await tester.pumpWidget(_testApp(appState));
+        await tester.pump();
+
+        // Session 1: start then immediately stop. The stop path's clear
+        // throws once (by design of the fake), simulating a transient I/O
+        // error — swallowed by the existing try/catch in _onSessionComplete.
+        await tester.tap(find.text('Begin'));
+        await tester.pump();
+        final firstMarker = await _waitForMarker(
+          tester,
+          markerPath,
+          (data) => data != null,
+        );
+        expect(firstMarker, isNotNull);
+        final firstSessionId = firstMarker!['id'];
+
+        await tester.tap(find.byIcon(Icons.stop_rounded));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 350));
+        // Force-elapse SessionCompleteScreen's 3-second auto-advance timer —
+        // it's a bare Future.delayed, not an active animation, so
+        // pumpAndSettle (which only waits out scheduled frames) wouldn't
+        // elapse it on its own.
+        await tester.pump(const Duration(seconds: 4));
+        // Now let NotesScreen's own incoming transition animation (an
+        // active AnimationController) finish; pumpAndSettle is the right
+        // tool for that part.
+        await tester.pumpAndSettle();
+
+        // Skip past NotesScreen (its save-then-pop is real I/O, so poll
+        // rather than assume a fixed number of pumps suffices) to get back
+        // to HomeScreen's idle "Begin" state.
+        await tester.tap(find.text('Skip'));
+        await tester.pump();
+        await _waitForCondition(
+          tester,
+          () => find.text('Begin').evaluate().isNotEmpty,
+        );
+        // Let the pop transition's exit animation fully settle so a tap on
+        // "Begin" doesn't hit-test against a still-departing overlay layer.
+        await tester.pumpAndSettle();
+
+        // Session 2: if the marker-op queue was poisoned by session 1's
+        // failing clear, this save silently never runs its write, and the
+        // marker stays stuck with session 1's id forever.
+        await tester.tap(find.text('Begin'));
+        await tester.pump();
+
+        final secondMarker = await _waitForMarker(
+          tester,
+          markerPath,
+          (data) => data != null && data['id'] != firstSessionId,
+        );
+
+        expect(secondMarker, isNotNull);
+        expect(secondMarker!['id'], isNot(firstSessionId),
+            reason: 'a failing clear must not permanently disable future '
+                'marker checkpoints');
       },
     );
   });

@@ -224,3 +224,44 @@ No code-review findings in the current branch state.
 ## Summary
 
 No findings on the current revision. The fix now covers the full issue chain in [audio_service.dart](/home/harsha/workspace/Citta/citta/lib/services/audio_service.dart:105): `warmUp()` restores bell volume in a `finally` path, queued bell work is invalidated across `stopAll()` and non-transient interruptions, and `playBell()` carries the original generation through its retry so a stop-induced first failure cannot resurrect a pre-stop bell request. The expanded concurrency tests in [audio_service_test.dart](/home/harsha/workspace/Citta/citta/test/services/audio_service_test.dart:474) exercise the earlier stop/interruption races directly, and the focused test/analyzer runs pass.
+
+---
+
+## Scope
+
+Review of the current local changes for GitHub issue `#39`: `Persist in-progress session state continuously`.
+
+Issue requirements reviewed against:
+
+- Checkpoint active session progress often enough to minimize recovery loss.
+- Persist on meaningful timer transitions without degrading responsiveness.
+- Preserve interrupted-session recovery for paused and completed sessions.
+- Add practical coverage for checkpoint/recovery-oriented flows.
+
+## Findings
+
+No code-review findings in the current branch state.
+
+The implementation checkpoints every 30 elapsed seconds and immediately on pause and resume. Marker mutations are serialized, so a delayed checkpoint cannot recreate the marker after completion clears it. Existing recovery keeps its id-based deduplication protection, and the new tests cover periodic checkpointing, transition checkpoints, and recovery of the marker-operation queue after a failed clear.
+
+## Verification
+
+- Reviewed issue `#39` through `gh api repos/harsha-kadekar/citta/issues/39`.
+- Inspected the local diff in:
+  - `citta/lib/screens/home_screen.dart`
+  - `citta/lib/services/timer_service.dart`
+  - `citta/test/screens/home_screen_test.dart`
+  - `citta/test/services/timer_service_test.dart`
+- Reviewed related persistence and recovery behavior in:
+  - `citta/lib/providers/app_state.dart`
+  - `citta/lib/services/storage_service.dart`
+- Ran `flutter test test/services/timer_service_test.dart test/screens/home_screen_test.dart`.
+  - Result: passes (31 tests).
+- Ran `flutter analyze lib/screens/home_screen.dart lib/services/timer_service.dart test/screens/home_screen_test.dart test/services/timer_service_test.dart`.
+  - Result: passes.
+- Ran `flutter test` using the active Flutter 3.44.5 toolchain.
+  - Result: passes (333 tests).
+
+## Summary
+
+No changes are requested from Claude for issue `#39`. The patch satisfies the checkpointing and recovery requirements without introducing a regression visible in the full test suite.
