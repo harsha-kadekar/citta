@@ -29,7 +29,8 @@ class BgMusicSection extends StatelessWidget {
             leading: const Icon(Icons.clear, color: AppColors.error),
             title: Text(l10n.settingsRemoveMusic),
             onTap: () {
-              appState.updateConfig(config.copyWith(backgroundMusic: null));
+              appState.mutateConfig(
+                  (current) => current.copyWith(backgroundMusic: null));
             },
           ),
       ],
@@ -40,8 +41,8 @@ class BgMusicSection extends StatelessWidget {
       BuildContext context, AppState appState) async {
     final selection = await pickCustomAudioSelection();
     if (selection != null) {
-      appState.updateConfig(
-          appState.config.copyWith(backgroundMusic: selection));
+      appState.mutateConfig(
+          (current) => current.copyWith(backgroundMusic: selection));
     }
   }
 }

@@ -43,8 +43,8 @@ class TimerSection extends StatelessWidget {
         children: [
           SimpleDialogOption(
             onPressed: () {
-              appState.updateConfig(
-                  appState.config.copyWith(timerMode: 'countdown'));
+              appState.mutateConfig(
+                  (current) => current.copyWith(timerMode: 'countdown'));
               Navigator.pop(context);
             },
             child: ListTile(
@@ -58,8 +58,8 @@ class TimerSection extends StatelessWidget {
           ),
           SimpleDialogOption(
             onPressed: () {
-              appState.updateConfig(
-                  appState.config.copyWith(timerMode: 'stopwatch'));
+              appState.mutateConfig(
+                  (current) => current.copyWith(timerMode: 'stopwatch'));
               Navigator.pop(context);
             },
             child: ListTile(
@@ -86,8 +86,8 @@ class TimerSection extends StatelessWidget {
         children: durations
             .map((mins) => SimpleDialogOption(
                   onPressed: () {
-                    appState.updateConfig(
-                        appState.config.copyWith(countdownDuration: mins * 60));
+                    appState.mutateConfig((current) =>
+                        current.copyWith(countdownDuration: mins * 60));
                     Navigator.pop(context);
                   },
                   child: Text(

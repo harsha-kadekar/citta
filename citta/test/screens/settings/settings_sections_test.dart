@@ -410,8 +410,16 @@ void main() {
         (tester) async {
       await tester.pumpWidget(_wrap(appState, const BgMusicSection()));
       await tester.pump();
-      await tester.tap(find.byType(SettingsTile));
-      await tester.pumpAndSettle();
+      // The tap triggers a fire-and-forget async chain (file pick, then a
+      // real-disk read+write via AppState.mutateConfig) that testWidgets'
+      // onTap dispatch does not await. Run the tap and a real delay inside
+      // the same tester.runAsync() zone so that chain gets genuine
+      // wall-clock time to finish before we assert on its result.
+      await tester.runAsync(() async {
+        await tester.tap(find.byType(SettingsTile));
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      });
+      await tester.pump();
       expect(appState.config.backgroundMusic,
           equals('custom:/storage/music/track.mp3'));
     });
@@ -432,8 +440,8 @@ void main() {
         (tester) async {
       await tester.pumpWidget(_wrap(appState, const BgMusicSection()));
       await tester.pump();
-      await tester.tap(find.byType(SettingsTile));
-      await tester.pumpAndSettle();
+      await tester.runAsync(() => tester.tap(find.byType(SettingsTile)));
+      await tester.pump();
       expect(appState.config.backgroundMusic, isNull);
     });
   });
@@ -454,7 +462,10 @@ void main() {
       await tester.pump();
       expect(find.byIcon(Icons.clear), findsOneWidget);
 
-      await tester.tap(find.byIcon(Icons.clear));
+      await tester.runAsync(() async {
+        await tester.tap(find.byIcon(Icons.clear));
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      });
       await tester.pump();
       expect(appState.config.backgroundMusic, isNull);
     });

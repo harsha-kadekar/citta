@@ -125,8 +125,8 @@ class _AppRootState extends State<_AppRoot> {
             onPressed: () {
               final name = controller.text.trim();
               if (name.isNotEmpty) {
-                appState.updateConfig(
-                  appState.config.copyWith(userName: name),
+                appState.mutateConfig(
+                  (current) => current.copyWith(userName: name),
                 );
               }
               Navigator.pop(context);

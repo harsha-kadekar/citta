@@ -41,7 +41,7 @@ class BellsSection extends StatelessWidget {
           onTap: () => _showBellPicker(
               context, appState, l10n.settingsStartBell, config.bellStart,
               (val) {
-            appState.updateConfig(config.copyWith(bellStart: val));
+            appState.mutateConfig((current) => current.copyWith(bellStart: val));
           }, l10n),
         ),
         SettingsTile(
@@ -56,7 +56,7 @@ class BellsSection extends StatelessWidget {
                 ),
           onTap: () => _showBellPicker(
               context, appState, l10n.settingsEndBell, config.bellEnd, (val) {
-            appState.updateConfig(config.copyWith(bellEnd: val));
+            appState.mutateConfig((current) => current.copyWith(bellEnd: val));
           }, l10n),
         ),
         SwitchListTile(
@@ -66,7 +66,7 @@ class BellsSection extends StatelessWidget {
               : l10n.settingsOff),
           value: config.intervalEnabled,
           onChanged: (val) {
-            appState.updateConfig(config.copyWith(intervalEnabled: val));
+            appState.mutateConfig((current) => current.copyWith(intervalEnabled: val));
           },
         ),
         if (config.intervalEnabled) ...[
@@ -92,7 +92,7 @@ class BellsSection extends StatelessWidget {
                 appState,
                 l10n.settingsIntervalSound,
                 config.bellInterval, (val) {
-              appState.updateConfig(config.copyWith(bellInterval: val));
+              appState.mutateConfig((current) => current.copyWith(bellInterval: val));
             }, l10n),
           ),
         ],
@@ -181,8 +181,8 @@ class BellsSection extends StatelessWidget {
         children: intervals
             .map((mins) => SimpleDialogOption(
                   onPressed: () {
-                    appState.updateConfig(appState.config
-                        .copyWith(intervalDuration: mins * 60));
+                    appState.mutateConfig((current) =>
+                        current.copyWith(intervalDuration: mins * 60));
                     Navigator.pop(context);
                   },
                   child: Text(

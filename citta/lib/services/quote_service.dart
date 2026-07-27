@@ -69,14 +69,27 @@ class QuoteService {
     _selectTodayQuote();
   }
 
+  // addUserQuote/removeUserQuote read the current list from storage inside
+  // the same lock as their write, rather than mutating the (possibly stale)
+  // in-memory _userQuotes cache — otherwise a concurrent import replacing
+  // the quotes file could be silently overwritten by a save computed from
+  // a snapshot taken before the import committed.
   Future<void> addUserQuote(QuoteModel quote) async {
-    _userQuotes.add(quote);
-    await _storageService.saveUserQuotes(_userQuotes);
+    _userQuotes = await _storageService.runExclusive(() async {
+      final current = await _storageService.loadUserQuotes();
+      final updated = [...current, quote];
+      await _storageService.saveUserQuotes(updated);
+      return updated;
+    });
   }
 
   Future<void> removeUserQuote(String quoteId) async {
-    _userQuotes.removeWhere((q) => q.id == quoteId);
-    await _storageService.saveUserQuotes(_userQuotes);
+    _userQuotes = await _storageService.runExclusive(() async {
+      final current = await _storageService.loadUserQuotes();
+      final updated = current.where((q) => q.id != quoteId).toList();
+      await _storageService.saveUserQuotes(updated);
+      return updated;
+    });
   }
 
   Future<void> reloadUserQuotes() async {
