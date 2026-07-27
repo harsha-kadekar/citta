@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -8,6 +9,7 @@ import '../models/quote_model.dart';
 
 class StorageService {
   Future<String>? _basePathFuture;
+  final _writeLock = _AsyncLock();
 
   StorageService();
 
@@ -26,6 +28,18 @@ class StorageService {
       rethrow;
     }
   }
+
+  /// Runs [action] exclusively with respect to every other call made
+  /// through this method and every import (see [importData] /
+  /// [importValidated]), which use the same lock internally. Callers that
+  /// mutate config, sessions, or user quotes outside of an import (e.g.
+  /// `AppState.updateConfig`, `AppState.addSession`, `QuoteService`) must
+  /// route those saves through here so they can never interleave with an
+  /// in-flight import's snapshot-then-write sequence — otherwise a stale
+  /// import snapshot could roll back over a concurrent edit, or a
+  /// concurrent edit could be silently dropped by an import's write.
+  Future<T> runExclusive<T>(Future<T> Function() action) =>
+      _writeLock.run(action);
 
   // --- Atomic Write ---
 
@@ -46,37 +60,51 @@ class StorageService {
       await file.rename(bakFile.path);
     }
 
-    // Step 3: Rename .tmp to target
+    // Step 3: Rename .tmp to target. This is the commit point — once it
+    // succeeds, the new content is live, so nothing after this may cause
+    // the write to be (mis)reported as failed.
     await tmpFile.rename(filePath);
 
-    // Step 4: Clean up .bak on success
-    if (await bakFile.exists()) {
-      await bakFile.delete();
-    }
+    // Step 4: Best-effort cleanup of the now-redundant .bak file. A failure
+    // here must not make an already-committed write look like it failed —
+    // a lingering .bak is already handled safely by recoverIfNeeded() on
+    // the next load.
+    try {
+      if (await bakFile.exists()) {
+        await bakFile.delete();
+      }
+    } catch (_) {}
   }
 
   /// On startup, recover from interrupted writes.
+  ///
+  /// Recovery is best-effort: if something obstructs it (e.g. a directory
+  /// sitting at the target path after a botched write), the failure is
+  /// swallowed here rather than propagated, since callers already treat a
+  /// missing or corrupt main file as a safe, handled case.
   Future<void> recoverIfNeeded(String filePath) async {
-    final file = File(filePath);
-    final tmpFile = File('$filePath.tmp');
-    final bakFile = File('$filePath.bak');
+    try {
+      final file = File(filePath);
+      final tmpFile = File('$filePath.tmp');
+      final bakFile = File('$filePath.bak');
 
-    if (await file.exists()) {
-      // Main file is fine; clean up leftover tmp/bak
-      if (await tmpFile.exists()) await tmpFile.delete();
-      if (await bakFile.exists()) await bakFile.delete();
-      return;
-    }
+      if (await file.exists()) {
+        // Main file is fine; clean up leftover tmp/bak
+        if (await tmpFile.exists()) await tmpFile.delete();
+        if (await bakFile.exists()) await bakFile.delete();
+        return;
+      }
 
-    // Main file missing — try to recover
-    if (await tmpFile.exists()) {
-      // .tmp exists but main doesn't: the rename from .tmp to main failed
-      await tmpFile.rename(filePath);
-      if (await bakFile.exists()) await bakFile.delete();
-    } else if (await bakFile.exists()) {
-      // .bak exists but main and .tmp don't: restore from backup
-      await bakFile.rename(filePath);
-    }
+      // Main file missing — try to recover
+      if (await tmpFile.exists()) {
+        // .tmp exists but main doesn't: the rename from .tmp to main failed
+        await tmpFile.rename(filePath);
+        if (await bakFile.exists()) await bakFile.delete();
+      } else if (await bakFile.exists()) {
+        // .bak exists but main and .tmp don't: restore from backup
+        await bakFile.rename(filePath);
+      }
+    } catch (_) {}
   }
 
   // --- Corrupt file handling ---
@@ -237,6 +265,9 @@ class StorageService {
 
   // --- Export / Import ---
 
+  /// Import schema versions this build knows how to read.
+  static const Set<int> supportedImportVersions = {1};
+
   Future<String> exportAllData() async {
     final config = await loadConfig();
     final sessions = await loadSessions();
@@ -253,64 +284,289 @@ class StorageService {
     return const JsonEncoder.withIndent('  ').convert(exportData);
   }
 
-  Future<Map<String, dynamic>?> validateImportData(String content) async {
+  /// Parses `version` from decoded JSON, accepting both an int (`1`) and a
+  /// whole-number double (`1.0`, which is what `jsonDecode` produces for any
+  /// JSON numeral written with a decimal point).
+  int? _asVersionInt(dynamic value) {
+    if (value is int) return value;
+    if (value is double && value == value.truncateToDouble()) return value.toInt();
+    return null;
+  }
+
+  /// Parses [value] as a list of [T] via [fromJson], or returns null if
+  /// [value] isn't a list, contains a non-object entry, or any entry fails
+  /// to parse. Validation and parsing happen in the same pass so callers
+  /// never need to decode a list twice.
+  List<T>? _parseValidList<T>(
+    dynamic value,
+    T Function(Map<String, dynamic>) fromJson,
+  ) {
+    if (value is! List) return null;
     try {
-      final json = jsonDecode(content) as Map<String, dynamic>;
-      if (!json.containsKey('config') || !json.containsKey('sessions')) {
-        return null;
-      }
-      return json;
+      return value.map((e) {
+        if (e is! Map<String, dynamic>) {
+          throw const FormatException('list entry is not an object');
+        }
+        return fromJson(e);
+      }).toList();
     } catch (_) {
       return null;
     }
   }
 
+  /// Merges [imported] into [original], skipping any entry whose id (per
+  /// [idOf]) already exists in [original].
+  List<T> _mergeById<T>(
+    List<T> original,
+    List<T> imported,
+    Object Function(T item) idOf,
+  ) {
+    final merged = List<T>.from(original);
+    final seenIds = original.map(idOf).toSet();
+    for (final item in imported) {
+      if (seenIds.add(idOf(item))) {
+        merged.add(item);
+      }
+    }
+    return merged;
+  }
+
+  Map<String, dynamic>? _decodeJsonObject(String content) {
+    try {
+      final decoded = jsonDecode(content);
+      return decoded is Map<String, dynamic> ? decoded : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // The exact field shape of ConfigModel.toJson() for import schema version
+  // 1. ConfigModel.fromJson() itself defaults missing/absent fields (for
+  // backward-compatible loading of the app's own possibly-older config.json
+  // on disk), so it cannot be relied on to reject a sparse or truncated
+  // import payload — that must be checked explicitly first.
+  static const _v1ConfigStringFields = [
+    'timerMode', 'bellStart', 'bellEnd', 'bellInterval', 'themeMode', 'language',
+  ];
+  static const _v1ConfigIntFields = ['countdownDuration', 'intervalDuration'];
+  static const _v1ConfigBoolFields = ['intervalEnabled', 'calendarViewEnabled'];
+  static const _v1ConfigListFields = ['tags', 'quoteSources'];
+  static const _v1ConfigNullableStringFields = ['backgroundMusic', 'userName'];
+
+  bool _isValidV1ConfigJson(Map<String, dynamic> json) {
+    for (final key in _v1ConfigStringFields) {
+      if (json[key] is! String) return false;
+    }
+    for (final key in _v1ConfigIntFields) {
+      if (json[key] is! int) return false;
+    }
+    for (final key in _v1ConfigBoolFields) {
+      if (json[key] is! bool) return false;
+    }
+    for (final key in _v1ConfigListFields) {
+      final value = json[key];
+      if (value is! List || value.any((e) => e is! String)) return false;
+    }
+    for (final key in _v1ConfigNullableStringFields) {
+      if (!json.containsKey(key)) return false;
+      final value = json[key];
+      if (value != null && value is! String) return false;
+    }
+    return true;
+  }
+
+  /// Parses and validates a decoded export payload: a supported `version`,
+  /// a `config` object, a `sessions` list, and — if present — a `userQuotes`
+  /// list, all of which must parse into their respective models. Returns
+  /// null if any part is invalid.
+  _ParsedImport? _parseImportJson(Map<String, dynamic> json) {
+    final version = _asVersionInt(json['version']);
+    if (version == null || !supportedImportVersions.contains(version)) {
+      return null;
+    }
+
+    final configJson = json['config'];
+    if (configJson is! Map<String, dynamic>) return null;
+    if (!_isValidV1ConfigJson(configJson)) return null;
+    final ConfigModel config;
+    try {
+      config = ConfigModel.fromJson(configJson);
+    } catch (_) {
+      return null;
+    }
+
+    final sessions = _parseValidList<SessionModel>(
+      json['sessions'],
+      SessionModel.fromJson,
+    );
+    if (sessions == null) return null;
+
+    List<QuoteModel>? quotes;
+    if (json.containsKey('userQuotes')) {
+      quotes = _parseValidList<QuoteModel>(
+        json['userQuotes'],
+        QuoteModel.fromJson,
+      );
+      if (quotes == null) return null;
+    }
+
+    return _ParsedImport(config: config, sessions: sessions, quotes: quotes);
+  }
+
+  /// Validates that [content] is a well-formed, versioned export payload:
+  /// the declared `version` is one this build supports, `config` and every
+  /// `sessions` entry parse into their respective models, and — if present —
+  /// every `userQuotes` entry does too. Returns the decoded JSON only when
+  /// every part is valid, so that [importData] can never fail partway
+  /// through because of malformed *data* (only real I/O errors remain
+  /// possible there).
+  Future<Map<String, dynamic>?> validateImportData(String content) async {
+    final json = _decodeJsonObject(content);
+    if (json == null) return null;
+    return _parseImportJson(json) == null ? null : json;
+  }
+
+  /// Writes config, sessions, and (if present) user quotes as a single
+  /// logical unit: the pre-import state of each is snapshotted first, and
+  /// each write is staged as an [_ImportStep]. If any step fails partway
+  /// through (e.g. an I/O error), every step that already succeeded is
+  /// rolled back to its snapshot, in reverse order, before the error is
+  /// rethrown — so a failed import never leaves a mix of old and new state.
+  /// If a rollback step itself fails, that failure is not swallowed: it is
+  /// reported via [ImportRollbackIncompleteException] so callers can tell a
+  /// clean failure apart from one that may have left mixed state on disk.
+  ///
+  /// The entire snapshot-then-write sequence runs under the same lock as
+  /// [runExclusive], so it can never interleave with another import or
+  /// with a normal config/session/quote save made through that method — a
+  /// second concurrent call (import or otherwise) simply waits its turn
+  /// rather than racing the snapshot or the write.
+  Future<void> _writeImport({
+    required ConfigModel config,
+    required List<SessionModel> sessions,
+    required List<QuoteModel>? quotes,
+    required bool replaceAll,
+  }) {
+    return _writeLock.run(() async {
+      final hasQuotes = quotes != null;
+      final originalConfig = await loadConfig();
+      final originalSessions = await loadSessions();
+      final originalQuotes =
+          hasQuotes ? await loadUserQuotes() : const <QuoteModel>[];
+
+      final finalSessions = replaceAll
+          ? sessions
+          : _mergeById<SessionModel>(originalSessions, sessions, (s) => s.id);
+
+      List<QuoteModel>? finalQuotes;
+      if (hasQuotes) {
+        finalQuotes = replaceAll
+            ? quotes
+            : _mergeById<QuoteModel>(originalQuotes, quotes, (q) => q.id);
+      }
+
+      final steps = <_ImportStep>[
+        _ImportStep(
+          write: () => saveConfig(config),
+          rollback: () => saveConfig(originalConfig),
+        ),
+        _ImportStep(
+          write: () => saveSessions(finalSessions),
+          rollback: () => saveSessions(originalSessions),
+        ),
+        if (hasQuotes)
+          _ImportStep(
+            write: () => saveUserQuotes(finalQuotes!),
+            rollback: () => saveUserQuotes(originalQuotes),
+          ),
+      ];
+
+      final completed = <_ImportStep>[];
+      _ImportStep? inFlight;
+      try {
+        for (final step in steps) {
+          inFlight = step;
+          await step.write();
+          completed.add(step);
+          inFlight = null;
+        }
+      } catch (e) {
+        // Roll back the step that threw too, not just the previously
+        // completed ones: the underlying atomic write's rename can commit
+        // the new content (or relocate the previous content to a backup
+        // file) before a later filesystem operation in that same write
+        // throws, so the failing step's own file cannot be assumed to
+        // still hold its pre-import value.
+        final toRollback = [
+          if (inFlight != null) inFlight,
+          ...completed.reversed,
+        ];
+        final rollbackErrors = <Object>[];
+        for (final step in toRollback) {
+          try {
+            await step.rollback();
+          } catch (rollbackError) {
+            rollbackErrors.add(rollbackError);
+          }
+        }
+        if (rollbackErrors.isNotEmpty) {
+          throw ImportRollbackIncompleteException(e, rollbackErrors);
+        }
+        rethrow;
+      }
+    });
+  }
+
+  /// Applies a previously-[validateImportData]-checked payload. Does not
+  /// itself check `version` — callers are expected to have validated the
+  /// payload first (see [importValidated] for a single-pass alternative).
   Future<void> importData(
     Map<String, dynamic> data, {
     bool replaceAll = true,
   }) async {
-    final importedConfig = ConfigModel
+    final config = ConfigModel
         .fromJson(data['config'] as Map<String, dynamic>)
         .sanitizeForDevice();
 
-    final importedSessions = (data['sessions'] as List<dynamic>)
+    final sessions = (data['sessions'] as List<dynamic>)
         .map((e) => SessionModel.fromJson(e as Map<String, dynamic>))
         .toList();
 
-    if (replaceAll) {
-      await saveConfig(importedConfig);
-      await saveSessions(importedSessions);
-    } else {
-      // Merge: keep existing sessions, add new ones by ID
-      final existing = await loadSessions();
-      final existingIds = existing.map((s) => s.id).toSet();
-      for (final session in importedSessions) {
-        if (!existingIds.contains(session.id)) {
-          existing.add(session);
-        }
-      }
-      await saveSessions(existing);
-      await saveConfig(importedConfig);
-    }
+    final quotes = data.containsKey('userQuotes')
+        ? (data['userQuotes'] as List<dynamic>)
+            .map((e) => QuoteModel.fromJson(e as Map<String, dynamic>))
+            .toList()
+        : null;
 
-    // Import user quotes
-    if (data.containsKey('userQuotes')) {
-      final importedQuotes = (data['userQuotes'] as List<dynamic>)
-          .map((e) => QuoteModel.fromJson(e as Map<String, dynamic>))
-          .toList();
-      if (replaceAll) {
-        await saveUserQuotes(importedQuotes);
-      } else {
-        final existing = await loadUserQuotes();
-        final existingIds = existing.map((q) => q.id).toSet();
-        for (final quote in importedQuotes) {
-          if (!existingIds.contains(quote.id)) {
-            existing.add(quote);
-          }
-        }
-        await saveUserQuotes(existing);
-      }
+    await _writeImport(
+      config: config,
+      sessions: sessions,
+      quotes: quotes,
+      replaceAll: replaceAll,
+    );
+  }
+
+  /// Validates and imports [content] in one pass, parsing the payload only
+  /// once (unlike calling [validateImportData] followed by [importData],
+  /// which each parse it independently). Returns false if the payload fails
+  /// validation or the write fails for any reason (including a failed or
+  /// incomplete rollback); never throws.
+  Future<bool> importValidated(String content, {bool replaceAll = true}) async {
+    final json = _decodeJsonObject(content);
+    if (json == null) return false;
+    final parsed = _parseImportJson(json);
+    if (parsed == null) return false;
+    try {
+      await _writeImport(
+        config: parsed.config.sanitizeForDevice(),
+        sessions: parsed.sessions,
+        quotes: parsed.quotes,
+        replaceAll: replaceAll,
+      );
+    } catch (_) {
+      return false;
     }
+    return true;
   }
 
   /// Returns the path to the export file written to a temp directory.
@@ -324,4 +580,60 @@ class StorageService {
     await file.writeAsString(content);
     return file.path;
   }
+}
+
+/// A minimal FIFO async mutex. Queued actions run one at a time, in the
+/// order they were submitted, regardless of whether an earlier action
+/// succeeded or threw — so a failure never blocks the ones queued behind it.
+class _AsyncLock {
+  Future<void> _tail = Future.value();
+
+  Future<T> run<T>(Future<T> Function() action) {
+    final previous = _tail;
+    final completer = Completer<void>();
+    _tail = completer.future;
+    return previous.then((_) => action()).whenComplete(completer.complete);
+  }
+}
+
+/// A successfully parsed and schema-validated export payload, ready to hand
+/// to [StorageService]'s internal write step.
+class _ParsedImport {
+  final ConfigModel config;
+  final List<SessionModel> sessions;
+  final List<QuoteModel>? quotes;
+
+  const _ParsedImport({
+    required this.config,
+    required this.sessions,
+    required this.quotes,
+  });
+}
+
+/// One persisted entity's write and its corresponding rollback, used by
+/// [StorageService]'s import transaction so a new persisted entity can be
+/// added to the import flow by appending a step rather than hand-copying a
+/// snapshot flag and a rollback branch.
+class _ImportStep {
+  final Future<void> Function() write;
+  final Future<void> Function() rollback;
+
+  const _ImportStep({required this.write, required this.rollback});
+}
+
+/// Thrown when an import fails and the automatic rollback could not fully
+/// restore the pre-import state — meaning the files on disk may now hold a
+/// mix of old and new data. This is strictly worse than a clean failed
+/// import, so it is reported as a distinct type rather than silently
+/// swallowed alongside the original failure.
+class ImportRollbackIncompleteException implements Exception {
+  final Object importError;
+  final List<Object> rollbackErrors;
+
+  ImportRollbackIncompleteException(this.importError, this.rollbackErrors);
+
+  @override
+  String toString() =>
+      'ImportRollbackIncompleteException: import failed ($importError) and '
+      'rollback did not fully complete ($rollbackErrors)';
 }

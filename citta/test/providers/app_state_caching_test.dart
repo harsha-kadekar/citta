@@ -65,6 +65,7 @@ SessionModel _session(String id, {DateTime? date}) => SessionModel(
 
 String _importJson({List<SessionModel> sessions = const []}) {
   return jsonEncode({
+    'version': 1,
     'config': ConfigModel().toJson(),
     'sessions': sessions.map((s) => s.toJson()).toList(),
   });
@@ -138,6 +139,181 @@ void main() {
       expect(ok, isTrue);
       expect(appState.stats.totalSessions, 2,
           reason: 'stats must reflect imported sessions');
+    });
+  });
+
+  group('AppState.importData failure handling', () {
+    late Directory tmpDir;
+    late AppState appState;
+
+    setUp(() async {
+      tmpDir = Directory.systemTemp.createTempSync('citta_caching_test_');
+      appState = await _makeAndInit(tmpDir.path);
+    });
+
+    tearDown(() => tmpDir.deleteSync(recursive: true));
+
+    test('returns false and leaves state untouched when the underlying write fails',
+        () async {
+      await appState.updateConfig(ConfigModel(timerMode: 'stopwatch'));
+
+      // Force the sessions write inside storageService.importData to fail
+      // by replacing sessions.json with a directory.
+      final sessionsPath = '${tmpDir.path}/sessions.json';
+      if (File(sessionsPath).existsSync()) File(sessionsPath).deleteSync();
+      Directory(sessionsPath).createSync();
+
+      final importContent = _importJson(sessions: [_session('imp1')]);
+      final ok = await appState.importData(importContent);
+
+      expect(ok, isFalse);
+      expect(appState.config.timerMode, 'stopwatch',
+          reason: 'a failed import must not leave partial state changes');
+    });
+  });
+
+  group('AppState mutation vs. concurrent import', () {
+    late Directory tmpDir;
+    late AppState appState;
+
+    setUp(() async {
+      tmpDir = Directory.systemTemp.createTempSync('citta_caching_test_');
+      appState = await _makeAndInit(tmpDir.path);
+    });
+
+    tearDown(() => tmpDir.deleteSync(recursive: true));
+
+    test(
+        'a session added while a replace-all import is in flight is applied on top of the imported sessions, not dropped',
+        () async {
+      final importContent = _importJson(
+        sessions: [_session('imported1'), _session('imported2')],
+      );
+
+      // Submitted synchronously back-to-back so addSession's write is
+      // queued behind the import via StorageService's shared lock, before
+      // the import's own post-completion resync runs.
+      final importFuture = appState.importData(importContent, replaceAll: true);
+      final addFuture = appState.addSession(_session('concurrent'));
+
+      await Future.wait([importFuture, addFuture]);
+
+      final ids = appState.sessions.map((s) => s.id).toSet();
+      expect(ids, {'imported1', 'imported2', 'concurrent'},
+          reason: 'addSession must read the post-import sessions before '
+              'appending, not overwrite them with a save computed from a '
+              'pre-import snapshot');
+    });
+
+    test(
+        'a tag added while a replace-all import is in flight is applied on top of the imported config, not dropped',
+        () async {
+      final importContent = jsonEncode({
+        'version': 1,
+        'config': ConfigModel(tags: ['imported-tag']).toJson(),
+        'sessions': [],
+      });
+
+      final importFuture = appState.importData(importContent, replaceAll: true);
+      final addTagFuture = appState.addTag('concurrent-tag');
+
+      await Future.wait([importFuture, addTagFuture]);
+
+      expect(appState.config.tags, containsAll(['imported-tag', 'concurrent-tag']),
+          reason: 'addTag must be applied against the post-import config, '
+              'not overwrite it with a mutation computed from a pre-import '
+              'snapshot');
+    });
+
+    test(
+        "addTag's no-op fast path must not use the stale pre-import cache to "
+        'discard a tag the import is about to remove',
+        () async {
+      // appState starts with the default tags, which include 'calm'. The
+      // import replaces the config with tags that do NOT include 'calm'.
+      expect(appState.config.tags, contains('calm'));
+      final importContent = jsonEncode({
+        'version': 1,
+        'config': ConfigModel(tags: ['imported-only']).toJson(),
+        'sessions': [],
+      });
+
+      // If mutateConfig's fast path evaluated the no-op check against the
+      // stale cached config (which still has 'calm'), it would wrongly
+      // short-circuit and never re-check against the post-import config.
+      final importFuture = appState.importData(importContent, replaceAll: true);
+      final addTagFuture = appState.addTag('calm');
+
+      await Future.wait([importFuture, addTagFuture]);
+
+      expect(appState.config.tags, contains('calm'),
+          reason: "addTag('calm') must be evaluated against the post-import "
+              "config (which lacks 'calm'), not short-circuited as a no-op "
+              'using the stale pre-import cache');
+    });
+
+    test(
+        "removeTag's no-op fast path must not use the stale pre-import cache "
+        'to discard a tag the import is about to add',
+        () async {
+      // appState starts with the default tags, which do NOT include
+      // 'exotic-tag'. The import replaces the config with tags that DO
+      // include it.
+      expect(appState.config.tags, isNot(contains('exotic-tag')));
+      final importContent = jsonEncode({
+        'version': 1,
+        'config': ConfigModel(
+          tags: [...ConfigModel.defaultTags, 'exotic-tag'],
+        ).toJson(),
+        'sessions': [],
+      });
+
+      final importFuture = appState.importData(importContent, replaceAll: true);
+      final removeTagFuture = appState.removeTag('exotic-tag');
+
+      await Future.wait([importFuture, removeTagFuture]);
+
+      expect(appState.config.tags, isNot(contains('exotic-tag')),
+          reason: "removeTag('exotic-tag') must be evaluated against the "
+              'post-import config (which has it), not short-circuited as a '
+              'no-op using the stale pre-import cache');
+    });
+
+    test(
+        'a tag op issued after the first of two queued imports completes but '
+        'before the second completes still uses the fresh-state slow path',
+        () async {
+      // Neither import's config includes 'calm', even though the default
+      // config appState starts with does.
+      expect(appState.config.tags, contains('calm'));
+      final importAContent = jsonEncode({
+        'version': 1,
+        'config': ConfigModel(tags: ['a-only']).toJson(),
+        'sessions': [],
+      });
+      final importBContent = jsonEncode({
+        'version': 1,
+        'config': ConfigModel(tags: ['b-only']).toJson(),
+        'sessions': [],
+      });
+
+      // Both queued synchronously, back-to-back, so B is queued behind A at
+      // the storage layer.
+      final importAFuture = appState.importData(importAContent, replaceAll: true);
+      final importBFuture = appState.importData(importBContent, replaceAll: true);
+
+      // A's own importData() call resolves once A finishes end-to-end, but
+      // B may still be queued/running at that point.
+      await importAFuture;
+      final addTagFuture = appState.addTag('calm');
+
+      await Future.wait([importBFuture, addTagFuture]);
+
+      expect(appState.config.tags, contains('calm'),
+          reason: "addTag('calm') must be evaluated against fresh storage "
+              'state while a second import is still active, not '
+              'short-circuited by a stale in-memory cache just because the '
+              'first of two overlapping imports has already finished');
     });
   });
 

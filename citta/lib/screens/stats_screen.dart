@@ -34,8 +34,10 @@ class StatsScreen extends StatelessWidget {
             ),
             onPressed: () {
               final appState = context.read<AppState>();
-              appState.updateConfig(
-                appState.config.copyWith(calendarViewEnabled: !showCalendar),
+              appState.mutateConfig(
+                (current) => current.copyWith(
+                  calendarViewEnabled: !current.calendarViewEnabled,
+                ),
               );
             },
             tooltip: l10n.statsToggleCalendar,

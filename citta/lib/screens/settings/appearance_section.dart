@@ -97,8 +97,8 @@ class AppearanceSection extends StatelessWidget {
           ])
             SimpleDialogOption(
               onPressed: () {
-                appState.updateConfig(
-                    appState.config.copyWith(themeMode: entry.$1));
+                appState.mutateConfig(
+                    (current) => current.copyWith(themeMode: entry.$1));
                 Navigator.pop(context);
               },
               child: ListTile(

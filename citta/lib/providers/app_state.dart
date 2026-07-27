@@ -24,6 +24,13 @@ class AppState extends ChangeNotifier {
   );
   bool _isLoading = true;
 
+  // Counts, not just flags, active imports: importData() calls can overlap
+  // (StorageService's shared lock queues rather than rejects concurrent
+  // imports), so a single boolean cleared by whichever import finishes
+  // first would wrongly report "no import in flight" while another is
+  // still queued or running.
+  int _activeImportCount = 0;
+
   AppState({
     required this.storageService,
     required this.quoteService,
@@ -82,7 +89,9 @@ class AppState extends ChangeNotifier {
         completedFully: false,
       );
       _sessions = List.unmodifiable([..._sessions, session]);
-      await storageService.saveSessions(_sessions);
+      await storageService.runExclusive(
+        () => storageService.saveSessions(_sessions),
+      );
     }
 
     await storageService.clearInProgressSession();
@@ -110,20 +119,70 @@ class AppState extends ChangeNotifier {
 
   // --- Config ---
 
+  /// Replaces the config outright with [config], as computed by the caller.
+  /// Use this when the caller has already produced the full desired value
+  /// (e.g. a settings screen that read the current config synchronously and
+  /// applied one change to it). For "change one field of whatever the
+  /// config currently is," prefer [mutateConfig] instead — it recomputes
+  /// against storage's current value rather than this method's possibly
+  /// stale [config] argument, so it can't be clobbered by (or clobber) a
+  /// concurrent import.
   Future<void> updateConfig(ConfigModel config) async {
     _config = config;
-    await storageService.saveConfig(config);
+    await storageService.runExclusive(() => storageService.saveConfig(config));
+    notifyListeners();
+  }
+
+  /// Applies [transform] to the current config and persists the result.
+  ///
+  /// While no import is active ([_activeImportCount] is 0), [transform] is
+  /// first tried speculatively against the cached [_config] so a genuine
+  /// no-op (e.g. adding a tag that's already present) skips storage
+  /// entirely and preserves [_config]'s identity — Selector-based widgets
+  /// rely on that to avoid rebuilding. That speculative check is skipped
+  /// entirely whenever at least one import is active — [_config] may be
+  /// stale relative to an import that hasn't finished resyncing yet, so
+  /// e.g. addTag("a") must not be short-circuited as a no-op just because
+  /// the *stale* cache already had "a", when the import in flight is about
+  /// to remove it (or vice versa for removeTag). Only when it would
+  /// actually change something (or an import might be active) does this
+  /// re-read the current value from storage *inside* the same lock as the
+  /// write, so the transform is applied to whatever is actually on disk
+  /// rather than to a stale in-memory snapshot.
+  Future<void> mutateConfig(
+    ConfigModel Function(ConfigModel current) transform,
+  ) async {
+    if (_activeImportCount == 0) {
+      final speculative = transform(_config);
+      if (identical(speculative, _config)) return;
+    }
+
+    _config = await storageService.runExclusive(() async {
+      final current = await storageService.loadConfig();
+      final next = transform(current);
+      await storageService.saveConfig(next);
+      return next;
+    });
     notifyListeners();
   }
 
   Future<void> setLanguage(String code) =>
-      updateConfig(_config.copyWith(language: code));
+      mutateConfig((current) => current.copyWith(language: code));
 
   // --- Sessions ---
 
+  // addSession/deleteSessions read the current list from storage inside the
+  // same lock as their write, rather than mutating the (possibly stale)
+  // in-memory _sessions cache — otherwise a concurrent import replacing the
+  // sessions file could be silently overwritten by a save computed from a
+  // snapshot taken before the import committed.
   Future<void> addSession(SessionModel session) async {
-    _sessions = List.unmodifiable([..._sessions, session]);
-    await storageService.saveSessions(_sessions);
+    _sessions = List.unmodifiable(await storageService.runExclusive(() async {
+      final current = await storageService.loadSessions();
+      final updated = [...current, session];
+      await storageService.saveSessions(updated);
+      return updated;
+    }));
     _refreshDerivedData();
     notifyListeners();
   }
@@ -136,10 +195,13 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> deleteSessions(List<String> sessionIds) async {
-    _sessions = List.unmodifiable(
-      _sessions.where((s) => !sessionIds.contains(s.id)),
-    );
-    await storageService.saveSessions(_sessions);
+    _sessions = List.unmodifiable(await storageService.runExclusive(() async {
+      final current = await storageService.loadSessions();
+      final updated =
+          current.where((s) => !sessionIds.contains(s.id)).toList();
+      await storageService.saveSessions(updated);
+      return updated;
+    }));
     _refreshDerivedData();
     notifyListeners();
   }
@@ -153,34 +215,53 @@ class AppState extends ChangeNotifier {
 
   // --- Tags ---
 
-  Future<void> addTag(String tag) async {
-    if (!_config.tags.contains(tag)) {
-      _config = _config.copyWith(tags: [..._config.tags, tag]);
-      await storageService.saveConfig(_config);
-      notifyListeners();
-    }
-  }
+  Future<void> addTag(String tag) => mutateConfig((current) {
+        if (current.tags.contains(tag)) return current;
+        return current.copyWith(tags: [...current.tags, tag]);
+      });
 
-  Future<void> removeTag(String tag) async {
-    if (!_config.tags.contains(tag)) return;
-    _config = _config.copyWith(
-      tags: _config.tags.where((t) => t != tag).toList(),
-    );
-    await storageService.saveConfig(_config);
-    notifyListeners();
-  }
+  Future<void> removeTag(String tag) => mutateConfig((current) {
+        if (!current.tags.contains(tag)) return current;
+        return current.copyWith(
+          tags: current.tags.where((t) => t != tag).toList(),
+        );
+      });
 
   // --- Import ---
 
   Future<bool> importData(String content, {bool replaceAll = true}) async {
-    final data = await storageService.validateImportData(content);
-    if (data == null) return false;
-    await storageService.importData(data, replaceAll: replaceAll);
-    _config = await storageService.loadConfig();
-    _sessions = List.unmodifiable(await storageService.loadSessions());
-    _refreshDerivedData();
-    await quoteService.reloadUserQuotes();
-    notifyListeners();
-    return true;
+    // Spans the entire call, including the post-write resync below — not
+    // just the storage-level write lock — so that mutateConfig's fast path
+    // (see above) knows to distrust _config for as long as ANY import is
+    // still active, including the gap between one import's storage
+    // transaction finishing and its own resync completing while another
+    // overlapping import is still queued or running.
+    _activeImportCount++;
+    try {
+      bool success;
+      try {
+        success = await storageService.importValidated(content,
+            replaceAll: replaceAll);
+      } catch (_) {
+        success = false;
+      }
+      // Always resync from disk, even on failure: a failed import may have
+      // been partially (or, in rare cases, incompletely-rolled-back)
+      // written, so in-memory state must reflect whatever actually landed
+      // on disk rather than assuming nothing changed. This runs under the
+      // same lock as the import itself so it queues correctly behind (and
+      // therefore observes) any concurrent config/session/quote save that
+      // was made while the import was in flight, instead of racing it.
+      await storageService.runExclusive(() async {
+        _config = await storageService.loadConfig();
+        _sessions = List.unmodifiable(await storageService.loadSessions());
+        await quoteService.reloadUserQuotes();
+      });
+      _refreshDerivedData();
+      notifyListeners();
+      return success;
+    } finally {
+      _activeImportCount--;
+    }
   }
 }

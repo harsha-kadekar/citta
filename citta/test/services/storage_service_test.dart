@@ -21,6 +21,43 @@ class _FakePathProviderPlatform extends PathProviderPlatform {
   Future<String?> getApplicationDocumentsPath() => _resolve();
 }
 
+/// A [StorageService] whose 2nd call to [saveConfig] fails, used to force a
+/// rollback write to fail while the original forward write succeeded.
+class _FlakyConfigStorageService extends StorageService {
+  _FlakyConfigStorageService.withBasePath(super.basePath) : super.withBasePath();
+
+  int _saveConfigCalls = 0;
+
+  @override
+  Future<void> saveConfig(ConfigModel config) async {
+    _saveConfigCalls++;
+    if (_saveConfigCalls == 2) {
+      throw const FileSystemException('simulated rollback failure');
+    }
+    await super.saveConfig(config);
+  }
+}
+
+/// A [StorageService] whose 1st call to [saveSessions] commits the real
+/// write and only then throws — simulating `_atomicWrite` reporting failure
+/// (e.g. a post-rename cleanup error) even though the new content is
+/// already live on disk.
+class _FlakyPostCommitSessionsStorageService extends StorageService {
+  _FlakyPostCommitSessionsStorageService.withBasePath(super.basePath)
+      : super.withBasePath();
+
+  int _saveSessionsCalls = 0;
+
+  @override
+  Future<void> saveSessions(List<SessionModel> sessions) async {
+    _saveSessionsCalls++;
+    await super.saveSessions(sessions);
+    if (_saveSessionsCalls == 1) {
+      throw const FileSystemException('simulated post-commit failure');
+    }
+  }
+}
+
 SessionModel _makeSession({
   String id = 'session-1',
   int duration = 600,
@@ -439,6 +476,7 @@ void main() {
   group('validateImportData', () {
     test('returns parsed data for valid structure', () async {
       final content = jsonEncode({
+        'version': 1,
         'config': ConfigModel().toJson(),
         'sessions': [],
       });
@@ -447,15 +485,27 @@ void main() {
       expect(result!.containsKey('config'), true);
     });
 
+    test('returns parsed data for valid structure including userQuotes',
+        () async {
+      final content = jsonEncode({
+        'version': 1,
+        'config': ConfigModel().toJson(),
+        'sessions': [_makeSession().toJson()],
+        'userQuotes': [_makeQuote().toJson()],
+      });
+      final result = await service.validateImportData(content);
+      expect(result, isNotNull);
+    });
+
     test('returns null when config key is missing', () async {
       final result = await service.validateImportData(
-          jsonEncode({'sessions': []}));
+          jsonEncode({'version': 1, 'sessions': []}));
       expect(result, isNull);
     });
 
     test('returns null when sessions key is missing', () async {
       final result = await service.validateImportData(
-          jsonEncode({'config': ConfigModel().toJson()}));
+          jsonEncode({'version': 1, 'config': ConfigModel().toJson()}));
       expect(result, isNull);
     });
 
@@ -465,6 +515,184 @@ void main() {
 
     test('returns null for empty string', () async {
       expect(await service.validateImportData(''), isNull);
+    });
+
+    test('returns null when top-level JSON is not an object', () async {
+      expect(await service.validateImportData(jsonEncode([1, 2, 3])), isNull);
+    });
+
+    test('returns null when version key is missing', () async {
+      final content = jsonEncode({
+        'config': ConfigModel().toJson(),
+        'sessions': [],
+      });
+      expect(await service.validateImportData(content), isNull);
+    });
+
+    test('returns null when version is the wrong type', () async {
+      final content = jsonEncode({
+        'version': '1',
+        'config': ConfigModel().toJson(),
+        'sessions': [],
+      });
+      expect(await service.validateImportData(content), isNull);
+    });
+
+    test('returns null when version is unsupported', () async {
+      final content = jsonEncode({
+        'version': 999,
+        'config': ConfigModel().toJson(),
+        'sessions': [],
+      });
+      expect(await service.validateImportData(content), isNull);
+    });
+
+    test('accepts a whole-number double version (e.g. from non-Dart exporters)',
+        () async {
+      // jsonDecode produces a double for any JSON numeral written with a
+      // decimal point, so a hand-written or foreign-tool export of
+      // "version": 1.0 must still be treated as version 1.
+      final content = jsonEncode({
+        'version': 1.0,
+        'config': ConfigModel().toJson(),
+        'sessions': [],
+      });
+      expect(await service.validateImportData(content), isNotNull);
+    });
+
+    test('returns null when version is a non-whole-number double', () async {
+      final content = jsonEncode({
+        'version': 1.5,
+        'config': ConfigModel().toJson(),
+        'sessions': [],
+      });
+      expect(await service.validateImportData(content), isNull);
+    });
+
+    test('returns null when config is not a map', () async {
+      final content = jsonEncode({
+        'version': 1,
+        'config': [1, 2, 3],
+        'sessions': [],
+      });
+      expect(await service.validateImportData(content), isNull);
+    });
+
+    test('returns null when config is an empty object', () async {
+      // ConfigModel.fromJson({}) happily defaults every field, so an
+      // explicit schema check is required to reject a truncated config
+      // section instead of silently resetting the user's settings.
+      final content = jsonEncode({
+        'version': 1,
+        'config': {},
+        'sessions': [],
+      });
+      expect(await service.validateImportData(content), isNull);
+    });
+
+    test('returns null when a required config field is missing', () async {
+      final config = ConfigModel().toJson()..remove('timerMode');
+      final content = jsonEncode({
+        'version': 1,
+        'config': config,
+        'sessions': [],
+      });
+      expect(await service.validateImportData(content), isNull);
+    });
+
+    test('returns null when a config field has the wrong type', () async {
+      final config = ConfigModel().toJson();
+      config['countdownDuration'] = 'not-a-number';
+      final content = jsonEncode({
+        'version': 1,
+        'config': config,
+        'sessions': [],
+      });
+      expect(await service.validateImportData(content), isNull);
+    });
+
+    test('returns null when a config list field contains a non-string entry',
+        () async {
+      final config = ConfigModel().toJson();
+      config['tags'] = ['calm', 42];
+      final content = jsonEncode({
+        'version': 1,
+        'config': config,
+        'sessions': [],
+      });
+      expect(await service.validateImportData(content), isNull);
+    });
+
+    test('accepts a full config with null backgroundMusic and userName',
+        () async {
+      final content = jsonEncode({
+        'version': 1,
+        'config': ConfigModel().toJson(),
+        'sessions': [],
+      });
+      expect(await service.validateImportData(content), isNotNull);
+    });
+
+    test('returns null when sessions is not a list', () async {
+      final content = jsonEncode({
+        'version': 1,
+        'config': ConfigModel().toJson(),
+        'sessions': 'not-a-list',
+      });
+      expect(await service.validateImportData(content), isNull);
+    });
+
+    test('returns null when a session entry is not a map', () async {
+      final content = jsonEncode({
+        'version': 1,
+        'config': ConfigModel().toJson(),
+        'sessions': ['not-a-map'],
+      });
+      expect(await service.validateImportData(content), isNull);
+    });
+
+    test('returns null when a session entry is missing a required field',
+        () async {
+      final badSession = _makeSession().toJson()..remove('id');
+      final content = jsonEncode({
+        'version': 1,
+        'config': ConfigModel().toJson(),
+        'sessions': [badSession],
+      });
+      expect(await service.validateImportData(content), isNull);
+    });
+
+    test('returns null when a session entry has a malformed date', () async {
+      final badSession = _makeSession().toJson();
+      badSession['date'] = 'not-a-date';
+      final content = jsonEncode({
+        'version': 1,
+        'config': ConfigModel().toJson(),
+        'sessions': [badSession],
+      });
+      expect(await service.validateImportData(content), isNull);
+    });
+
+    test('returns null when userQuotes is not a list', () async {
+      final content = jsonEncode({
+        'version': 1,
+        'config': ConfigModel().toJson(),
+        'sessions': [],
+        'userQuotes': 'not-a-list',
+      });
+      expect(await service.validateImportData(content), isNull);
+    });
+
+    test('returns null when a userQuotes entry is missing a required field',
+        () async {
+      final badQuote = _makeQuote().toJson()..remove('originalText');
+      final content = jsonEncode({
+        'version': 1,
+        'config': ConfigModel().toJson(),
+        'sessions': [],
+        'userQuotes': [badQuote],
+      });
+      expect(await service.validateImportData(content), isNull);
     });
   });
 
@@ -620,6 +848,252 @@ void main() {
       final quotes = await service.loadUserQuotes();
       expect(quotes.length, 2);
       expect(quotes.map((q) => q.id).toSet(), {'q1', 'q2'});
+    });
+  });
+
+  group('importData — rollback on partial write failure', () {
+    test('rolls back config when the sessions write fails', () async {
+      final originalConfig = ConfigModel(timerMode: 'stopwatch');
+      await service.saveConfig(originalConfig);
+      await service.saveSessions([_makeSession(id: 'original')]);
+
+      // Force the sessions write to fail: a directory at the target path
+      // makes the final rename-into-place step throw a FileSystemException,
+      // simulating an I/O failure partway through the import.
+      final sessionsPath = '${tempDir.path}/sessions.json';
+      await File(sessionsPath).delete();
+      await Directory(sessionsPath).create();
+
+      final data = {
+        'config': ConfigModel(timerMode: 'countdown').toJson(),
+        'sessions': [_makeSession(id: 'imported').toJson()],
+      };
+
+      await expectLater(
+        service.importData(data, replaceAll: true),
+        throwsA(anything),
+      );
+
+      final config = await service.loadConfig();
+      expect(config.timerMode, 'stopwatch',
+          reason: 'config must be rolled back when a later write fails');
+    });
+
+    test('rolls back config and sessions when the quotes write fails',
+        () async {
+      final originalConfig = ConfigModel(timerMode: 'stopwatch');
+      await service.saveConfig(originalConfig);
+      await service.saveSessions([_makeSession(id: 'original')]);
+      await service.saveUserQuotes([_makeQuote(id: 'original-q')]);
+
+      final quotesPath = '${tempDir.path}/user_quotes.json';
+      await File(quotesPath).delete();
+      await Directory(quotesPath).create();
+
+      final data = {
+        'config': ConfigModel(timerMode: 'countdown').toJson(),
+        'sessions': [_makeSession(id: 'imported').toJson()],
+        'userQuotes': [_makeQuote(id: 'imported-q').toJson()],
+      };
+
+      await expectLater(
+        service.importData(data, replaceAll: true),
+        throwsA(anything),
+      );
+
+      final config = await service.loadConfig();
+      final sessions = await service.loadSessions();
+      expect(config.timerMode, 'stopwatch',
+          reason: 'config must be rolled back when a later write fails');
+      expect(sessions.map((s) => s.id).toList(), ['original'],
+          reason: 'sessions must be rolled back when a later write fails');
+    });
+
+    test(
+        'throws ImportRollbackIncompleteException when the rollback write itself fails',
+        () async {
+      await service.saveConfig(ConfigModel(timerMode: 'stopwatch'));
+      await service.saveSessions([_makeSession(id: 'original')]);
+
+      // Force the forward sessions write to fail...
+      final sessionsPath = '${tempDir.path}/sessions.json';
+      await File(sessionsPath).delete();
+      await Directory(sessionsPath).create();
+
+      // ...and force the rollback's saveConfig call (the 2nd saveConfig call
+      // on this instance) to also fail, so recovery is itself incomplete.
+      final flaky = _FlakyConfigStorageService.withBasePath(tempDir.path);
+      final data = {
+        'config': ConfigModel(timerMode: 'countdown').toJson(),
+        'sessions': [_makeSession(id: 'imported').toJson()],
+      };
+
+      await expectLater(
+        flaky.importData(data, replaceAll: true),
+        throwsA(isA<ImportRollbackIncompleteException>()),
+      );
+    });
+
+    test(
+        'rolls back a step whose write already committed before it threw',
+        () async {
+      await service.saveConfig(ConfigModel(timerMode: 'stopwatch'));
+      await service.saveSessions([_makeSession(id: 'original')]);
+
+      final flaky =
+          _FlakyPostCommitSessionsStorageService.withBasePath(tempDir.path);
+      final data = {
+        'config': ConfigModel(timerMode: 'countdown').toJson(),
+        'sessions': [_makeSession(id: 'imported').toJson()],
+      };
+
+      await expectLater(
+        flaky.importData(data, replaceAll: true),
+        throwsA(isA<FileSystemException>()),
+      );
+
+      final config = await flaky.loadConfig();
+      final sessions = await flaky.loadSessions();
+      expect(config.timerMode, 'stopwatch',
+          reason: 'config must be rolled back');
+      expect(sessions.map((s) => s.id).toList(), ['original'],
+          reason: 'the sessions write already committed the imported '
+              'session to disk before throwing, so it must be rolled back '
+              'too, not skipped because it "failed"');
+    });
+  });
+
+  group('runExclusive', () {
+    test('serializes concurrent calls in FIFO order', () async {
+      final order = <int>[];
+      final futures = [
+        service.runExclusive(() async {
+          // Queued first but slowest — must still finish before the ones
+          // queued behind it are allowed to start, proving this is a real
+          // queue and not just "whichever finishes first wins."
+          await Future.delayed(const Duration(milliseconds: 20));
+          order.add(1);
+        }),
+        service.runExclusive(() async {
+          order.add(2);
+        }),
+        service.runExclusive(() async {
+          order.add(3);
+        }),
+      ];
+
+      await Future.wait(futures);
+
+      expect(order, [1, 2, 3]);
+    });
+
+    test('a later call still runs after an earlier one that threw', () async {
+      final order = <int>[];
+      final first = service.runExclusive(() async {
+        order.add(1);
+        throw StateError('boom');
+      });
+      final second = service.runExclusive(() async {
+        order.add(2);
+      });
+
+      await expectLater(first, throwsStateError);
+      await second;
+
+      expect(order, [1, 2],
+          reason: 'a failure in one queued action must not block the next');
+    });
+  });
+
+  group('importData — concurrency', () {
+    test('queues a second import instead of rejecting it', () async {
+      final data = {
+        'config': ConfigModel().toJson(),
+        'sessions': [_makeSession().toJson()],
+      };
+
+      final first = service.importData(data, replaceAll: true);
+      final second = service.importData(data, replaceAll: true);
+
+      await expectLater(Future.wait([first, second]), completes);
+    });
+
+    test(
+        'a normal write queued via runExclusive during an import runs only after it, and its value wins',
+        () async {
+      await service.saveConfig(ConfigModel(timerMode: 'stopwatch'));
+
+      final data = {
+        'config': ConfigModel(timerMode: 'countdown').toJson(),
+        'sessions': [_makeSession(id: 'imported').toJson()],
+      };
+
+      final importFuture = service.importData(data, replaceAll: true);
+      // Submitted synchronously right after the import claims the lock, so
+      // by runExclusive's FIFO guarantee this can only run once the import
+      // (snapshot, write, and any rollback) has fully finished.
+      final concurrentWrite = service.runExclusive(
+        () => service.saveConfig(ConfigModel(timerMode: 'interval')),
+      );
+
+      await importFuture;
+      await concurrentWrite;
+
+      final config = await service.loadConfig();
+      expect(config.timerMode, 'interval',
+          reason: 'a write queued behind an import must win, not be '
+              'dropped or overwritten by the import');
+    });
+  });
+
+  group('importValidated', () {
+    test('returns false for malformed content without touching storage',
+        () async {
+      await service.saveConfig(ConfigModel(timerMode: 'stopwatch'));
+
+      final ok = await service.importValidated('not json');
+
+      expect(ok, isFalse);
+      expect((await service.loadConfig()).timerMode, 'stopwatch');
+    });
+
+    test('parses the payload once and applies it for a valid replaceAll payload',
+        () async {
+      final content = jsonEncode({
+        'version': 1,
+        'config': ConfigModel(timerMode: 'countdown').toJson(),
+        'sessions': [_makeSession(id: 'imported').toJson()],
+        'userQuotes': [_makeQuote(id: 'imported-q').toJson()],
+      });
+
+      final ok = await service.importValidated(content, replaceAll: true);
+
+      expect(ok, isTrue);
+      expect((await service.loadConfig()).timerMode, 'countdown');
+      expect((await service.loadSessions()).map((s) => s.id).toList(),
+          ['imported']);
+      expect((await service.loadUserQuotes()).map((q) => q.id).toList(),
+          ['imported-q']);
+    });
+
+    test('returns false without throwing when the underlying write fails',
+        () async {
+      await service.saveConfig(ConfigModel(timerMode: 'stopwatch'));
+
+      final sessionsPath = '${tempDir.path}/sessions.json';
+      await Directory(sessionsPath).create();
+
+      final content = jsonEncode({
+        'version': 1,
+        'config': ConfigModel(timerMode: 'countdown').toJson(),
+        'sessions': [_makeSession(id: 'imported').toJson()],
+      });
+
+      final ok = await service.importValidated(content, replaceAll: true);
+
+      expect(ok, isFalse);
+      expect((await service.loadConfig()).timerMode, 'stopwatch',
+          reason: 'a failed importValidated must roll back like importData');
     });
   });
 

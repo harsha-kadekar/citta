@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:citta/models/quote_model.dart';
 import 'package:citta/models/config_model.dart';
@@ -311,6 +313,57 @@ void main() {
 
       expect(service.userQuotes.length, 1);
       expect(service.userQuotes.first.id, 'q-from-storage');
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // addUserQuote() vs. a concurrent import
+  // -------------------------------------------------------------------------
+  //
+  // These use a real, disk-backed StorageService (not FakeStorageService)
+  // since they need addUserQuote and StorageService.importValidated to share
+  // the same write lock.
+
+  group('addUserQuote() vs. a concurrent import', () {
+    late Directory tmpDir;
+    late StorageService realStorage;
+    late QuoteService realService;
+
+    setUp(() async {
+      tmpDir = Directory.systemTemp.createTempSync('citta_quote_service_test_');
+      realStorage = StorageService.withBasePath(tmpDir.path);
+      realService = QuoteService(realStorage);
+      await realService.initialize();
+    });
+
+    tearDown(() => tmpDir.deleteSync(recursive: true));
+
+    test(
+        'a quote added while a replace-all import is in flight is applied on top of the imported quotes, not dropped',
+        () async {
+      final importContent = jsonEncode({
+        'version': 1,
+        'config': ConfigModel().toJson(),
+        'sessions': [],
+        'userQuotes': [
+          _makeQuote('imported1').toJson(),
+          _makeQuote('imported2').toJson(),
+        ],
+      });
+
+      // Submitted synchronously back-to-back so addUserQuote's write is
+      // queued behind the import via StorageService's shared lock.
+      final importFuture =
+          realStorage.importValidated(importContent, replaceAll: true);
+      final addFuture = realService.addUserQuote(_makeQuote('concurrent'));
+
+      await Future.wait([importFuture, addFuture]);
+
+      final ids = realService.userQuotes.map((q) => q.id).toSet();
+      expect(ids, {'imported1', 'imported2', 'concurrent'},
+          reason: 'addUserQuote must read the post-import quotes before '
+              'appending, not overwrite them with a save computed from a '
+              'pre-import snapshot');
     });
   });
 }

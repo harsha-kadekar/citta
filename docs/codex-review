@@ -265,3 +265,131 @@ The implementation checkpoints every 30 elapsed seconds and immediately on pause
 ## Summary
 
 No changes are requested from Claude for issue `#39`. The patch satisfies the checkpointing and recovery requirements without introducing a regression visible in the full test suite.
+
+---
+
+## Scope
+
+Review of the current local changes for GitHub issue `#40`: `Make import/export transactional and schema-validated`.
+
+Issue requirements reviewed against:
+
+- Reject malformed and unsupported-version import payloads before they mutate storage.
+- Prevent a failed import from leaving a mixed persisted state.
+- Cover malformed, partial, and mid-import write-failure scenarios.
+
+## Findings
+
+1. High: the rollback loop does not restore the step that throws, even though an atomic write can have already changed that file before it reports an error. In [storage_service.dart](/home/harsha/workspace/Citta/citta/lib/services/storage_service.dart:430), a step is added to `completed` only after `await step.write()` returns. But [_atomicWrite](/home/harsha/workspace/Citta/citta/lib/services/storage_service.dart:41) moves the old target to `.bak` and replaces it with the new `.tmp` before its final backup cleanup at [line 52](/home/harsha/workspace/Citta/citta/lib/services/storage_service.dart:52). If that cleanup (or any later filesystem operation in the write) throws, the current step is omitted from rollback while its new data may already be live. `recoverIfNeeded()` then treats the live target as authoritative and deletes the backup ([lines 70-74](/home/harsha/workspace/Citta/citta/lib/services/storage_service.dart:70)), leaving that entity imported while earlier completed entities are rolled back. Roll back every *attempted* step (including the throwing one), or make each per-file write return an unambiguous committed/not-committed result and recover it before returning failure. Add a test that injects a failure after the target has been replaced (for example, after the final rename / during `.bak` cleanup) and assert config, sessions, and quotes all remain at their pre-import values. The current directory-based tests fail before the target replacement, so they do not exercise this path.
+
+2. Medium: the new version check still accepts a structurally incomplete v1 config, so malformed imports can overwrite valid settings with defaults. [_parseImportJson](/home/harsha/workspace/Citta/citta/lib/services/storage_service.dart:332) only requires `config` to be a map and relies on `ConfigModel.fromJson`, whose missing fields intentionally fall back to defaults ([config_model.dart](/home/harsha/workspace/Citta/citta/lib/models/config_model.dart:116)). Consequently `{"version":1,"config":{},"sessions":[]}` is accepted — and is explicitly asserted as valid in [storage_service_test.dart](/home/harsha/workspace/Citta/citta/test/services/storage_service_test.dart:530) — despite not matching this app's exported v1 config shape. Define the required v1 config fields and their types (while separately documenting any deliberate backward-compatibility exceptions), validate them before calling `fromJson`, and add negative tests for `{}` and malformed config member types. Otherwise the stated schema validation does not protect users from a truncated config section.
+
+## Verification
+
+- Reviewed issue `#40` through `gh api repos/harsha-kadekar/citta/issues/40`.
+- Inspected the local diff in:
+  - `citta/lib/services/storage_service.dart`
+  - `citta/lib/providers/app_state.dart`
+  - `citta/test/services/storage_service_test.dart`
+  - `citta/test/providers/app_state_caching_test.dart`
+- Ran `flutter test test/services/storage_service_test.dart test/providers/app_state_caching_test.dart`.
+  - Result: passes (96 tests).
+- Ran `flutter analyze lib/services/storage_service.dart lib/providers/app_state.dart test/services/storage_service_test.dart test/providers/app_state_caching_test.dart`.
+  - Result: passes.
+
+## Summary
+
+The patch improves validation and adds rollback coverage, but the two findings above still violate issue `#40`'s core guarantees: an I/O failure after a file has been swapped can leave partial imported state, and an incomplete v1 config is accepted as valid.
+
+---
+
+## Follow-up review: issue #40
+
+The prior rollback and schema findings are fixed in the current revision:
+
+- The in-flight step is included in rollback, and the added post-commit failure test verifies that its file is restored.
+- V1 config fields are now required and type-checked before `ConfigModel.fromJson` is called.
+
+### Remaining finding
+
+1. High: the transaction has no isolation from normal writes, so an import can still lose user data or restore stale data over a concurrent app mutation. The `_importInProgress` guard at [storage_service.dart](/home/harsha/workspace/Citta/citta/lib/services/storage_service.dart:433) rejects only another import; it does not guard `saveConfig`, `saveSessions`, or `saveUserQuotes`. Those methods remain callable through `AppState.updateConfig` ([app_state.dart](/home/harsha/workspace/Citta/citta/lib/providers/app_state.dart:113)), `addSession` ([app_state.dart](/home/harsha/workspace/Citta/citta/lib/providers/app_state.dart:124)), and `QuoteService` ([quote_service.dart](/home/harsha/workspace/Citta/citta/lib/services/quote_service.dart:72)) while `_writeImport` is awaiting its snapshot or a write. For example, the import can snapshot config A, a user action can save config B, and then a later import failure rolls back config A over B; on a successful import, a newly completed session can likewise be overwritten by the snapshot-derived session list. Serialize *all* mutations of these three import-owned files with the same transaction/mutation lock (or reject/queue normal mutations while an import is active), and ensure AppState’s in-memory updates follow that ordering too. Add deterministic tests that interleave a config/session/quote mutation with both a failing and successful import, asserting the mutation is neither overwritten by rollback nor silently lost.
+
+### Verification
+
+- Re-inspected the updated transaction, schema validation, and all normal write call sites.
+- Ran `flutter test test/services/storage_service_test.dart test/providers/app_state_caching_test.dart`.
+  - Result: passes (102 tests).
+- Ran `flutter analyze lib/services/storage_service.dart lib/providers/app_state.dart test/services/storage_service_test.dart test/providers/app_state_caching_test.dart`.
+  - Result: passes.
+
+---
+
+## Follow-up review: issue #40 (lock revision)
+
+The shared storage queue fixes the prior disk-write interleaving issue: imports and queued writes no longer execute their filesystem operations at the same time.
+
+### Remaining finding
+
+1. High: queued normal mutations still capture and mutate stale in-memory state *before* they acquire the new lock, so they can overwrite the imported collection after the import completes. For example, [AppState.addSession](/home/harsha/workspace/Citta/citta/lib/providers/app_state.dart:125) immediately assigns `_sessions = [..._sessions, session]` and only then queues `saveSessions`; if an import replacing sessions is in flight, `_sessions` is the pre-import list. Once the import commits its imported sessions, the queued save writes that stale list plus the new session, silently dropping every imported session. [QuoteService.addUserQuote](/home/harsha/workspace/Citta/citta/lib/services/quote_service.dart:72) has the same pattern for `_userQuotes`, and [AppState.updateConfig](/home/harsha/workspace/Citta/citta/lib/providers/app_state.dart:114) queues a full pre-import `ConfigModel`, which can overwrite unrelated imported settings. The existing concurrency test only queues a raw `saveConfig` with a deliberately final value, so it misses this state-snapshot race. Make the complete read/modify/write state transition wait for the import boundary — e.g. reject mutations while importing, or serialize them at the AppState/QuoteService layer and recompute from the post-import state once admitted. Add deterministic AppState and QuoteService tests that start a replace-all import, issue an add-session/add-quote or one-field config edit before it completes, then assert the queued mutation is applied to (rather than replaces) the imported data.
+
+### Verification
+
+- Reviewed the shared lock, AppState mutation ordering, and QuoteService mutation ordering.
+- Ran `flutter test test/services/storage_service_test.dart test/providers/app_state_caching_test.dart`.
+  - Result: passes (105 tests).
+- Ran `flutter analyze lib/services/storage_service.dart lib/providers/app_state.dart lib/services/quote_service.dart test/services/storage_service_test.dart test/providers/app_state_caching_test.dart`.
+  - Result: passes.
+
+---
+
+## Follow-up review: issue #40 (state-mutation revision)
+
+The new locked read/modify/write paths and migrated UI config setters resolve the previous stale-snapshot finding for normal mutations.
+
+### Remaining finding
+
+1. Medium: `mutateConfig` can incorrectly discard a tag operation before it reaches the lock. At [app_state.dart](/home/harsha/workspace/Citta/citta/lib/providers/app_state.dart:142), it runs the transform against cached `_config` and returns early when `identical(speculative, _config)`. `addTag` and `removeTag` deliberately return `current` for no-ops ([lines 203-213](/home/harsha/workspace/Citta/citta/lib/providers/app_state.dart:203)). Therefore, if the old cache already has tag `a`, a replace-all import is in flight that will remove `a`, and the user presses “add a,” `addTag` returns before waiting; the import finishes without `a` and the user’s action is lost. The inverse happens for remove: an old cache without `a` causes an early return even if the import will add it. Evaluate the no-op only after reading the current config inside the exclusive section (or add an import-generation check before allowing the fast path), and add deterministic add/remove-tag tests that interleave these two cases with a replace-all import.
+
+### Verification
+
+- Reviewed all remaining `updateConfig`/`mutateConfig` and config/session/quote write call sites.
+- Ran `flutter test test/services/storage_service_test.dart test/providers/app_state_caching_test.dart test/services/quote_service_test.dart test/screens/settings/settings_sections_test.dart`.
+  - Result: passes (148 tests).
+- Ran `flutter analyze lib/providers/app_state.dart lib/services/quote_service.dart lib/services/storage_service.dart lib/main.dart lib/screens/settings lib/screens/stats_screen.dart test/providers/app_state_caching_test.dart test/services/quote_service_test.dart test/services/storage_service_test.dart test/screens/settings/settings_sections_test.dart`.
+  - Result: passes.
+
+---
+
+## Follow-up review: issue #40 (tag fast-path revision)
+
+The import-aware fast-path suppression fixes the prior single-import tag race.
+
+### Remaining finding
+
+1. Medium: `_importInFlight` is a boolean but `StorageService` deliberately queues concurrent imports. If import A and import B are both started, A can finish first and execute [app_state.dart](/home/harsha/workspace/Citta/citta/lib/providers/app_state.dart:267)'s `finally`, setting `_importInFlight = false` while B is still queued or running. A subsequent `addTag`/`removeTag` can then take the stale-cache no-op fast path at [app_state.dart](/home/harsha/workspace/Citta/citta/lib/providers/app_state.dart:145), recreating the issue this flag was added to prevent for import B. Track the number of active/queued AppState imports (increment before awaiting and decrement in `finally`), or expose an accurate pending-import state from the storage queue; only allow the speculative no-op path when that count is zero. Add a deterministic test with two queued replace-all imports and an add/remove tag issued after the first completes but before the second completes.
+
+### Verification
+
+- Reviewed the import lifecycle and the storage queue’s intentional concurrent-import behavior.
+- Ran `flutter test test/providers/app_state_caching_test.dart test/services/storage_service_test.dart`.
+  - Result: passes (109 tests).
+- Ran `flutter analyze lib/providers/app_state.dart lib/services/storage_service.dart test/providers/app_state_caching_test.dart test/services/storage_service_test.dart`.
+  - Result: passes.
+
+---
+
+## Follow-up review: issue #40 (multi-import revision)
+
+The active-import counter now keeps the config fast path disabled until every queued AppState import finishes. The new two-import test covers the previous lifecycle gap.
+
+## Findings
+
+No code-review findings in the current revision.
+
+## Verification
+
+- Re-reviewed import transaction/rollback behavior, schema validation, storage serialization, and AppState/QuoteService mutation ordering.
+- Ran `flutter test test/providers/app_state_caching_test.dart test/services/storage_service_test.dart test/services/quote_service_test.dart test/screens/settings/settings_sections_test.dart`.
+  - Result: passes (151 tests).
+- Ran `flutter analyze lib/providers/app_state.dart lib/services/storage_service.dart lib/services/quote_service.dart lib/main.dart lib/screens/settings lib/screens/stats_screen.dart test/providers/app_state_caching_test.dart test/services/storage_service_test.dart test/services/quote_service_test.dart test/screens/settings/settings_sections_test.dart`.
+  - Result: passes.
