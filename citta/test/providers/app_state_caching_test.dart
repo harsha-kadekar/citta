@@ -5,6 +5,7 @@ import 'package:audio_session/audio_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:citta/models/config_model.dart';
 import 'package:citta/models/session_model.dart';
+import 'package:citta/models/timer_mode.dart';
 import 'package:citta/providers/app_state.dart';
 import 'package:citta/services/audio_service.dart';
 import 'package:citta/services/quote_service.dart';
@@ -60,7 +61,7 @@ SessionModel _session(String id, {DateTime? date}) => SessionModel(
       id: id,
       date: date ?? DateTime.utc(2024, 6, 1),
       duration: 300,
-      timerMode: 'countdown',
+      timerMode: TimerMode.countdown,
     );
 
 String _importJson({List<SessionModel> sessions = const []}) {
@@ -155,7 +156,7 @@ void main() {
 
     test('returns false and leaves state untouched when the underlying write fails',
         () async {
-      await appState.updateConfig(ConfigModel(timerMode: 'stopwatch'));
+      await appState.updateConfig(ConfigModel(timerMode: TimerMode.stopwatch));
 
       // Force the sessions write inside storageService.importData to fail
       // by replacing sessions.json with a directory.
@@ -167,7 +168,7 @@ void main() {
       final ok = await appState.importData(importContent);
 
       expect(ok, isFalse);
-      expect(appState.config.timerMode, 'stopwatch',
+      expect(appState.config.timerMode, TimerMode.stopwatch,
           reason: 'a failed import must not leave partial state changes');
     });
   });

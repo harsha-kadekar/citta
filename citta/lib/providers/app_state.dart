@@ -1,6 +1,8 @@
 import 'package:flutter/widgets.dart';
 import '../models/config_model.dart';
 import '../models/session_model.dart';
+import '../models/timer_mode.dart';
+import '../models/app_language.dart';
 import '../services/storage_service.dart';
 import '../services/quote_service.dart';
 import '../services/audio_service.dart';
@@ -50,8 +52,9 @@ class AppState extends ChangeNotifier {
     _stats = statsService.calculateStats(_sessions);
   }
 
-  Locale? get locale =>
-      _config.language == 'system' ? null : Locale(_config.language);
+  Locale? get locale => _config.language == AppLanguage.system
+      ? null
+      : Locale(_config.language.code);
 
   Future<void> initialize() async {
     _isLoading = true;
@@ -85,7 +88,7 @@ class AppState extends ChangeNotifier {
         id: id,
         date: DateTime.parse(data['startDate'] as String),
         duration: elapsed,
-        timerMode: data['timerMode'] as String? ?? 'countdown',
+        timerMode: TimerModeStorage.fromStorageString(data['timerMode'] as String?),
         completedFully: false,
       );
       _sessions = List.unmodifiable([..._sessions, session]);
@@ -103,14 +106,14 @@ class AppState extends ChangeNotifier {
     required String id,
     required DateTime startDate,
     required int elapsedSeconds,
-    required String timerMode,
+    required TimerMode timerMode,
     required int targetDuration,
   }) =>
       storageService.saveInProgressSession(
         id: id,
         startDate: startDate,
         elapsedSeconds: elapsedSeconds,
-        timerMode: timerMode,
+        timerMode: timerMode.toStorageString(),
         targetDuration: targetDuration,
       );
 
@@ -166,8 +169,8 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setLanguage(String code) =>
-      mutateConfig((current) => current.copyWith(language: code));
+  Future<void> setLanguage(AppLanguage language) =>
+      mutateConfig((current) => current.copyWith(language: language));
 
   // --- Sessions ---
 

@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import 'package:citta/l10n/app_localizations.dart';
 import 'package:citta/models/config_model.dart';
 import 'package:citta/models/session_model.dart';
+import 'package:citta/models/timer_mode.dart';
 import 'package:citta/providers/app_state.dart';
 import 'package:citta/screens/history_screen.dart';
 import 'package:citta/services/audio_service.dart';
@@ -74,7 +75,7 @@ SessionModel _session(
       id: id,
       date: date ?? DateTime.utc(2024, 6, 1),
       duration: 300,
-      timerMode: 'countdown',
+      timerMode: TimerMode.countdown,
       tags: tags,
     );
 

@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import '../models/timer_mode.dart';
 
-enum TimerMode { countdown, stopwatch }
+export '../models/timer_mode.dart' show TimerMode;
 
 enum TimerState { idle, running, paused, completed }
 

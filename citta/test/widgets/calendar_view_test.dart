@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:citta/l10n/app_localizations.dart';
 import 'package:citta/models/session_model.dart';
+import 'package:citta/models/timer_mode.dart';
 import 'package:citta/services/stats_service.dart';
 import 'package:citta/widgets/calendar_view.dart';
 
@@ -74,7 +75,7 @@ SessionModel _session(DateTime date) => SessionModel(
       id: 'test-${date.toIso8601String()}',
       date: date,
       duration: 300,
-      timerMode: 'countdown',
+      timerMode: TimerMode.countdown,
     );
 
 // ---------------------------------------------------------------------------

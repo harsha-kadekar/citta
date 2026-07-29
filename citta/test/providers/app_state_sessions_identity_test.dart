@@ -4,6 +4,7 @@ import 'package:audio_session/audio_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:citta/models/config_model.dart';
 import 'package:citta/models/session_model.dart';
+import 'package:citta/models/timer_mode.dart';
 import 'package:citta/providers/app_state.dart';
 import 'package:citta/services/audio_service.dart';
 import 'package:citta/services/quote_service.dart';
@@ -59,7 +60,7 @@ SessionModel _session(String id) => SessionModel(
       id: id,
       date: DateTime.utc(2024, 6, 1),
       duration: 300,
-      timerMode: 'countdown',
+      timerMode: TimerMode.countdown,
     );
 
 // ---------------------------------------------------------------------------

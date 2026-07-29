@@ -1,5 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:citta/models/config_model.dart';
+import 'package:citta/models/timer_mode.dart';
+import 'package:citta/models/app_theme_mode.dart';
+import 'package:citta/models/app_language.dart';
+import 'package:citta/models/audio_source.dart';
 
 void main() {
   group('ConfigModel.copyWith list-reference stability', () {
@@ -16,7 +20,7 @@ void main() {
 
     test('copyWith preserves quoteSources reference when quoteSources not changed', () {
       final config = ConfigModel();
-      final updated = config.copyWith(themeMode: 'light');
+      final updated = config.copyWith(themeMode: AppThemeMode.light);
       expect(
         identical(config.quoteSources, updated.quoteSources),
         isTrue,
@@ -39,7 +43,8 @@ void main() {
 
   group('ConfigModel.copyWith nullable field clearing', () {
     test('copyWith(backgroundMusic: null) clears an existing value', () {
-      final config = ConfigModel(backgroundMusic: '/music/track.mp3');
+      final config =
+          ConfigModel(backgroundMusic: const AudioSource.custom('/music/track.mp3'));
       final updated = config.copyWith(backgroundMusic: null);
       expect(updated.backgroundMusic, isNull,
           reason: 'passing null to a nullable copyWith field must clear it, '
@@ -47,9 +52,10 @@ void main() {
     });
 
     test('copyWith() without backgroundMusic preserves existing value', () {
-      final config = ConfigModel(backgroundMusic: '/music/track.mp3');
+      final config =
+          ConfigModel(backgroundMusic: const AudioSource.custom('/music/track.mp3'));
       final updated = config.copyWith(calendarViewEnabled: true);
-      expect(updated.backgroundMusic, equals('/music/track.mp3'));
+      expect(updated.backgroundMusic, equals(const AudioSource.custom('/music/track.mp3')));
     });
 
     test('copyWith(userName: null) clears an existing value', () {
@@ -147,7 +153,7 @@ void main() {
 
     test('ConfigModel() then copyWith without tags preserves the const reference', () {
       final config = ConfigModel();
-      final updated = config.copyWith(themeMode: 'light');
+      final updated = config.copyWith(themeMode: AppThemeMode.light);
       expect(
         identical(updated.tags, ConfigModel.defaultTags),
         isTrue,
@@ -168,38 +174,39 @@ void main() {
   });
 
   group('ConfigModel.sanitizeForDevice', () {
-    test('replaces custom: bellStart with default', () {
-      final config = ConfigModel(bellStart: 'custom:/storage/bell.mp3');
+    test('replaces a custom bellStart with the default', () {
+      final config = ConfigModel(bellStart: const AudioSource.custom('/storage/bell.mp3'));
       final sanitized = config.sanitizeForDevice();
       expect(sanitized.bellStart, ConfigModel.defaultBellStart);
     });
 
-    test('replaces custom: bellEnd with default', () {
-      final config = ConfigModel(bellEnd: 'custom:/storage/bell.mp3');
+    test('replaces a custom bellEnd with the default', () {
+      final config = ConfigModel(bellEnd: const AudioSource.custom('/storage/bell.mp3'));
       final sanitized = config.sanitizeForDevice();
       expect(sanitized.bellEnd, ConfigModel.defaultBellEnd);
     });
 
-    test('replaces custom: bellInterval with default', () {
-      final config = ConfigModel(bellInterval: 'custom:/storage/bell.mp3');
+    test('replaces a custom bellInterval with the default', () {
+      final config = ConfigModel(bellInterval: const AudioSource.custom('/storage/bell.mp3'));
       final sanitized = config.sanitizeForDevice();
       expect(sanitized.bellInterval, ConfigModel.defaultBellInterval);
     });
 
-    test('preserves bundled: bell paths unchanged', () {
+    test('preserves bundled bell sources unchanged', () {
       final config = ConfigModel(
-        bellStart: 'bundled:bright_tibetan_bell',
-        bellEnd: 'bundled:bell_meditation',
-        bellInterval: 'bundled:singing_bell',
+        bellStart: const AudioSource.bundled('bright_tibetan_bell'),
+        bellEnd: const AudioSource.bundled('bell_meditation'),
+        bellInterval: const AudioSource.bundled('singing_bell'),
       );
       final sanitized = config.sanitizeForDevice();
-      expect(sanitized.bellStart, 'bundled:bright_tibetan_bell');
-      expect(sanitized.bellEnd, 'bundled:bell_meditation');
-      expect(sanitized.bellInterval, 'bundled:singing_bell');
+      expect(sanitized.bellStart, const AudioSource.bundled('bright_tibetan_bell'));
+      expect(sanitized.bellEnd, const AudioSource.bundled('bell_meditation'));
+      expect(sanitized.bellInterval, const AudioSource.bundled('singing_bell'));
     });
 
     test('always clears backgroundMusic regardless of value', () {
-      final config = ConfigModel(backgroundMusic: '/storage/music.mp3');
+      final config =
+          ConfigModel(backgroundMusic: const AudioSource.custom('/storage/music.mp3'));
       final sanitized = config.sanitizeForDevice();
       expect(sanitized.backgroundMusic, isNull,
           reason: 'file paths from a different device are never valid here');
@@ -213,78 +220,136 @@ void main() {
 
     test('preserves all non-audio fields unchanged', () {
       final config = ConfigModel(
-        timerMode: 'stopwatch',
+        timerMode: TimerMode.stopwatch,
         countdownDuration: 600,
         userName: 'Alice',
-        themeMode: 'light',
-        language: 'kn',
+        themeMode: AppThemeMode.light,
+        language: AppLanguage.kannada,
         tags: ['calm', 'deep'],
         calendarViewEnabled: true,
       );
       final sanitized = config.sanitizeForDevice();
-      expect(sanitized.timerMode, 'stopwatch');
+      expect(sanitized.timerMode, TimerMode.stopwatch);
       expect(sanitized.countdownDuration, 600);
       expect(sanitized.userName, 'Alice');
-      expect(sanitized.themeMode, 'light');
-      expect(sanitized.language, 'kn');
+      expect(sanitized.themeMode, AppThemeMode.light);
+      expect(sanitized.language, AppLanguage.kannada);
       expect(sanitized.tags, ['calm', 'deep']);
       expect(sanitized.calendarViewEnabled, isTrue);
     });
   });
 
-  group('ConfigModel language field', () {
-    test('default language is system', () {
-      final config = ConfigModel();
-      expect(config.language, equals('system'));
+  group('ConfigModel default values', () {
+    test('default timerMode is TimerMode.countdown', () {
+      expect(ConfigModel().timerMode, equals(TimerMode.countdown));
     });
 
-    test('language serializes to JSON correctly', () {
-      final config = ConfigModel(language: 'kn');
-      final json = config.toJson();
-      expect(json['language'], equals('kn'));
+    test('default themeMode is AppThemeMode.dark', () {
+      expect(ConfigModel().themeMode, equals(AppThemeMode.dark));
     });
 
-    test('language deserializes from JSON correctly', () {
-      final json = {'language': 'hi'};
-      final config = ConfigModel.fromJson(json);
-      expect(config.language, equals('hi'));
+    test('default language is AppLanguage.system', () {
+      expect(ConfigModel().language, equals(AppLanguage.system));
     });
+  });
 
-    test('missing language key in JSON falls back to system', () {
-      final json = <String, dynamic>{};
-      final config = ConfigModel.fromJson(json);
-      expect(config.language, equals('system'));
-    });
-
-    test('copyWith language works correctly', () {
-      final config = ConfigModel();
-      final updated = config.copyWith(language: 'kn');
-      expect(updated.language, equals('kn'));
-      expect(config.language, equals('system')); // original unchanged
-    });
-
-    test('copyWith without language preserves existing value', () {
-      final config = ConfigModel(language: 'fr');
-      final updated = config.copyWith(themeMode: 'light');
-      expect(updated.language, equals('fr'));
-    });
-
-    test('all 12 language codes round-trip through JSON', () {
-      const codes = ['en', 'hi', 'kn', 'sa', 'te', 'ta', 'ml', 'fr', 'de', 'ja', 'he', 'zh'];
-      for (final code in codes) {
-        final config = ConfigModel(language: code);
-        final json = config.toJson();
-        final restored = ConfigModel.fromJson(json);
-        expect(restored.language, equals(code),
-            reason: 'Code $code did not round-trip correctly');
+  group('ConfigModel enum fields — JSON round trip', () {
+    test('timerMode toJson/fromJson round-trips for every value', () {
+      for (final mode in TimerMode.values) {
+        final config = ConfigModel(timerMode: mode);
+        final restored = ConfigModel.fromJson(config.toJson());
+        expect(restored.timerMode, equals(mode));
       }
     });
 
-    test('system language code round-trips through JSON', () {
-      final config = ConfigModel(language: 'system');
-      final json = config.toJson();
-      final restored = ConfigModel.fromJson(json);
-      expect(restored.language, equals('system'));
+    test('themeMode toJson/fromJson round-trips for every value', () {
+      for (final mode in AppThemeMode.values) {
+        final config = ConfigModel(themeMode: mode);
+        final restored = ConfigModel.fromJson(config.toJson());
+        expect(restored.themeMode, equals(mode));
+      }
+    });
+
+    test('language toJson/fromJson round-trips for every value', () {
+      for (final lang in AppLanguage.values) {
+        final config = ConfigModel(language: lang);
+        final restored = ConfigModel.fromJson(config.toJson());
+        expect(restored.language, equals(lang));
+      }
+    });
+
+    test('bellStart/bellEnd/bellInterval round-trip for bundled and custom sources',
+        () {
+      final config = ConfigModel(
+        bellStart: const AudioSource.bundled('bright_tibetan_bell'),
+        bellEnd: const AudioSource.custom('/storage/bell.mp3'),
+        bellInterval: AudioSource.none,
+      );
+      final restored = ConfigModel.fromJson(config.toJson());
+      expect(restored.bellStart, const AudioSource.bundled('bright_tibetan_bell'));
+      expect(restored.bellEnd, const AudioSource.custom('/storage/bell.mp3'));
+      expect(restored.bellInterval, AudioSource.none);
+    });
+
+    test('backgroundMusic round-trips when set and stays null when unset', () {
+      final withMusic =
+          ConfigModel(backgroundMusic: const AudioSource.custom('/music/track.mp3'));
+      expect(ConfigModel.fromJson(withMusic.toJson()).backgroundMusic,
+          const AudioSource.custom('/music/track.mp3'));
+
+      final withoutMusic = ConfigModel();
+      expect(ConfigModel.fromJson(withoutMusic.toJson()).backgroundMusic, isNull);
+    });
+  });
+
+  group('ConfigModel backward compatibility with pre-enum saved data', () {
+    test('fromJson parses legacy raw timerMode strings', () {
+      final config = ConfigModel.fromJson({'timerMode': 'stopwatch'});
+      expect(config.timerMode, equals(TimerMode.stopwatch));
+    });
+
+    test('fromJson parses legacy raw themeMode strings', () {
+      final config = ConfigModel.fromJson({'themeMode': 'light'});
+      expect(config.themeMode, equals(AppThemeMode.light));
+    });
+
+    test('fromJson parses legacy raw language strings', () {
+      final config = ConfigModel.fromJson({'language': 'hi'});
+      expect(config.language, equals(AppLanguage.hindi));
+    });
+
+    test('fromJson parses legacy bundled: / custom: bell strings', () {
+      final config = ConfigModel.fromJson({
+        'bellStart': 'bundled:singing_bell',
+        'bellEnd': 'custom:/legacy/bell.mp3',
+      });
+      expect(config.bellStart, equals(const AudioSource.bundled('singing_bell')));
+      expect(config.bellEnd, equals(const AudioSource.custom('/legacy/bell.mp3')));
+    });
+
+    test('fromJson parses a legacy unprefixed backgroundMusic path', () {
+      final config =
+          ConfigModel.fromJson({'backgroundMusic': '/legacy/music.mp3'});
+      expect(config.backgroundMusic, equals(const AudioSource.custom('/legacy/music.mp3')));
+    });
+
+    test('fromJson falls back to defaults for unrecognized legacy values', () {
+      final config = ConfigModel.fromJson({
+        'timerMode': 'interval',
+        'themeMode': 'sepia',
+        'language': 'xx',
+      });
+      expect(config.timerMode, equals(TimerMode.countdown));
+      expect(config.themeMode, equals(AppThemeMode.dark));
+      expect(config.language, equals(AppLanguage.system));
+    });
+
+    test('missing keys fall back to documented defaults', () {
+      final config = ConfigModel.fromJson(<String, dynamic>{});
+      expect(config.timerMode, equals(TimerMode.countdown));
+      expect(config.themeMode, equals(AppThemeMode.dark));
+      expect(config.language, equals(AppLanguage.system));
+      expect(config.bellStart, equals(ConfigModel.defaultBellStart));
     });
   });
 }

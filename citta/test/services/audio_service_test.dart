@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:audio_session/audio_session.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:just_audio/just_audio.dart';
+import 'package:just_audio/just_audio.dart' hide AudioSource;
 import 'package:citta/services/audio_service.dart';
+import 'package:citta/models/audio_source.dart';
 
 // ---------------------------------------------------------------------------
 // Fake AudioPlayer
@@ -180,7 +182,7 @@ void main() {
 
   group('playBell()', () {
     test('1. plays a valid bundled sound', () async {
-      await service.playBell('bundled:temple_bells');
+      await service.playBell(const AudioSource.bundled('temple_bells'));
 
       expect(
         bellPlayer.lastAsset,
@@ -190,20 +192,20 @@ void main() {
     });
 
     test('2. does nothing for an unknown bundled name', () async {
-      await service.playBell('bundled:nonexistent');
+      await service.playBell(const AudioSource.bundled('nonexistent'));
 
       expect(bellPlayer.calls, isEmpty);
     });
 
     test('3. plays a custom file path with prefix stripped', () async {
-      await service.playBell('custom:/path/to/bell.mp3');
+      await service.playBell(const AudioSource.custom('/path/to/bell.mp3'));
 
       expect(bellPlayer.lastFilePath, '/path/to/bell.mp3');
       expect(bellPlayer.calls, containsAllInOrder(['setFilePath:/path/to/bell.mp3', 'seek:1ms', 'play']));
     });
 
-    test('4. does nothing for an unrecognised prefix', () async {
-      await service.playBell('raw:something');
+    test('4. does nothing for AudioSource.none', () async {
+      await service.playBell(AudioSource.none);
 
       expect(bellPlayer.calls, isEmpty);
     });
@@ -212,7 +214,7 @@ void main() {
       bellPlayer.shouldThrow = true;
 
       await expectLater(
-        service.playBell('bundled:temple_bells'),
+        service.playBell(const AudioSource.bundled('temple_bells')),
         completes,
       );
     });
@@ -224,7 +226,7 @@ void main() {
 
   group('previewSound()', () {
     test('6. delegates to playBell() — plays the correct asset', () async {
-      await service.previewSound('bundled:singing_bell');
+      await service.previewSound(const AudioSource.bundled('singing_bell'));
 
       expect(bellPlayer.lastAsset, 'assets/sounds/singing-bell.mp3');
       expect(bellPlayer.calls, containsAllInOrder(['setAsset:assets/sounds/singing-bell.mp3', 'seek:1ms', 'play']));
@@ -236,8 +238,8 @@ void main() {
   // -------------------------------------------------------------------------
 
   group('startBackgroundMusic()', () {
-    test('7. strips custom: prefix and sets loop, volume, plays', () async {
-      await service.startBackgroundMusic('custom:/music/track.mp3');
+    test('7. resolves a custom source and sets loop, volume, plays', () async {
+      await service.startBackgroundMusic(const AudioSource.custom('/music/track.mp3'));
 
       expect(musicPlayer.lastFilePath, '/music/track.mp3');
       expect(musicPlayer.lastLoopMode, LoopMode.all);
@@ -250,8 +252,8 @@ void main() {
       ]));
     });
 
-    test('8. uses path as-is for a raw path', () async {
-      await service.startBackgroundMusic('/raw/music.mp3');
+    test('8. plays a custom source constructed from a raw path', () async {
+      await service.startBackgroundMusic(const AudioSource.custom('/raw/music.mp3'));
 
       expect(musicPlayer.lastFilePath, '/raw/music.mp3');
       expect(musicPlayer.calls, containsAllInOrder([
@@ -262,8 +264,30 @@ void main() {
       ]));
     });
 
+    test(
+        'treats AudioSource.none as a valid "no music" state, not a failure',
+        () async {
+      // AudioSource.none is a legitimate value (e.g. background music
+      // unset) — it must be a silent no-op, not an internally-thrown-and-
+      // caught null-check error that happens to produce the same externally
+      // observable result but logs a spurious failure.
+      final logs = <String>[];
+      final originalDebugPrint = debugPrint;
+      debugPrint = (String? message, {int? wrapWidth}) => logs.add(message ?? '');
+      try {
+        await service.startBackgroundMusic(AudioSource.none);
+      } finally {
+        debugPrint = originalDebugPrint;
+      }
+
+      expect(musicPlayer.calls, isEmpty);
+      expect(service.isMusicPlaying, isFalse);
+      expect(logs, isEmpty,
+          reason: 'AudioSource.none must not be logged as a failure');
+    });
+
     test('9. sets isMusicPlaying to true on success', () async {
-      await service.startBackgroundMusic('/music.mp3');
+      await service.startBackgroundMusic(const AudioSource.custom('/music.mp3'));
 
       expect(service.isMusicPlaying, isTrue);
     });
@@ -271,18 +295,18 @@ void main() {
     test('10. sets isMusicPlaying to false when playback throws', () async {
       musicPlayer.shouldThrow = true;
 
-      await service.startBackgroundMusic('/music.mp3');
+      await service.startBackgroundMusic(const AudioSource.custom('/music.mp3'));
 
       expect(service.isMusicPlaying, isFalse);
     });
 
     test('10b. clears both flags when restart fails while interrupted', () async {
-      await service.startBackgroundMusic('/music.mp3');
+      await service.startBackgroundMusic(const AudioSource.custom('/music.mp3'));
       await service.handleInterruption(began: true, transient: true);
       // _isMusicPlaying=true, _musicInterrupted=true at this point
       musicPlayer.shouldThrow = true;
 
-      await service.startBackgroundMusic('/new/music.mp3');
+      await service.startBackgroundMusic(const AudioSource.custom('/new/music.mp3'));
 
       expect(service.isMusicPlaying, isFalse);
       expect(service.isMusicInterrupted, isFalse);
@@ -296,7 +320,7 @@ void main() {
   group('stopBackgroundMusic()', () {
     test('11. stops the music player and sets isMusicPlaying to false',
         () async {
-      await service.startBackgroundMusic('/music.mp3');
+      await service.startBackgroundMusic(const AudioSource.custom('/music.mp3'));
       musicPlayer.calls.clear();
 
       await service.stopBackgroundMusic();
@@ -318,7 +342,7 @@ void main() {
 
   group('stopAll()', () {
     test('13. stops both bell player and background music', () async {
-      await service.startBackgroundMusic('/music.mp3');
+      await service.startBackgroundMusic(const AudioSource.custom('/music.mp3'));
       bellPlayer.calls.clear();
       musicPlayer.calls.clear();
 
@@ -340,13 +364,13 @@ void main() {
     });
 
     test('15. returns true after successful startBackgroundMusic()', () async {
-      await service.startBackgroundMusic('/music.mp3');
+      await service.startBackgroundMusic(const AudioSource.custom('/music.mp3'));
 
       expect(service.isMusicPlaying, isTrue);
     });
 
     test('16. returns false after stopBackgroundMusic()', () async {
-      await service.startBackgroundMusic('/music.mp3');
+      await service.startBackgroundMusic(const AudioSource.custom('/music.mp3'));
       await service.stopBackgroundMusic();
 
       expect(service.isMusicPlaying, isFalse);
@@ -359,7 +383,7 @@ void main() {
 
   group('warmUp()', () {
     test('17. runs full warm-up sequence for a valid bundled ID', () async {
-      await service.warmUp('bundled:temple_bells');
+      await service.warmUp(const AudioSource.bundled('temple_bells'));
 
       expect(bellPlayer.calls, containsAllInOrder([
         'setAsset:assets/sounds/temple-bells.mp3',
@@ -372,13 +396,13 @@ void main() {
     });
 
     test('18. does nothing for an unknown bundled name', () async {
-      await service.warmUp('bundled:nonexistent');
+      await service.warmUp(const AudioSource.bundled('nonexistent'));
 
       expect(bellPlayer.calls, isEmpty);
     });
 
     test('19. runs warm-up sequence for a custom file path', () async {
-      await service.warmUp('custom:/path/to/bell.mp3');
+      await service.warmUp(const AudioSource.custom('/path/to/bell.mp3'));
 
       expect(bellPlayer.calls, containsAllInOrder([
         'setFilePath:/path/to/bell.mp3',
@@ -390,8 +414,8 @@ void main() {
       ]));
     });
 
-    test('20. does nothing for an unrecognised prefix', () async {
-      await service.warmUp('raw:something');
+    test('20. does nothing for AudioSource.none', () async {
+      await service.warmUp(AudioSource.none);
 
       expect(bellPlayer.calls, isEmpty);
     });
@@ -400,7 +424,7 @@ void main() {
       bellPlayer.shouldThrow = true;
 
       await expectLater(
-        service.warmUp('bundled:temple_bells'),
+        service.warmUp(const AudioSource.bundled('temple_bells')),
         completes,
       );
     });
@@ -409,7 +433,7 @@ void main() {
         () async {
       bellPlayer.throwOnSeek = true;
 
-      await service.warmUp('bundled:temple_bells');
+      await service.warmUp(const AudioSource.bundled('temple_bells'));
 
       expect(bellPlayer.lastVolume, 1.0);
     });
@@ -418,7 +442,7 @@ void main() {
         () async {
       bellPlayer.throwOnPlay = true;
 
-      await service.warmUp('bundled:temple_bells');
+      await service.warmUp(const AudioSource.bundled('temple_bells'));
 
       expect(bellPlayer.lastVolume, 1.0);
     });
@@ -427,7 +451,7 @@ void main() {
         () async {
       bellPlayer.throwOnStop = true;
 
-      await service.warmUp('bundled:temple_bells');
+      await service.warmUp(const AudioSource.bundled('temple_bells'));
 
       expect(bellPlayer.lastVolume, 1.0);
     });
@@ -436,7 +460,7 @@ void main() {
         () async {
       bellPlayer.throwOnMuteVolume = true;
 
-      await service.warmUp('bundled:temple_bells');
+      await service.warmUp(const AudioSource.bundled('temple_bells'));
 
       expect(bellPlayer.lastVolume, 1.0);
     });
@@ -448,7 +472,7 @@ void main() {
       bellPlayer.throwOnRestoreVolume = true;
 
       await expectLater(
-        service.warmUp('bundled:temple_bells'),
+        service.warmUp(const AudioSource.bundled('temple_bells')),
         completes,
       );
     });
@@ -461,7 +485,7 @@ void main() {
       await bellPlayer.setVolume(0);
       bellPlayer.calls.clear();
 
-      await service.playBell('bundled:singing_bell');
+      await service.playBell(const AudioSource.bundled('singing_bell'));
 
       expect(bellPlayer.lastVolume, 1.0);
     });
@@ -477,10 +501,10 @@ void main() {
         'the shared player', () async {
       bellPlayer.gateOn('setVolume'); // blocks warmUp() right after setAsset
 
-      final warmUpFuture = service.warmUp('bundled:temple_bells');
+      final warmUpFuture = service.warmUp(const AudioSource.bundled('temple_bells'));
       await Future<void>.delayed(Duration.zero);
 
-      final playBellFuture = service.playBell('bundled:singing_bell');
+      final playBellFuture = service.playBell(const AudioSource.bundled('singing_bell'));
       await Future<void>.delayed(Duration.zero);
 
       // playBell() must be queued behind the still-blocked warmUp(), not
@@ -506,10 +530,10 @@ void main() {
         'stopAll() invalidates it', () async {
       bellPlayer.gateOn('setVolume'); // blocks warmUp() right after setAsset
 
-      final warmUpFuture = service.warmUp('bundled:temple_bells');
+      final warmUpFuture = service.warmUp(const AudioSource.bundled('temple_bells'));
       await Future<void>.delayed(Duration.zero);
 
-      final playBellFuture = service.playBell('bundled:singing_bell');
+      final playBellFuture = service.playBell(const AudioSource.bundled('singing_bell'));
       await Future<void>.delayed(Duration.zero);
 
       await service.stopAll();
@@ -530,7 +554,7 @@ void main() {
         'invalidates it mid-sequence, but still restores volume', () async {
       bellPlayer.gateOn('seek'); // blocks after setAsset + setVolume(0)
 
-      final warmUpFuture = service.warmUp('bundled:temple_bells');
+      final warmUpFuture = service.warmUp(const AudioSource.bundled('temple_bells'));
       await Future<void>.delayed(Duration.zero);
 
       await service.stopAll();
@@ -547,10 +571,10 @@ void main() {
         'non-transient interruption invalidates it', () async {
       bellPlayer.gateOn('setVolume'); // blocks warmUp() right after setAsset
 
-      final warmUpFuture = service.warmUp('bundled:temple_bells');
+      final warmUpFuture = service.warmUp(const AudioSource.bundled('temple_bells'));
       await Future<void>.delayed(Duration.zero);
 
-      final playBellFuture = service.playBell('bundled:singing_bell');
+      final playBellFuture = service.playBell(const AudioSource.bundled('singing_bell'));
       await Future<void>.delayed(Duration.zero);
 
       await service.handleInterruption(began: true, transient: false);
@@ -571,7 +595,7 @@ void main() {
       await service.stopAll();
       bellPlayer.calls.clear();
 
-      await service.playBell('bundled:singing_bell');
+      await service.playBell(const AudioSource.bundled('singing_bell'));
 
       expect(
         bellPlayer.calls,
@@ -589,7 +613,7 @@ void main() {
       bellPlayer.gateOn('play');
       bellPlayer.throwOnPlayOnce = true;
 
-      final playBellFuture = service.playBell('bundled:temple_bells');
+      final playBellFuture = service.playBell(const AudioSource.bundled('temple_bells'));
       await Future<void>.delayed(Duration.zero); // let it reach the play() gate
 
       // Invalidate the in-flight request's generation while it's stuck.
@@ -609,7 +633,7 @@ void main() {
   group('handleInterruption()', () {
     test('22. transient interruption while music playing pauses player and keeps isMusicPlaying true',
         () async {
-      await service.startBackgroundMusic('/music.mp3');
+      await service.startBackgroundMusic(const AudioSource.custom('/music.mp3'));
       musicPlayer.calls.clear();
 
       await service.handleInterruption(began: true, transient: true);
@@ -622,7 +646,7 @@ void main() {
 
     test('23. focus regained after transient interruption resumes playback',
         () async {
-      await service.startBackgroundMusic('/music.mp3');
+      await service.startBackgroundMusic(const AudioSource.custom('/music.mp3'));
       await service.handleInterruption(began: true, transient: true);
       musicPlayer.calls.clear();
 
@@ -635,7 +659,7 @@ void main() {
 
     test('24. permanent interruption while music playing stops both players and clears isMusicPlaying',
         () async {
-      await service.startBackgroundMusic('/music.mp3');
+      await service.startBackgroundMusic(const AudioSource.custom('/music.mp3'));
       musicPlayer.calls.clear();
 
       await service.handleInterruption(began: true, transient: false);
@@ -656,7 +680,7 @@ void main() {
     });
 
     test('26. focus regained when not interrupted does nothing', () async {
-      await service.startBackgroundMusic('/music.mp3');
+      await service.startBackgroundMusic(const AudioSource.custom('/music.mp3'));
       musicPlayer.calls.clear();
 
       await service.handleInterruption(began: false, transient: true);
@@ -666,7 +690,7 @@ void main() {
 
     test('27. stopBackgroundMusic while interrupted clears interruption state',
         () async {
-      await service.startBackgroundMusic('/music.mp3');
+      await service.startBackgroundMusic(const AudioSource.custom('/music.mp3'));
       await service.handleInterruption(began: true, transient: true);
 
       await service.stopBackgroundMusic();
@@ -685,7 +709,7 @@ void main() {
 
     test('34. permanent interruption while transiently interrupted clears both flags and stops both players',
         () async {
-      await service.startBackgroundMusic('/music.mp3');
+      await service.startBackgroundMusic(const AudioSource.custom('/music.mp3'));
       await service.handleInterruption(began: true, transient: true);
       bellPlayer.calls.clear();
       musicPlayer.calls.clear();
@@ -700,7 +724,7 @@ void main() {
 
     test('35. focus regained after permanent interruption does nothing',
         () async {
-      await service.startBackgroundMusic('/music.mp3');
+      await service.startBackgroundMusic(const AudioSource.custom('/music.mp3'));
       await service.handleInterruption(began: true, transient: false);
       bellPlayer.calls.clear();
       musicPlayer.calls.clear();
@@ -721,7 +745,7 @@ void main() {
   group('handleInterruption() — failure paths', () {
     test('29. pause fails during transient interruption — isMusicInterrupted stays false',
         () async {
-      await service.startBackgroundMusic('/music.mp3');
+      await service.startBackgroundMusic(const AudioSource.custom('/music.mp3'));
       musicPlayer.throwOnPause = true;
 
       await service.handleInterruption(began: true, transient: true);
@@ -732,7 +756,7 @@ void main() {
 
     test('30. resume fails after transient interruption — both flags cleared, music not playing',
         () async {
-      await service.startBackgroundMusic('/music.mp3');
+      await service.startBackgroundMusic(const AudioSource.custom('/music.mp3'));
       await service.handleInterruption(began: true, transient: true);
       musicPlayer.throwOnPlay = true;
       musicPlayer.calls.clear();
@@ -745,7 +769,7 @@ void main() {
 
     test('36. music stop throws during permanent interruption — isMusicPlaying still cleared',
         () async {
-      await service.startBackgroundMusic('/music.mp3');
+      await service.startBackgroundMusic(const AudioSource.custom('/music.mp3'));
       musicPlayer.throwOnStop = true;
 
       await service.handleInterruption(began: true, transient: false);
@@ -758,7 +782,7 @@ void main() {
 
     test('37. two consecutive transient interruptions — second pause also called',
         () async {
-      await service.startBackgroundMusic('/music.mp3');
+      await service.startBackgroundMusic(const AudioSource.custom('/music.mp3'));
       await service.handleInterruption(began: true, transient: true);
       musicPlayer.calls.clear();
 
@@ -810,7 +834,7 @@ void main() {
     test('32. interruption event from stream triggers handleInterruption',
         () async {
       await sessionService.init();
-      await sessionService.startBackgroundMusic('/music.mp3');
+      await sessionService.startBackgroundMusic(const AudioSource.custom('/music.mp3'));
       music.calls.clear();
 
       fakeSession.emitInterruption(
@@ -826,7 +850,7 @@ void main() {
         () async {
       await sessionService.init();
       await sessionService.init();
-      await sessionService.startBackgroundMusic('/music.mp3');
+      await sessionService.startBackgroundMusic(const AudioSource.custom('/music.mp3'));
       music.calls.clear();
 
       fakeSession.emitInterruption(
@@ -840,7 +864,7 @@ void main() {
     test('38. AudioInterruptionType.unknown via stream triggers non-transient path — stops both players',
         () async {
       await sessionService.init();
-      await sessionService.startBackgroundMusic('/music.mp3');
+      await sessionService.startBackgroundMusic(const AudioSource.custom('/music.mp3'));
       music.calls.clear();
 
       fakeSession.emitInterruption(
@@ -857,7 +881,7 @@ void main() {
     test('39. focus-regained event after transient interruption resumes playback via stream',
         () async {
       await sessionService.init();
-      await sessionService.startBackgroundMusic('/music.mp3');
+      await sessionService.startBackgroundMusic(const AudioSource.custom('/music.mp3'));
       fakeSession.emitInterruption(
         AudioInterruptionEvent(true, AudioInterruptionType.pause),
       );

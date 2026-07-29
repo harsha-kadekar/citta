@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:citta/models/session_model.dart';
+import 'package:citta/models/timer_mode.dart';
 import 'package:citta/services/stats_service.dart';
 
 void main() {
@@ -24,7 +25,7 @@ void main() {
           id: '1',
           date: DateTime.now(),
           duration: 600,
-          timerMode: 'countdown',
+          timerMode: TimerMode.countdown,
         ),
       ];
       final stats = statsService.calculateStats(sessions);
@@ -41,19 +42,19 @@ void main() {
           id: '1',
           date: today,
           duration: 600,
-          timerMode: 'countdown',
+          timerMode: TimerMode.countdown,
         ),
         SessionModel(
           id: '2',
           date: today.subtract(const Duration(days: 1)),
           duration: 600,
-          timerMode: 'countdown',
+          timerMode: TimerMode.countdown,
         ),
         SessionModel(
           id: '3',
           date: today.subtract(const Duration(days: 2)),
           duration: 600,
-          timerMode: 'countdown',
+          timerMode: TimerMode.countdown,
         ),
       ];
       final stats = statsService.calculateStats(sessions);
@@ -68,20 +69,20 @@ void main() {
           id: '1',
           date: today,
           duration: 600,
-          timerMode: 'countdown',
+          timerMode: TimerMode.countdown,
         ),
         // Gap of 1 day
         SessionModel(
           id: '2',
           date: today.subtract(const Duration(days: 3)),
           duration: 600,
-          timerMode: 'countdown',
+          timerMode: TimerMode.countdown,
         ),
         SessionModel(
           id: '3',
           date: today.subtract(const Duration(days: 4)),
           duration: 600,
-          timerMode: 'countdown',
+          timerMode: TimerMode.countdown,
         ),
       ];
       final stats = statsService.calculateStats(sessions);
@@ -95,13 +96,13 @@ void main() {
           id: '1',
           date: DateTime.now(),
           duration: 600,
-          timerMode: 'countdown',
+          timerMode: TimerMode.countdown,
         ),
         SessionModel(
           id: '2',
           date: DateTime.now().subtract(const Duration(days: 1)),
           duration: 1200,
-          timerMode: 'countdown',
+          timerMode: TimerMode.countdown,
         ),
       ];
       final stats = statsService.calculateStats(sessions);
@@ -118,13 +119,13 @@ void main() {
           id: '1',
           date: todayNoon,
           duration: 300,
-          timerMode: 'countdown',
+          timerMode: TimerMode.countdown,
         ),
         SessionModel(
           id: '2',
           date: todayNoon.subtract(const Duration(hours: 2)),
           duration: 300,
-          timerMode: 'countdown',
+          timerMode: TimerMode.countdown,
         ),
       ];
       final stats = statsService.calculateStats(sessions);
@@ -141,19 +142,19 @@ void main() {
           id: '1',
           date: today,
           duration: 600,
-          timerMode: 'countdown',
+          timerMode: TimerMode.countdown,
         ),
         SessionModel(
           id: '2',
           date: today.subtract(const Duration(hours: 2)),
           duration: 300,
-          timerMode: 'countdown',
+          timerMode: TimerMode.countdown,
         ),
         SessionModel(
           id: '3',
           date: today.subtract(const Duration(days: 1)),
           duration: 600,
-          timerMode: 'countdown',
+          timerMode: TimerMode.countdown,
         ),
       ];
 

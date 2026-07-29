@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:citta/l10n/app_localizations.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import '../models/session_model.dart';
+import '../models/timer_mode.dart';
 import '../theme/app_theme.dart';
 import '../utils/formatters.dart';
 
@@ -58,7 +59,7 @@ class SessionDetailScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        session.timerMode == 'countdown'
+                        session.timerMode == TimerMode.countdown
                             ? l10n.sessionCountdown
                             : l10n.sessionStopwatch,
                         style: Theme.of(context).textTheme.bodyMedium,

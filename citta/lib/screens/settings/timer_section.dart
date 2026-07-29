@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:citta/l10n/app_localizations.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
+import '../../models/timer_mode.dart';
 import 'settings_widgets.dart';
 
 class TimerSection extends StatelessWidget {
@@ -18,12 +19,12 @@ class TimerSection extends StatelessWidget {
       children: [
         SettingsTile(
           title: l10n.settingsDefaultMode,
-          subtitle: config.timerMode == 'countdown'
+          subtitle: config.timerMode == TimerMode.countdown
               ? l10n.settingsCountdown
               : l10n.settingsStopwatch,
           onTap: () => _showTimerModeDialog(context, appState, l10n),
         ),
-        if (config.timerMode == 'countdown')
+        if (config.timerMode == TimerMode.countdown)
           SettingsTile(
             title: l10n.settingsDefaultDuration,
             subtitle:
@@ -43,13 +44,13 @@ class TimerSection extends StatelessWidget {
         children: [
           SimpleDialogOption(
             onPressed: () {
-              appState.mutateConfig(
-                  (current) => current.copyWith(timerMode: 'countdown'));
+              appState.mutateConfig((current) =>
+                  current.copyWith(timerMode: TimerMode.countdown));
               Navigator.pop(context);
             },
             child: ListTile(
               leading: Icon(Icons.timer,
-                  color: appState.config.timerMode == 'countdown'
+                  color: appState.config.timerMode == TimerMode.countdown
                       ? AppColors.primary
                       : null),
               title: Text(l10n.settingsCountdown),
@@ -58,13 +59,13 @@ class TimerSection extends StatelessWidget {
           ),
           SimpleDialogOption(
             onPressed: () {
-              appState.mutateConfig(
-                  (current) => current.copyWith(timerMode: 'stopwatch'));
+              appState.mutateConfig((current) =>
+                  current.copyWith(timerMode: TimerMode.stopwatch));
               Navigator.pop(context);
             },
             child: ListTile(
               leading: Icon(Icons.timer_off,
-                  color: appState.config.timerMode == 'stopwatch'
+                  color: appState.config.timerMode == TimerMode.stopwatch
                       ? AppColors.primary
                       : null),
               title: Text(l10n.settingsStopwatch),

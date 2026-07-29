@@ -15,6 +15,7 @@ import '../widgets/timer_controls.dart';
 import '../widgets/pre_session_config.dart';
 import 'session_complete_screen.dart';
 import 'package:uuid/uuid.dart';
+import '../models/audio_source.dart';
 
 const _cittaTitles = [
   'Citta',       // English
@@ -85,7 +86,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     };
   }
 
-  Future<void> _playBell(String bellId) async {
+  Future<void> _playBell(AudioSource bellId) async {
     final appState = context.read<AppState>();
     await appState.audioService.playBell(bellId);
   }
@@ -107,10 +108,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final appState = context.read<AppState>();
     final config = appState.config;
 
-    final mode = _adHocMode ??
-        (config.timerMode == 'stopwatch'
-            ? TimerMode.stopwatch
-            : TimerMode.countdown);
+    final mode = _adHocMode ?? config.timerMode;
     final duration = _adHocDuration ?? config.countdownDuration;
 
     _timerService.configure(
@@ -149,9 +147,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       final id = _sessionId!;
       final startDate = _sessionStartDate!;
       final elapsedSeconds = _timerService.elapsedSeconds;
-      final timerMode = _timerService.mode == TimerMode.countdown
-          ? 'countdown'
-          : 'stopwatch';
+      final timerMode = _timerService.mode;
       final targetDuration = _timerService.targetDuration;
       return _enqueueMarkerOp(() async {
         try {
@@ -205,9 +201,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       id: sessionId,
       date: DateTime.now(),
       duration: _timerService.elapsedSeconds,
-      timerMode: _timerService.mode == TimerMode.countdown
-          ? 'countdown'
-          : 'stopwatch',
+      timerMode: _timerService.mode,
       completedFully: completedFully,
     );
 
@@ -283,7 +277,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final quote =
         context.select<AppState, QuoteModel?>((s) => s.quoteService.todayQuote);
     final timerMode =
-        context.select<AppState, String>((s) => s.config.timerMode);
+        context.select<AppState, TimerMode>((s) => s.config.timerMode);
     final countdownDuration =
         context.select<AppState, int>((s) => s.config.countdownDuration);
     final isSessionActive = _timerService.state == TimerState.running ||
@@ -416,10 +410,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   String _getConfigSummary(
-      String timerMode, int countdownDuration, AppLocalizations l10n) {
-    final mode =
-        timerMode == 'stopwatch' ? l10n.homeStopwatch : l10n.homeCountdown;
-    if (timerMode == 'stopwatch') return mode;
+      TimerMode timerMode, int countdownDuration, AppLocalizations l10n) {
+    final mode = timerMode == TimerMode.stopwatch
+        ? l10n.homeStopwatch
+        : l10n.homeCountdown;
+    if (timerMode == TimerMode.stopwatch) return mode;
     final mins = countdownDuration ~/ 60;
     return '$mode \u00b7 $mins ${l10n.homeMin}';
   }

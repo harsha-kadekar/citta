@@ -5,12 +5,15 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:just_audio/just_audio.dart';
+import 'package:just_audio/just_audio.dart' hide AudioSource;
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:provider/provider.dart';
 
 import 'package:citta/l10n/app_localizations.dart';
 import 'package:citta/models/config_model.dart';
+import 'package:citta/models/timer_mode.dart';
+import 'package:citta/models/app_theme_mode.dart';
+import 'package:citta/models/audio_source.dart';
 import 'package:citta/providers/app_state.dart';
 import 'package:citta/screens/settings/profile_section.dart';
 import 'package:citta/screens/settings/appearance_section.dart';
@@ -177,7 +180,7 @@ void main() {
     setUp(() async {
       tmpDir = Directory.systemTemp.createTempSync('citta_settings_test_');
       appState = await _makeAndInit(tmpDir.path,
-          initialConfig: ConfigModel(themeMode: 'light'));
+          initialConfig: ConfigModel(themeMode: AppThemeMode.light));
     });
     tearDown(() => tmpDir.deleteSync(recursive: true));
 
@@ -227,7 +230,7 @@ void main() {
       tmpDir = Directory.systemTemp.createTempSync('citta_settings_test_');
       appState = await _makeAndInit(tmpDir.path,
           initialConfig:
-              ConfigModel(timerMode: 'countdown', countdownDuration: 900));
+              ConfigModel(timerMode: TimerMode.countdown, countdownDuration: 900));
     });
     tearDown(() => tmpDir.deleteSync(recursive: true));
 
@@ -260,7 +263,7 @@ void main() {
     setUp(() async {
       tmpDir = Directory.systemTemp.createTempSync('citta_settings_test_');
       appState = await _makeAndInit(tmpDir.path,
-          initialConfig: ConfigModel(timerMode: 'stopwatch'));
+          initialConfig: ConfigModel(timerMode: TimerMode.stopwatch));
     });
     tearDown(() => tmpDir.deleteSync(recursive: true));
 
@@ -421,7 +424,7 @@ void main() {
       });
       await tester.pump();
       expect(appState.config.backgroundMusic,
-          equals('custom:/storage/music/track.mp3'));
+          equals(const AudioSource.custom('/storage/music/track.mp3')));
     });
   });
 
@@ -452,8 +455,11 @@ void main() {
 
     setUp(() async {
       tmpDir = Directory.systemTemp.createTempSync('citta_settings_test_');
+      // Represents the parsed form of a pre-`custom:`-prefix legacy config
+      // (the string-parsing itself is covered by ConfigModel.fromJson tests).
       appState = await _makeAndInit(tmpDir.path,
-          initialConfig: ConfigModel(backgroundMusic: '/legacy/music.mp3'));
+          initialConfig:
+              ConfigModel(backgroundMusic: const AudioSource.custom('/legacy/music.mp3')));
     });
     tearDown(() => tmpDir.deleteSync(recursive: true));
 
