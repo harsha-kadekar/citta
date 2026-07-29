@@ -2,7 +2,8 @@ import 'dart:async';
 
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/foundation.dart';
-import 'package:just_audio/just_audio.dart';
+import 'package:just_audio/just_audio.dart' hide AudioSource;
+import '../models/audio_source.dart';
 
 /// Abstraction over [AudioSession] to allow fake injection in tests.
 abstract class AudioSessionBase {
@@ -235,33 +236,22 @@ class AudioService {
     }
   }
 
-  /// Resolves a `bundled:<name>` / `custom:<path>` selection id to a
-  /// concrete playable source — the single place that decodes this
-  /// convention, shared by bell and background-music playback.
-  ///
-  /// Set [allowBundled] to false for callers (background music) that don't
-  /// support bundled options, so a string that happens to start with
-  /// `bundled:` is treated as a raw/custom path instead. Set [allowRawPath]
-  /// for callers that must also accept legacy configs saved before the
-  /// `custom:` prefix convention existed. Returns null when the id names an
-  /// unknown bundled sound, or an unrecognized id with [allowRawPath] false
-  /// (e.g. "none").
-  ({bool isAsset, String path})? _resolveSource(
-    String id, {
-    bool allowBundled = true,
-    bool allowRawPath = false,
-  }) {
-    if (allowBundled && id.startsWith('bundled:')) {
-      final assetPath = bundledSounds[id.substring(8)];
+  /// Resolves an [AudioSource] to a concrete playable source — the single
+  /// place that maps a bundled name to its asset path, shared by bell and
+  /// background-music playback. Returns null for [AudioSource.none] or an
+  /// unknown bundled name.
+  ({bool isAsset, String path})? _resolveSource(AudioSource source) {
+    if (source.isBundled) {
+      final assetPath = bundledSounds[source.bundledName];
       return assetPath == null ? null : (isAsset: true, path: assetPath);
     }
-    if (id.startsWith('custom:')) {
-      return (isAsset: false, path: id.substring(7));
+    if (source.isCustom) {
+      return (isAsset: false, path: source.path!);
     }
-    return allowRawPath ? (isAsset: false, path: id) : null;
+    return null;
   }
 
-  Future<void> _attemptPlayBell(String bellId, int generation) async {
+  Future<void> _attemptPlayBell(AudioSource bellId, int generation) async {
     if (generation != _bellGeneration) return;
     final source = _resolveSource(bellId);
     if (source == null) return;
@@ -275,14 +265,15 @@ class AudioService {
     await _bellPlayer.play();
   }
 
-  /// Play a bell sound identified by its config string (e.g., "bundled:tibetan_bowl" or "custom:/path/to/file.mp3")
+  /// Play a bell sound identified by an [AudioSource] (e.g. a bundled sound
+  /// or a custom device-local file).
   /// Retries once on failure — ExoPlayer bypass mode can fail on first attempt on some Android versions.
   ///
   /// [generation] carries the original request's generation through the
   /// retry — re-reading _bellGeneration on retry would let a request that a
   /// stop already invalidated come back to life just because the first,
   /// stop-induced failure triggered a retry after the generation moved on.
-  Future<void> playBell(String bellId, {bool isRetry = false, int? generation}) async {
+  Future<void> playBell(AudioSource bellId, {bool isRetry = false, int? generation}) async {
     final effectiveGeneration = generation ?? _bellGeneration;
     try {
       await _queueBellOp(() => _attemptPlayBell(bellId, effectiveGeneration));
@@ -296,14 +287,14 @@ class AudioService {
   }
 
   /// Preview a bell sound (same as play, used for settings).
-  Future<void> previewSound(String bellId) async {
+  Future<void> previewSound(AudioSource bellId) async {
     await playBell(bellId);
   }
 
   /// Pre-warms the Android audio subsystem by silently loading and playing
   /// the configured bell sound for a brief instant. Errors are swallowed —
   /// this is a best-effort warm-up only.
-  Future<void> warmUp(String bellId) async {
+  Future<void> warmUp(AudioSource bellId) async {
     final source = _resolveSource(bellId);
     if (source == null) return;
     final generation = _bellGeneration;
@@ -332,24 +323,21 @@ class AudioService {
     });
   }
 
-  /// Start background music playback (looping).
-  ///
-  /// [path] follows the same `custom:<path>` convention as bell IDs (see
-  /// [playBell]) — background music has no bundled options, so this is the
-  /// only prefix in use. Raw, unprefixed paths are still accepted so configs
-  /// saved before this convention was introduced keep working.
-  Future<void> startBackgroundMusic(String path) async {
+  /// Start background music playback (looping) from an [AudioSource] —
+  /// always a custom device-local file, since background music has no
+  /// bundled options.
+  Future<void> startBackgroundMusic(AudioSource source) async {
+    if (source.isNone) return;
     try {
-      final source =
-          _resolveSource(path, allowBundled: false, allowRawPath: true)!;
-      await _musicPlayer.setFilePath(source.path);
+      final resolved = _resolveSource(source)!;
+      await _musicPlayer.setFilePath(resolved.path);
       await _musicPlayer.setLoopMode(LoopMode.all);
       await _musicPlayer.setVolume(0.3);
       await _musicPlayer.play();
       _isMusicPlaying = true;
       _musicInterrupted = false;
     } catch (e) {
-      debugPrint('AudioService: startBackgroundMusic failed for "$path": $e');
+      debugPrint('AudioService: startBackgroundMusic failed for "$source": $e');
       _isMusicPlaying = false;
       _musicInterrupted = false;
     }

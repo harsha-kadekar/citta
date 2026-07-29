@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 
 import 'package:citta/l10n/app_localizations.dart';
 import 'package:citta/models/config_model.dart';
+import 'package:citta/models/timer_mode.dart';
 import 'package:citta/providers/app_state.dart';
 import 'package:citta/screens/home_screen.dart';
 import 'package:citta/screens/session_complete_screen.dart';
@@ -263,7 +264,7 @@ void main() {
       // Pre-write stopwatch config before initialize() so AppState loads it.
       appState = await _makeAndInit(
         tmpDir.path,
-        initialConfig: ConfigModel(timerMode: 'stopwatch'),
+        initialConfig: ConfigModel(timerMode: TimerMode.stopwatch),
       );
       markerPath = '${tmpDir.path}/in_progress_session.json';
     });

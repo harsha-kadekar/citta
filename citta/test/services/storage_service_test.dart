@@ -6,6 +6,9 @@ import 'package:path_provider_platform_interface/path_provider_platform_interfac
 import 'package:citta/models/config_model.dart';
 import 'package:citta/models/quote_model.dart';
 import 'package:citta/models/session_model.dart';
+import 'package:citta/models/timer_mode.dart';
+import 'package:citta/models/app_theme_mode.dart';
+import 'package:citta/models/audio_source.dart';
 import 'package:citta/services/storage_service.dart';
 
 // ---------------------------------------------------------------------------
@@ -61,7 +64,7 @@ class _FlakyPostCommitSessionsStorageService extends StorageService {
 SessionModel _makeSession({
   String id = 'session-1',
   int duration = 600,
-  String timerMode = 'countdown',
+  TimerMode timerMode = TimerMode.countdown,
   String? notes,
   List<String>? tags,
   bool completedFully = true,
@@ -287,16 +290,16 @@ void main() {
   group('saveConfig / loadConfig roundtrip', () {
     test('persists and restores all fields', () async {
       final original = ConfigModel(
-        timerMode: 'stopwatch',
+        timerMode: TimerMode.stopwatch,
         countdownDuration: 1200,
-        bellStart: 'bundled:temple_bells',
-        bellEnd: 'bundled:wind_chime',
-        bellInterval: 'bundled:singing_bell',
+        bellStart: const AudioSource.bundled('temple_bells'),
+        bellEnd: const AudioSource.bundled('wind_chime'),
+        bellInterval: const AudioSource.bundled('singing_bell'),
         intervalDuration: 600,
         intervalEnabled: true,
         calendarViewEnabled: true,
         userName: 'Harsha',
-        themeMode: 'light',
+        themeMode: AppThemeMode.light,
         tags: ['calm', 'focused'],
         quoteSources: ['yoga_sutra', 'upanishad'],
       );
@@ -304,16 +307,16 @@ void main() {
       await service.saveConfig(original);
       final restored = await service.loadConfig();
 
-      expect(restored.timerMode, 'stopwatch');
+      expect(restored.timerMode, TimerMode.stopwatch);
       expect(restored.countdownDuration, 1200);
-      expect(restored.bellStart, 'bundled:temple_bells');
-      expect(restored.bellEnd, 'bundled:wind_chime');
-      expect(restored.bellInterval, 'bundled:singing_bell');
+      expect(restored.bellStart, const AudioSource.bundled('temple_bells'));
+      expect(restored.bellEnd, const AudioSource.bundled('wind_chime'));
+      expect(restored.bellInterval, const AudioSource.bundled('singing_bell'));
       expect(restored.intervalDuration, 600);
       expect(restored.intervalEnabled, true);
       expect(restored.calendarViewEnabled, true);
       expect(restored.userName, 'Harsha');
-      expect(restored.themeMode, 'light');
+      expect(restored.themeMode, AppThemeMode.light);
       expect(restored.tags, ['calm', 'focused']);
       expect(restored.quoteSources, ['yoga_sutra', 'upanishad']);
     });
@@ -378,7 +381,7 @@ void main() {
     test('persists and restores multiple sessions', () async {
       final sessions = [
         _makeSession(id: 's1', duration: 300),
-        _makeSession(id: 's2', duration: 900, timerMode: 'stopwatch'),
+        _makeSession(id: 's2', duration: 900, timerMode: TimerMode.stopwatch),
         _makeSession(id: 's3', duration: 1800, completedFully: false),
       ];
 
@@ -387,7 +390,7 @@ void main() {
 
       expect(restored.length, 3);
       expect(restored.map((s) => s.id).toList(), ['s1', 's2', 's3']);
-      expect(restored[1].timerMode, 'stopwatch');
+      expect(restored[1].timerMode, TimerMode.stopwatch);
       expect(restored[2].completedFully, false);
     });
 
@@ -699,18 +702,19 @@ void main() {
   group('importData — replaceAll', () {
     test('replaces config and sessions', () async {
       await service.saveSessions([_makeSession(id: 'old')]);
-      await service.saveConfig(ConfigModel(timerMode: 'stopwatch'));
+      await service.saveConfig(ConfigModel(timerMode: TimerMode.stopwatch));
 
       final data = {
-        'config': ConfigModel(timerMode: 'countdown', countdownDuration: 300)
-            .toJson(),
+        'config':
+            ConfigModel(timerMode: TimerMode.countdown, countdownDuration: 300)
+                .toJson(),
         'sessions': [_makeSession(id: 'new', duration: 300).toJson()],
       };
 
       await service.importData(data, replaceAll: true);
 
       final config = await service.loadConfig();
-      expect(config.timerMode, 'countdown');
+      expect(config.timerMode, TimerMode.countdown);
       expect(config.countdownDuration, 300);
 
       final sessions = await service.loadSessions();
@@ -721,9 +725,9 @@ void main() {
     test('resets custom bell paths to defaults', () async {
       final data = {
         'config': ConfigModel(
-          bellStart: 'custom:/path/to/bell.mp3',
-          bellEnd: 'custom:/path/to/end.mp3',
-          bellInterval: 'custom:/path/to/interval.mp3',
+          bellStart: const AudioSource.custom('/path/to/bell.mp3'),
+          bellEnd: const AudioSource.custom('/path/to/end.mp3'),
+          bellInterval: const AudioSource.custom('/path/to/interval.mp3'),
         ).toJson(),
         'sessions': [],
       };
@@ -739,9 +743,9 @@ void main() {
     test('preserves bundled bell paths unchanged', () async {
       final data = {
         'config': ConfigModel(
-          bellStart: 'bundled:temple_bells',
-          bellEnd: 'bundled:wind_chime',
-          bellInterval: 'bundled:singing_bell',
+          bellStart: const AudioSource.bundled('temple_bells'),
+          bellEnd: const AudioSource.bundled('wind_chime'),
+          bellInterval: const AudioSource.bundled('singing_bell'),
         ).toJson(),
         'sessions': [],
       };
@@ -749,14 +753,15 @@ void main() {
       await service.importData(data, replaceAll: true);
 
       final config = await service.loadConfig();
-      expect(config.bellStart, 'bundled:temple_bells');
-      expect(config.bellEnd, 'bundled:wind_chime');
-      expect(config.bellInterval, 'bundled:singing_bell');
+      expect(config.bellStart, const AudioSource.bundled('temple_bells'));
+      expect(config.bellEnd, const AudioSource.bundled('wind_chime'));
+      expect(config.bellInterval, const AudioSource.bundled('singing_bell'));
     });
 
     test('always clears backgroundMusic', () async {
       final data = {
-        'config': ConfigModel(backgroundMusic: 'custom:/music.mp3').toJson(),
+        'config': ConfigModel(backgroundMusic: const AudioSource.custom('/music.mp3'))
+            .toJson(),
         'sessions': [],
       };
 
@@ -853,7 +858,7 @@ void main() {
 
   group('importData — rollback on partial write failure', () {
     test('rolls back config when the sessions write fails', () async {
-      final originalConfig = ConfigModel(timerMode: 'stopwatch');
+      final originalConfig = ConfigModel(timerMode: TimerMode.stopwatch);
       await service.saveConfig(originalConfig);
       await service.saveSessions([_makeSession(id: 'original')]);
 
@@ -865,7 +870,7 @@ void main() {
       await Directory(sessionsPath).create();
 
       final data = {
-        'config': ConfigModel(timerMode: 'countdown').toJson(),
+        'config': ConfigModel(timerMode: TimerMode.countdown).toJson(),
         'sessions': [_makeSession(id: 'imported').toJson()],
       };
 
@@ -875,13 +880,13 @@ void main() {
       );
 
       final config = await service.loadConfig();
-      expect(config.timerMode, 'stopwatch',
+      expect(config.timerMode, TimerMode.stopwatch,
           reason: 'config must be rolled back when a later write fails');
     });
 
     test('rolls back config and sessions when the quotes write fails',
         () async {
-      final originalConfig = ConfigModel(timerMode: 'stopwatch');
+      final originalConfig = ConfigModel(timerMode: TimerMode.stopwatch);
       await service.saveConfig(originalConfig);
       await service.saveSessions([_makeSession(id: 'original')]);
       await service.saveUserQuotes([_makeQuote(id: 'original-q')]);
@@ -891,7 +896,7 @@ void main() {
       await Directory(quotesPath).create();
 
       final data = {
-        'config': ConfigModel(timerMode: 'countdown').toJson(),
+        'config': ConfigModel(timerMode: TimerMode.countdown).toJson(),
         'sessions': [_makeSession(id: 'imported').toJson()],
         'userQuotes': [_makeQuote(id: 'imported-q').toJson()],
       };
@@ -903,7 +908,7 @@ void main() {
 
       final config = await service.loadConfig();
       final sessions = await service.loadSessions();
-      expect(config.timerMode, 'stopwatch',
+      expect(config.timerMode, TimerMode.stopwatch,
           reason: 'config must be rolled back when a later write fails');
       expect(sessions.map((s) => s.id).toList(), ['original'],
           reason: 'sessions must be rolled back when a later write fails');
@@ -912,7 +917,7 @@ void main() {
     test(
         'throws ImportRollbackIncompleteException when the rollback write itself fails',
         () async {
-      await service.saveConfig(ConfigModel(timerMode: 'stopwatch'));
+      await service.saveConfig(ConfigModel(timerMode: TimerMode.stopwatch));
       await service.saveSessions([_makeSession(id: 'original')]);
 
       // Force the forward sessions write to fail...
@@ -924,7 +929,7 @@ void main() {
       // on this instance) to also fail, so recovery is itself incomplete.
       final flaky = _FlakyConfigStorageService.withBasePath(tempDir.path);
       final data = {
-        'config': ConfigModel(timerMode: 'countdown').toJson(),
+        'config': ConfigModel(timerMode: TimerMode.countdown).toJson(),
         'sessions': [_makeSession(id: 'imported').toJson()],
       };
 
@@ -937,13 +942,13 @@ void main() {
     test(
         'rolls back a step whose write already committed before it threw',
         () async {
-      await service.saveConfig(ConfigModel(timerMode: 'stopwatch'));
+      await service.saveConfig(ConfigModel(timerMode: TimerMode.stopwatch));
       await service.saveSessions([_makeSession(id: 'original')]);
 
       final flaky =
           _FlakyPostCommitSessionsStorageService.withBasePath(tempDir.path);
       final data = {
-        'config': ConfigModel(timerMode: 'countdown').toJson(),
+        'config': ConfigModel(timerMode: TimerMode.countdown).toJson(),
         'sessions': [_makeSession(id: 'imported').toJson()],
       };
 
@@ -954,7 +959,7 @@ void main() {
 
       final config = await flaky.loadConfig();
       final sessions = await flaky.loadSessions();
-      expect(config.timerMode, 'stopwatch',
+      expect(config.timerMode, TimerMode.stopwatch,
           reason: 'config must be rolled back');
       expect(sessions.map((s) => s.id).toList(), ['original'],
           reason: 'the sessions write already committed the imported '
@@ -1021,10 +1026,13 @@ void main() {
     test(
         'a normal write queued via runExclusive during an import runs only after it, and its value wins',
         () async {
-      await service.saveConfig(ConfigModel(timerMode: 'stopwatch'));
+      // Uses countdownDuration (rather than timerMode) as the distinguishable
+      // sentinel here — timerMode is now a two-value enum and can't encode
+      // three distinguishable states.
+      await service.saveConfig(ConfigModel(countdownDuration: 111));
 
       final data = {
-        'config': ConfigModel(timerMode: 'countdown').toJson(),
+        'config': ConfigModel(countdownDuration: 222).toJson(),
         'sessions': [_makeSession(id: 'imported').toJson()],
       };
 
@@ -1033,14 +1041,14 @@ void main() {
       // by runExclusive's FIFO guarantee this can only run once the import
       // (snapshot, write, and any rollback) has fully finished.
       final concurrentWrite = service.runExclusive(
-        () => service.saveConfig(ConfigModel(timerMode: 'interval')),
+        () => service.saveConfig(ConfigModel(countdownDuration: 333)),
       );
 
       await importFuture;
       await concurrentWrite;
 
       final config = await service.loadConfig();
-      expect(config.timerMode, 'interval',
+      expect(config.countdownDuration, 333,
           reason: 'a write queued behind an import must win, not be '
               'dropped or overwritten by the import');
     });
@@ -1049,19 +1057,19 @@ void main() {
   group('importValidated', () {
     test('returns false for malformed content without touching storage',
         () async {
-      await service.saveConfig(ConfigModel(timerMode: 'stopwatch'));
+      await service.saveConfig(ConfigModel(timerMode: TimerMode.stopwatch));
 
       final ok = await service.importValidated('not json');
 
       expect(ok, isFalse);
-      expect((await service.loadConfig()).timerMode, 'stopwatch');
+      expect((await service.loadConfig()).timerMode, TimerMode.stopwatch);
     });
 
     test('parses the payload once and applies it for a valid replaceAll payload',
         () async {
       final content = jsonEncode({
         'version': 1,
-        'config': ConfigModel(timerMode: 'countdown').toJson(),
+        'config': ConfigModel(timerMode: TimerMode.countdown).toJson(),
         'sessions': [_makeSession(id: 'imported').toJson()],
         'userQuotes': [_makeQuote(id: 'imported-q').toJson()],
       });
@@ -1069,7 +1077,7 @@ void main() {
       final ok = await service.importValidated(content, replaceAll: true);
 
       expect(ok, isTrue);
-      expect((await service.loadConfig()).timerMode, 'countdown');
+      expect((await service.loadConfig()).timerMode, TimerMode.countdown);
       expect((await service.loadSessions()).map((s) => s.id).toList(),
           ['imported']);
       expect((await service.loadUserQuotes()).map((q) => q.id).toList(),
@@ -1078,21 +1086,21 @@ void main() {
 
     test('returns false without throwing when the underlying write fails',
         () async {
-      await service.saveConfig(ConfigModel(timerMode: 'stopwatch'));
+      await service.saveConfig(ConfigModel(timerMode: TimerMode.stopwatch));
 
       final sessionsPath = '${tempDir.path}/sessions.json';
       await Directory(sessionsPath).create();
 
       final content = jsonEncode({
         'version': 1,
-        'config': ConfigModel(timerMode: 'countdown').toJson(),
+        'config': ConfigModel(timerMode: TimerMode.countdown).toJson(),
         'sessions': [_makeSession(id: 'imported').toJson()],
       });
 
       final ok = await service.importValidated(content, replaceAll: true);
 
       expect(ok, isFalse);
-      expect((await service.loadConfig()).timerMode, 'stopwatch',
+      expect((await service.loadConfig()).timerMode, TimerMode.stopwatch,
           reason: 'a failed importValidated must roll back like importData');
     });
   });
@@ -1120,7 +1128,7 @@ void main() {
         _makeSession(id: 's2', duration: 900),
       ]);
       await service.saveUserQuotes([_makeQuote(id: 'q1')]);
-      await service.saveConfig(ConfigModel(timerMode: 'stopwatch'));
+      await service.saveConfig(ConfigModel(timerMode: TimerMode.stopwatch));
 
       final exportJson = await service.exportAllData();
       final parsed = await service.validateImportData(exportJson);
@@ -1142,7 +1150,7 @@ void main() {
         expect(quotes.first.id, 'q1');
 
         final config = await importService.loadConfig();
-        expect(config.timerMode, 'stopwatch');
+        expect(config.timerMode, TimerMode.stopwatch);
       } finally {
         await importDir.delete(recursive: true);
       }
@@ -1193,16 +1201,16 @@ void main() {
   group('ConfigModel fromJson / toJson', () {
     test('roundtrip preserves all fields', () {
       final original = ConfigModel(
-        timerMode: 'stopwatch',
+        timerMode: TimerMode.stopwatch,
         countdownDuration: 1800,
-        bellStart: 'bundled:temple_bells',
-        bellEnd: 'bundled:wind_chime',
-        bellInterval: 'bundled:singing_bell',
+        bellStart: const AudioSource.bundled('temple_bells'),
+        bellEnd: const AudioSource.bundled('wind_chime'),
+        bellInterval: const AudioSource.bundled('singing_bell'),
         intervalDuration: 600,
         intervalEnabled: true,
         calendarViewEnabled: true,
         userName: 'Test User',
-        themeMode: 'light',
+        themeMode: AppThemeMode.light,
         tags: ['focused', 'restless'],
         quoteSources: ['yoga_sutra'],
       );
@@ -1225,9 +1233,10 @@ void main() {
   group('ConfigModel copyWith', () {
     test('returns new instance with updated fields', () {
       final original = ConfigModel();
-      final updated = original.copyWith(timerMode: 'stopwatch', themeMode: 'light');
-      expect(updated.timerMode, 'stopwatch');
-      expect(updated.themeMode, 'light');
+      final updated = original.copyWith(
+          timerMode: TimerMode.stopwatch, themeMode: AppThemeMode.light);
+      expect(updated.timerMode, TimerMode.stopwatch);
+      expect(updated.themeMode, AppThemeMode.light);
       expect(updated.countdownDuration, original.countdownDuration);
     });
 
@@ -1252,7 +1261,7 @@ void main() {
         id: 'abc-123',
         date: now,
         duration: 900,
-        timerMode: 'countdown',
+        timerMode: TimerMode.countdown,
         notes: 'deep focus',
         tags: ['calm', 'deep'],
         completedFully: false,
@@ -1261,7 +1270,7 @@ void main() {
       expect(restored.id, 'abc-123');
       expect(restored.date.toUtc(), now);
       expect(restored.duration, 900);
-      expect(restored.timerMode, 'countdown');
+      expect(restored.timerMode, TimerMode.countdown);
       expect(restored.notes, 'deep focus');
       expect(restored.tags, ['calm', 'deep']);
       expect(restored.completedFully, false);

@@ -3,6 +3,11 @@
 // (keep the existing value).  A named private class makes the sentinel
 // unforgeable from outside this library — unlike `const Object()`, external
 // code cannot construct a `_Unset` and accidentally trigger the sentinel path.
+import 'timer_mode.dart';
+import 'app_theme_mode.dart';
+import 'app_language.dart';
+import 'audio_source.dart';
+
 class _Unset {
   const _Unset();
 }
@@ -10,16 +15,17 @@ class _Unset {
 const _unset = _Unset();
 
 class ConfigModel {
-  static const String defaultTimerMode = 'countdown';
+  static const TimerMode defaultTimerMode = TimerMode.countdown;
   static const int defaultCountdownDuration = 900;
-  static const String defaultBellStart = 'bundled:bright_tibetan_bell';
-  static const String defaultBellEnd = 'bundled:bell_meditation';
-  static const String defaultBellInterval = 'bundled:singing_bell';
+  static const AudioSource defaultBellStart =
+      AudioSource.bundled('bright_tibetan_bell');
+  static const AudioSource defaultBellEnd = AudioSource.bundled('bell_meditation');
+  static const AudioSource defaultBellInterval = AudioSource.bundled('singing_bell');
   static const int defaultIntervalDuration = 300;
   static const bool defaultIntervalEnabled = false;
   static const bool defaultCalendarViewEnabled = false;
-  static const String defaultThemeMode = 'dark';
-  static const String defaultLanguage = 'system';
+  static const AppThemeMode defaultThemeMode = AppThemeMode.dark;
+  static const AppLanguage defaultLanguage = AppLanguage.system;
   static const List<String> defaultTags = ['calm', 'restless', 'deep', 'distracted'];
   static const List<String> defaultQuoteSources = [
     'subhashita',
@@ -30,20 +36,20 @@ class ConfigModel {
     'mahabharata',
   ];
 
-  final String timerMode; // "countdown" or "stopwatch"
+  final TimerMode timerMode;
   final int countdownDuration; // seconds
-  final String bellStart;
-  final String bellEnd;
-  final String bellInterval;
+  final AudioSource bellStart;
+  final AudioSource bellEnd;
+  final AudioSource bellInterval;
   final int intervalDuration; // seconds
   final bool intervalEnabled;
-  final String? backgroundMusic;
+  final AudioSource? backgroundMusic;
   final bool calendarViewEnabled;
   final List<String> tags;
   final List<String> quoteSources;
   final String? userName;
-  final String themeMode; // 'dark', 'light', or 'system'
-  final String language; // 'system', 'en', 'kn', 'sa', 'hi', 'te', 'ta', 'ml', 'fr', 'de', 'ja', 'he', 'zh'
+  final AppThemeMode themeMode;
+  final AppLanguage language;
 
   // Public constructor: always wraps caller-supplied lists as unmodifiable so
   // external mutations cannot corrupt stored state.
@@ -114,19 +120,35 @@ class ConfigModel {
   }
 
   factory ConfigModel.fromJson(Map<String, dynamic> json) {
+    final bellStartJson = json['bellStart'] as String?;
+    final bellEndJson = json['bellEnd'] as String?;
+    final bellIntervalJson = json['bellInterval'] as String?;
+    final backgroundMusicJson = json['backgroundMusic'] as String?;
     return ConfigModel(
-      timerMode: json['timerMode'] as String? ?? defaultTimerMode,
+      timerMode: TimerModeStorage.fromStorageString(json['timerMode'] as String?,
+          fallback: defaultTimerMode),
       countdownDuration: json['countdownDuration'] as int? ?? defaultCountdownDuration,
-      bellStart: json['bellStart'] as String? ?? defaultBellStart,
-      bellEnd: json['bellEnd'] as String? ?? defaultBellEnd,
-      bellInterval: json['bellInterval'] as String? ?? defaultBellInterval,
+      bellStart: bellStartJson != null
+          ? AudioSource.fromStorageString(bellStartJson)
+          : defaultBellStart,
+      bellEnd: bellEndJson != null
+          ? AudioSource.fromStorageString(bellEndJson)
+          : defaultBellEnd,
+      bellInterval: bellIntervalJson != null
+          ? AudioSource.fromStorageString(bellIntervalJson)
+          : defaultBellInterval,
       intervalDuration: json['intervalDuration'] as int? ?? defaultIntervalDuration,
       intervalEnabled: json['intervalEnabled'] as bool? ?? defaultIntervalEnabled,
-      backgroundMusic: json['backgroundMusic'] as String?,
+      backgroundMusic: backgroundMusicJson != null
+          ? AudioSource.fromStorageString(backgroundMusicJson,
+              allowBundled: false, allowRawPath: true)
+          : null,
       calendarViewEnabled: json['calendarViewEnabled'] as bool? ?? defaultCalendarViewEnabled,
       userName: json['userName'] as String?,
-      themeMode: json['themeMode'] as String? ?? defaultThemeMode,
-      language: json['language'] as String? ?? defaultLanguage,
+      themeMode: AppThemeModeStorage.fromStorageString(json['themeMode'] as String?,
+          fallback: defaultThemeMode),
+      language: AppLanguageStorage.fromStorageString(json['language'] as String?,
+          fallback: defaultLanguage),
       tags: (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList(),
       quoteSources: (json['quoteSources'] as List<dynamic>?)?.map((e) => e as String).toList(),
     );
@@ -134,46 +156,47 @@ class ConfigModel {
 
   Map<String, dynamic> toJson() {
     return {
-      'timerMode': timerMode,
+      'timerMode': timerMode.toStorageString(),
       'countdownDuration': countdownDuration,
-      'bellStart': bellStart,
-      'bellEnd': bellEnd,
-      'bellInterval': bellInterval,
+      'bellStart': bellStart.toStorageString(),
+      'bellEnd': bellEnd.toStorageString(),
+      'bellInterval': bellInterval.toStorageString(),
       'intervalDuration': intervalDuration,
       'intervalEnabled': intervalEnabled,
-      'backgroundMusic': backgroundMusic,
+      'backgroundMusic': backgroundMusic?.toStorageString(),
       'calendarViewEnabled': calendarViewEnabled,
       'userName': userName,
-      'themeMode': themeMode,
-      'language': language,
+      'themeMode': themeMode.toStorageString(),
+      'language': language.toStorageString(),
       'tags': tags,
       'quoteSources': quoteSources,
     };
   }
 
   ConfigModel copyWith({
-    String? timerMode,
+    TimerMode? timerMode,
     int? countdownDuration,
-    String? bellStart,
-    String? bellEnd,
-    String? bellInterval,
+    AudioSource? bellStart,
+    AudioSource? bellEnd,
+    AudioSource? bellInterval,
     int? intervalDuration,
     bool? intervalEnabled,
     // Use Object? + _unset sentinel so callers can pass null to clear these
-    // nullable fields.  String? would make null indistinguishable from "omitted".
+    // nullable fields.  AudioSource? would make null indistinguishable from
+    // "omitted".
     Object? backgroundMusic = _unset,
     bool? calendarViewEnabled,
     Object? userName = _unset,
-    String? themeMode,
-    String? language,
+    AppThemeMode? themeMode,
+    AppLanguage? language,
     List<String>? tags,
     List<String>? quoteSources,
   }) {
     assert(
       identical(backgroundMusic, _unset) ||
           backgroundMusic == null ||
-          backgroundMusic is String,
-      'backgroundMusic must be String or null',
+          backgroundMusic is AudioSource,
+      'backgroundMusic must be AudioSource or null',
     );
     assert(
       identical(userName, _unset) || userName == null || userName is String,
@@ -189,7 +212,7 @@ class ConfigModel {
       intervalEnabled: intervalEnabled ?? this.intervalEnabled,
       backgroundMusic: identical(backgroundMusic, _unset)
           ? this.backgroundMusic
-          : backgroundMusic as String?,
+          : backgroundMusic as AudioSource?,
       calendarViewEnabled: calendarViewEnabled ?? this.calendarViewEnabled,
       userName: identical(userName, _unset)
           ? this.userName
@@ -208,10 +231,9 @@ class ConfigModel {
   /// Call this whenever loading config from an external source (import, sync,
   /// QR restore) that may contain file paths from a different device.
   ConfigModel sanitizeForDevice() => copyWith(
-        bellStart: bellStart.startsWith('custom:') ? defaultBellStart : bellStart,
-        bellEnd: bellEnd.startsWith('custom:') ? defaultBellEnd : bellEnd,
-        bellInterval:
-            bellInterval.startsWith('custom:') ? defaultBellInterval : bellInterval,
+        bellStart: bellStart.isCustom ? defaultBellStart : bellStart,
+        bellEnd: bellEnd.isCustom ? defaultBellEnd : bellEnd,
+        bellInterval: bellInterval.isCustom ? defaultBellInterval : bellInterval,
         backgroundMusic: null,
       );
 }

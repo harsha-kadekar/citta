@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/app_theme_mode.dart';
 
 class AppColors {
   // Earthy, calm palette (light mode)
@@ -354,14 +355,13 @@ class AppTheme {
     );
   }
 
-  static ThemeMode themeMode(String mode) {
+  static ThemeMode themeMode(AppThemeMode mode) {
     switch (mode) {
-      case 'light':
+      case AppThemeMode.light:
         return ThemeMode.light;
-      case 'system':
+      case AppThemeMode.system:
         return ThemeMode.system;
-      case 'dark':
-      default:
+      case AppThemeMode.dark:
         return ThemeMode.dark;
     }
   }

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:citta/models/session_model.dart';
+import 'package:citta/models/timer_mode.dart';
 import 'package:citta/providers/app_state.dart';
 import 'package:citta/services/audio_service.dart';
 import 'package:citta/services/quote_service.dart';
@@ -107,7 +108,7 @@ void main() {
         final recovered = appState.sessions.first;
         expect(recovered.id, 'interrupted-1');
         expect(recovered.duration, 300);
-        expect(recovered.timerMode, 'countdown');
+        expect(recovered.timerMode, TimerMode.countdown);
         expect(recovered.completedFully, isFalse);
 
         // Marker must be cleared after recovery
@@ -172,7 +173,7 @@ void main() {
             id: 'prior-session',
             date: DateTime.utc(2024, 6, 1),
             duration: 900,
-            timerMode: 'stopwatch',
+            timerMode: TimerMode.stopwatch,
           ),
         ]);
 
@@ -217,7 +218,7 @@ void main() {
             id: 'already-saved',
             date: DateTime.utc(2024, 6, 14),
             duration: 600,
-            timerMode: 'countdown',
+            timerMode: TimerMode.countdown,
           ),
         ]);
 
@@ -255,7 +256,7 @@ void main() {
         id: 'test-id',
         startDate: DateTime.utc(2024, 6, 15),
         elapsedSeconds: 450,
-        timerMode: 'stopwatch',
+        timerMode: TimerMode.stopwatch,
         targetDuration: 0,
       );
 
@@ -273,7 +274,7 @@ void main() {
         id: 'to-clear',
         startDate: DateTime.utc(2024, 6, 15),
         elapsedSeconds: 100,
-        timerMode: 'countdown',
+        timerMode: TimerMode.countdown,
         targetDuration: 600,
       );
 

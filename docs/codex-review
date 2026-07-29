@@ -393,3 +393,34 @@ No code-review findings in the current revision.
   - Result: passes (151 tests).
 - Ran `flutter analyze lib/providers/app_state.dart lib/services/storage_service.dart lib/services/quote_service.dart lib/main.dart lib/screens/settings lib/screens/stats_screen.dart test/providers/app_state_caching_test.dart test/services/storage_service_test.dart test/services/quote_service_test.dart test/screens/settings/settings_sections_test.dart`.
   - Result: passes.
+
+
+---
+
+## Review: issue #41 — Replace stringly-typed domain fields with enums/value objects
+
+## Findings
+
+No code-review findings in the current revision.
+
+The new `TimerMode`, `AppThemeMode`, `AppLanguage`, and `AudioSource` domain
+types replace the affected raw-string fields in `ConfigModel` and
+`SessionModel`. Their storage adapters retain the existing serialized values,
+including legacy unprefixed background-music paths. UI and service consumers
+now receive the typed values directly, removing the duplicated string parsing
+and branching described in the issue.
+
+## Verification
+
+- Reviewed issue `#41` through `gh api repos/harsha-kadekar/citta/issues/41`.
+- Inspected the local refactor across domain models, config/session
+  serialization, AppState, audio/timer services, and settings/home UI
+  consumers.
+- Searched all `TimerMode`, `AppThemeMode`, `AppLanguage`, `AudioSource`, and
+  affected audio/config call sites in `lib` and `test`.
+- Ran `flutter test test/models test/services/audio_service_test.dart test/screens/settings/settings_sections_test.dart`.
+  - Result: passes (162 tests).
+- Ran `flutter analyze lib test/models test/services/audio_service_test.dart test/screens/settings/settings_sections_test.dart`.
+  - Result: passes.
+- Ran `flutter test`.
+  - Result: passes (427 tests).

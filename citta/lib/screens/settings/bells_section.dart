@@ -3,18 +3,18 @@ import 'package:provider/provider.dart';
 import 'package:citta/l10n/app_localizations.dart';
 import '../../providers/app_state.dart';
 import '../../services/audio_service.dart';
+import '../../models/audio_source.dart';
 import '../../theme/app_theme.dart';
 import 'audio_picker.dart';
 import 'settings_widgets.dart';
 
-String bellDisplayName(String bellId) {
-  if (bellId == 'none') return 'None';
-  if (bellId.startsWith('bundled:')) {
-    final name = bellId.substring(8);
+String bellDisplayName(AudioSource bellId) {
+  if (bellId.isNone) return 'None';
+  if (bellId.isBundled) {
+    final name = bellId.bundledName!;
     return AudioService.soundDisplayNames[name] ?? name;
   }
-  if (bellId.startsWith('custom:')) return 'Custom file';
-  return bellId;
+  return 'Custom file';
 }
 
 class BellsSection extends StatelessWidget {
@@ -31,7 +31,7 @@ class BellsSection extends StatelessWidget {
         SettingsTile(
           title: l10n.settingsStartBell,
           subtitle: bellDisplayName(config.bellStart),
-          trailing: config.bellStart == 'none'
+          trailing: config.bellStart.isNone
               ? null
               : IconButton(
                   icon: const Icon(Icons.play_circle_outline, size: 20),
@@ -47,7 +47,7 @@ class BellsSection extends StatelessWidget {
         SettingsTile(
           title: l10n.settingsEndBell,
           subtitle: bellDisplayName(config.bellEnd),
-          trailing: config.bellEnd == 'none'
+          trailing: config.bellEnd.isNone
               ? null
               : IconButton(
                   icon: const Icon(Icons.play_circle_outline, size: 20),
@@ -80,7 +80,7 @@ class BellsSection extends StatelessWidget {
           SettingsTile(
             title: l10n.settingsIntervalSound,
             subtitle: bellDisplayName(config.bellInterval),
-            trailing: config.bellInterval == 'none'
+            trailing: config.bellInterval.isNone
                 ? null
                 : IconButton(
                     icon: const Icon(Icons.play_circle_outline, size: 20),
@@ -100,8 +100,13 @@ class BellsSection extends StatelessWidget {
     );
   }
 
-  void _showBellPicker(BuildContext context, AppState appState, String title,
-      String currentValue, Function(String) onSelect, AppLocalizations l10n) {
+  void _showBellPicker(
+      BuildContext context,
+      AppState appState,
+      String title,
+      AudioSource currentValue,
+      Function(AudioSource) onSelect,
+      AppLocalizations l10n) {
     showDialog(
       context: context,
       builder: (context) => SimpleDialog(
@@ -109,21 +114,21 @@ class BellsSection extends StatelessWidget {
         children: [
           SimpleDialogOption(
             onPressed: () {
-              onSelect('none');
+              onSelect(AudioSource.none);
               Navigator.pop(context);
             },
             child: Text(
               l10n.settingsBellNone,
               style: TextStyle(
-                fontWeight: currentValue == 'none'
+                fontWeight: currentValue.isNone
                     ? FontWeight.w600
                     : FontWeight.w400,
-                color: currentValue == 'none' ? AppColors.primary : null,
+                color: currentValue.isNone ? AppColors.primary : null,
               ),
             ),
           ),
           ...AudioService.bundledSounds.entries.map((entry) {
-            final bellId = 'bundled:${entry.key}';
+            final bellId = AudioSource.bundled(entry.key);
             return SimpleDialogOption(
               onPressed: () {
                 onSelect(bellId);

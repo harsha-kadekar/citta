@@ -1,8 +1,10 @@
+import 'timer_mode.dart';
+
 class SessionModel {
   final String id;
   final DateTime date;
   final int duration; // seconds
-  final String timerMode;
+  final TimerMode timerMode;
   final String? notes;
   final List<String> tags;
   final bool completedFully;
@@ -22,7 +24,7 @@ class SessionModel {
       id: json['id'] as String,
       date: DateTime.parse(json['date'] as String),
       duration: json['duration'] as int,
-      timerMode: json['timerMode'] as String,
+      timerMode: TimerModeStorage.fromStorageString(json['timerMode'] as String?),
       notes: json['notes'] as String?,
       tags: (json['tags'] as List<dynamic>?)
               ?.map((e) => e as String)
@@ -37,7 +39,7 @@ class SessionModel {
       'id': id,
       'date': date.toUtc().toIso8601String(),
       'duration': duration,
-      'timerMode': timerMode,
+      'timerMode': timerMode.toStorageString(),
       'notes': notes,
       'tags': tags,
       'completedFully': completedFully,
@@ -48,7 +50,7 @@ class SessionModel {
     String? id,
     DateTime? date,
     int? duration,
-    String? timerMode,
+    TimerMode? timerMode,
     String? notes,
     List<String>? tags,
     bool? completedFully,

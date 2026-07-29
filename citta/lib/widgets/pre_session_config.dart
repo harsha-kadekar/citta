@@ -26,10 +26,7 @@ class PreSessionConfig extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveMode = adHocMode ??
-        (config.timerMode == 'stopwatch'
-            ? TimerMode.stopwatch
-            : TimerMode.countdown);
+    final effectiveMode = adHocMode ?? config.timerMode;
     final effectiveDuration = adHocDuration ?? config.countdownDuration;
     final l10n = AppLocalizations.of(context)!;
 

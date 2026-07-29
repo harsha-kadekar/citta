@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import 'package:citta/l10n/app_localizations.dart';
 import 'package:citta/models/config_model.dart';
 import 'package:citta/models/session_model.dart';
+import 'package:citta/models/timer_mode.dart';
 import 'package:citta/providers/app_state.dart';
 import 'package:citta/screens/stats_screen.dart';
 import 'package:citta/services/audio_service.dart';
@@ -70,7 +71,7 @@ SessionModel _session(String id, {DateTime? date}) => SessionModel(
       id: id,
       date: date ?? DateTime.utc(2024, 6, 1),
       duration: 600,
-      timerMode: 'countdown',
+      timerMode: TimerMode.countdown,
       completedFully: true,
     );
 
@@ -155,7 +156,7 @@ void main() {
       expect(find.text('1'), findsWidgets);
 
       await tester.runAsync(() => appState.updateConfig(
-            appState.config.copyWith(timerMode: 'stopwatch'),
+            appState.config.copyWith(timerMode: TimerMode.stopwatch),
           ));
       await tester.pump();
 
