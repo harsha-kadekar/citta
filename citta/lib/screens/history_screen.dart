@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:citta/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
@@ -76,92 +77,106 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final allTags =
-        context.select<AppState, List<String>>((s) => s.config.tags);
-    final sortedSessions =
-        context.select<AppState, List<SessionModel>>((s) => s.sortedSessions);
+    // config.tags is a plain List<String>, which has no value equality of its
+    // own, so a Selector with an explicit content-based shouldRebuild is used
+    // here instead of context.select — the latter requires the selected value
+    // to implement == to avoid rebuilding on every config change, not just
+    // tag changes.
+    return Selector<AppState, List<String>>(
+      selector: (_, s) => s.config.tags,
+      shouldRebuild: (previous, next) => !listEquals(previous, next),
+      builder: (context, allTags, _) {
+        final sortedSessions = context
+            .select<AppState, List<SessionModel>>((s) => s.sortedSessions);
 
-    // Drop any selected tags that no longer exist in config so a deleted tag
-    // never leaves an invisible active filter.  Mutating the set directly here
-    // (no setState) is safe: this build frame already incorporates the update.
-    _selectedFilterTags.retainAll(allTags);
+        // Drop any selected tags that no longer exist in config so a deleted
+        // tag never leaves an invisible active filter.  Mutating the set
+        // directly here (no setState) is safe: this build frame already
+        // incorporates the update.
+        _selectedFilterTags.retainAll(allTags);
 
-    final sessions = _selectedFilterTags.isEmpty
-        ? sortedSessions
-        : sortedSessions
-            .where((s) => _selectedFilterTags.any((t) => s.tags.contains(t)))
-            .toList();
+        final sessions = _selectedFilterTags.isEmpty
+            ? sortedSessions
+            : sortedSessions
+                .where((s) => _selectedFilterTags.any((t) => s.tags.contains(t)))
+                .toList();
 
-    return Scaffold(
-      appBar: AppBar(
-        title: _selectionMode
-            ? Text(l10n.historySelected(_selectedSessionIds.length))
-            : Text(l10n.historyTitle),
-        leading: _selectionMode
-            ? IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: _exitSelectionMode,
-              )
-            : null,
-        actions: [
-          if (_selectionMode)
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              onPressed: _selectedSessionIds.isNotEmpty ? _deleteSelected : null,
-            ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Tag filter
-          if (allTags.isNotEmpty)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              width: double.infinity,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    _buildFilterChip(context, l10n.historyFilterAll, _selectedFilterTags.isEmpty, () {
-                      setState(() => _selectedFilterTags.clear());
-                    }),
-                    const SizedBox(width: 8),
-                    ...allTags.map((tag) => Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: _buildFilterChip(
-                            context,
-                            tag,
-                            _selectedFilterTags.contains(tag),
-                            () {
-                              setState(() {
-                                if (_selectedFilterTags.contains(tag)) {
-                                  _selectedFilterTags.remove(tag);
-                                } else {
-                                  _selectedFilterTags.add(tag);
-                                }
-                              });
-                            },
-                          ),
-                        )),
-                  ],
+        return Scaffold(
+          appBar: AppBar(
+            title: _selectionMode
+                ? Text(l10n.historySelected(_selectedSessionIds.length))
+                : Text(l10n.historyTitle),
+            leading: _selectionMode
+                ? IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: _exitSelectionMode,
+                  )
+                : null,
+            actions: [
+              if (_selectionMode)
+                IconButton(
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed:
+                      _selectedSessionIds.isNotEmpty ? _deleteSelected : null,
                 ),
-              ),
-            ),
-          // Session list
-          Expanded(
-            child: sessions.isEmpty
-                ? _buildEmptyState(context, l10n)
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
-                    itemCount: sessions.length,
-                    itemBuilder: (context, index) {
-                      return _buildSessionCard(context, sessions[index], l10n);
-                    },
-                  ),
+            ],
           ),
-        ],
-      ),
+          body: Column(
+            children: [
+              // Tag filter
+              if (allTags.isNotEmpty)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  width: double.infinity,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildFilterChip(context, l10n.historyFilterAll,
+                            _selectedFilterTags.isEmpty, () {
+                          setState(() => _selectedFilterTags.clear());
+                        }),
+                        const SizedBox(width: 8),
+                        ...allTags.map((tag) => Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: _buildFilterChip(
+                                context,
+                                tag,
+                                _selectedFilterTags.contains(tag),
+                                () {
+                                  setState(() {
+                                    if (_selectedFilterTags.contains(tag)) {
+                                      _selectedFilterTags.remove(tag);
+                                    } else {
+                                      _selectedFilterTags.add(tag);
+                                    }
+                                  });
+                                },
+                              ),
+                            )),
+                      ],
+                    ),
+                  ),
+                ),
+              // Session list
+              Expanded(
+                child: sessions.isEmpty
+                    ? _buildEmptyState(context, l10n)
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        itemCount: sessions.length,
+                        itemBuilder: (context, index) {
+                          return _buildSessionCard(
+                              context, sessions[index], l10n);
+                        },
+                      ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

@@ -424,3 +424,26 @@ and branching described in the issue.
   - Result: passes.
 - Ran `flutter test`.
   - Result: passes (427 tests).
+
+---
+
+## Review: issue #42 — Add value equality to models and remove identity-based rebuild workarounds
+
+## Findings
+
+No code-review findings in the current revision.
+
+`ConfigModel`, `SessionModel`, and `QuoteModel` now have field-complete value
+equality and compatible hash codes. Collection fields are defensively copied
+and compared by content, while `AppState.mutateConfig` uses value equality for
+its no-op fast path. The History screen retains efficient tag filtering with an
+explicit content-based selector, avoiding reliance on list identity.
+
+## Verification
+
+- Reviewed issue `#42` through `gh api repos/harsha-kadekar/citta/issues/42`.
+- Inspected the local model, AppState, History screen, and corresponding test
+  changes.
+- Ran `flutter test test/models test/providers/app_state_tags_test.dart test/screens/history_screen_test.dart`.
+  - Result: passes (140 tests).
+- Ran `flutter analyze lib/models lib/providers/app_state.dart lib/screens/history_screen.dart test/models test/providers/app_state_tags_test.dart test/screens/history_screen_test.dart`.

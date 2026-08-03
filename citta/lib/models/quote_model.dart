@@ -40,4 +40,28 @@ class QuoteModel {
       'userAdded': userAdded,
     };
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is QuoteModel &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          source == other.source &&
+          reference == other.reference &&
+          originalText == other.originalText &&
+          originalLanguage == other.originalLanguage &&
+          translation == other.translation &&
+          userAdded == other.userAdded;
+
+  @override
+  int get hashCode => Object.hash(
+        id,
+        source,
+        reference,
+        originalText,
+        originalLanguage,
+        translation,
+        userAdded,
+      );
 }

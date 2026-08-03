@@ -3,6 +3,7 @@
 // (keep the existing value).  A named private class makes the sentinel
 // unforgeable from outside this library — unlike `const Object()`, external
 // code cannot construct a `_Unset` and accidentally trigger the sentinel path.
+import 'package:flutter/foundation.dart' show listEquals;
 import 'timer_mode.dart';
 import 'app_theme_mode.dart';
 import 'app_language.dart';
@@ -51,8 +52,10 @@ class ConfigModel {
   final AppThemeMode themeMode;
   final AppLanguage language;
 
-  // Public constructor: always wraps caller-supplied lists as unmodifiable so
-  // external mutations cannot corrupt stored state.
+  // Wraps caller-supplied lists as unmodifiable so external mutations cannot
+  // corrupt stored state. Equality (see ==/hashCode below) compares tags and
+  // quoteSources by content, so rebuild-avoidance in selectors no longer
+  // depends on reusing a particular list reference here.
   ConfigModel({
     this.timerMode = defaultTimerMode,
     this.countdownDuration = defaultCountdownDuration,
@@ -68,56 +71,8 @@ class ConfigModel {
     this.language = defaultLanguage,
     List<String>? tags,
     List<String>? quoteSources,
-  // When the caller omits tags/quoteSources, reuse the const references
-  // directly so that context.select() equality checks on these lists remain
-  // stable across repeated loadConfig() calls.  Only wrap in List.unmodifiable
-  // when the caller supplies an explicit (mutable) list.
-  })  : tags = tags != null ? List.unmodifiable(tags) : defaultTags,
-        quoteSources =
-            quoteSources != null ? List.unmodifiable(quoteSources) : defaultQuoteSources;
-
-  // Private constructor used by copyWith: accepts pre-validated list references
-  // directly without re-wrapping, so the caller can preserve the same reference
-  // and context.select() equality checks work correctly.
-  // CONTRACT: callers must pass already-unmodifiable lists for tags and
-  // quoteSources — this constructor does NOT wrap them.
-  ConfigModel._internal({
-    required this.timerMode,
-    required this.countdownDuration,
-    required this.bellStart,
-    required this.bellEnd,
-    required this.bellInterval,
-    required this.intervalDuration,
-    required this.intervalEnabled,
-    required this.backgroundMusic,
-    required this.calendarViewEnabled,
-    required this.userName,
-    required this.themeMode,
-    required this.language,
-    required this.tags,
-    required this.quoteSources,
-  }) {
-    // Verify immutability without mutating: setting list[i]=list[i] writes the
-    // same value back (no observable state change) but throws UnsupportedError
-    // on unmodifiable lists, which is what we require.
-    assert(() {
-      try {
-        if (tags.isNotEmpty) tags[0] = tags[0];
-        return false; // no exception → list is mutable
-      } on UnsupportedError {
-        return true;
-      }
-    }() || tags.isEmpty, '_internal: tags must already be an unmodifiable list');
-    assert(() {
-      try {
-        if (quoteSources.isNotEmpty) quoteSources[0] = quoteSources[0];
-        return false;
-      } on UnsupportedError {
-        return true;
-      }
-    }() || quoteSources.isEmpty,
-        '_internal: quoteSources must already be an unmodifiable list');
-  }
+  })  : tags = List.unmodifiable(tags ?? defaultTags),
+        quoteSources = List.unmodifiable(quoteSources ?? defaultQuoteSources);
 
   factory ConfigModel.fromJson(Map<String, dynamic> json) {
     final bellStartJson = json['bellStart'] as String?;
@@ -202,7 +157,7 @@ class ConfigModel {
       identical(userName, _unset) || userName == null || userName is String,
       'userName must be String or null',
     );
-    return ConfigModel._internal(
+    return ConfigModel(
       timerMode: timerMode ?? this.timerMode,
       countdownDuration: countdownDuration ?? this.countdownDuration,
       bellStart: bellStart ?? this.bellStart,
@@ -219,13 +174,48 @@ class ConfigModel {
           : userName as String?,
       themeMode: themeMode ?? this.themeMode,
       language: language ?? this.language,
-      // Preserve the existing reference when unchanged so that context.select()
-      // equality checks skip unnecessary rebuilds.  Wrap in unmodifiable only
-      // when the caller explicitly provides a new list.
-      tags: tags != null ? List.unmodifiable(tags) : this.tags,
-      quoteSources: quoteSources != null ? List.unmodifiable(quoteSources) : this.quoteSources,
+      tags: tags ?? this.tags,
+      quoteSources: quoteSources ?? this.quoteSources,
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ConfigModel &&
+          runtimeType == other.runtimeType &&
+          timerMode == other.timerMode &&
+          countdownDuration == other.countdownDuration &&
+          bellStart == other.bellStart &&
+          bellEnd == other.bellEnd &&
+          bellInterval == other.bellInterval &&
+          intervalDuration == other.intervalDuration &&
+          intervalEnabled == other.intervalEnabled &&
+          backgroundMusic == other.backgroundMusic &&
+          calendarViewEnabled == other.calendarViewEnabled &&
+          userName == other.userName &&
+          themeMode == other.themeMode &&
+          language == other.language &&
+          listEquals(tags, other.tags) &&
+          listEquals(quoteSources, other.quoteSources);
+
+  @override
+  int get hashCode => Object.hash(
+        timerMode,
+        countdownDuration,
+        bellStart,
+        bellEnd,
+        bellInterval,
+        intervalDuration,
+        intervalEnabled,
+        backgroundMusic,
+        calendarViewEnabled,
+        userName,
+        themeMode,
+        language,
+        Object.hashAll(tags),
+        Object.hashAll(quoteSources),
+      );
 
   /// Returns a copy with device-local audio paths replaced by bundled defaults.
   /// Call this whenever loading config from an external source (import, sync,

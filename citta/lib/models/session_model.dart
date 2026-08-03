@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show listEquals;
 import 'timer_mode.dart';
 
 class SessionModel {
@@ -17,7 +18,7 @@ class SessionModel {
     this.notes,
     List<String>? tags,
     this.completedFully = true,
-  }) : tags = tags ?? [];
+  }) : tags = List.unmodifiable(tags ?? const []);
 
   factory SessionModel.fromJson(Map<String, dynamic> json) {
     return SessionModel(
@@ -61,8 +62,32 @@ class SessionModel {
       duration: duration ?? this.duration,
       timerMode: timerMode ?? this.timerMode,
       notes: notes ?? this.notes,
-      tags: tags ?? List.from(this.tags),
+      tags: tags ?? this.tags,
       completedFully: completedFully ?? this.completedFully,
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SessionModel &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          date == other.date &&
+          duration == other.duration &&
+          timerMode == other.timerMode &&
+          notes == other.notes &&
+          listEquals(tags, other.tags) &&
+          completedFully == other.completedFully;
+
+  @override
+  int get hashCode => Object.hash(
+        id,
+        date,
+        duration,
+        timerMode,
+        notes,
+        Object.hashAll(tags),
+        completedFully,
+      );
 }
