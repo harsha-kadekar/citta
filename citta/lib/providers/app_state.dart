@@ -140,12 +140,18 @@ class AppState extends ChangeNotifier {
   ///
   /// While no import is active ([_activeImportCount] is 0), [transform] is
   /// first tried speculatively against the cached [_config] so a genuine
-  /// no-op (e.g. adding a tag that's already present) skips storage
-  /// entirely and preserves [_config]'s identity — Selector-based widgets
-  /// rely on that to avoid rebuilding. That speculative check is skipped
-  /// entirely whenever at least one import is active — [_config] may be
-  /// stale relative to an import that hasn't finished resyncing yet, so
-  /// e.g. addTag("a") must not be short-circuited as a no-op just because
+  /// no-op (e.g. adding a tag that's already present, or setting a field to
+  /// its current value) skips the storage round-trip and notifyListeners
+  /// call entirely. The no-op check compares by value (==), not identity:
+  /// [transform] always allocates a new ConfigModel via copyWith, so identity
+  /// would never match even when nothing actually changed. This is purely an
+  /// I/O/rebuild-count optimization — context.select/Selector-based widgets
+  /// have their own value-equality checks and would correctly skip rebuilding
+  /// even without this fast path, just via a redundant load+save. That
+  /// speculative check is skipped entirely whenever at least one import is
+  /// active — [_config]
+  /// may be stale relative to an import that hasn't finished resyncing yet,
+  /// so e.g. addTag("a") must not be short-circuited as a no-op just because
   /// the *stale* cache already had "a", when the import in flight is about
   /// to remove it (or vice versa for removeTag). Only when it would
   /// actually change something (or an import might be active) does this
@@ -157,7 +163,7 @@ class AppState extends ChangeNotifier {
   ) async {
     if (_activeImportCount == 0) {
       final speculative = transform(_config);
-      if (identical(speculative, _config)) return;
+      if (speculative == _config) return;
     }
 
     _config = await storageService.runExclusive(() async {

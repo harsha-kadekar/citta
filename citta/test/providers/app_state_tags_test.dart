@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:citta/models/app_language.dart';
 import 'package:citta/providers/app_state.dart';
 import 'package:citta/services/audio_service.dart';
 import 'package:citta/services/quote_service.dart';
@@ -164,6 +165,44 @@ void main() {
       final tagsBefore = List<String>.from(appState.config.tags);
       await appState.removeTag('nonexistent_tag_xyz');
       expect(appState.config.tags, equals(tagsBefore));
+    });
+  });
+
+  group('AppState.mutateConfig no-op fast path uses value equality', () {
+    late Directory tmpDir;
+    late AppState appState;
+
+    setUp(() async {
+      tmpDir = Directory.systemTemp.createTempSync('citta_mutate_config_test_');
+      appState = await _makeAndInit(tmpDir.path);
+    });
+
+    tearDown(() => tmpDir.deleteSync(recursive: true));
+
+    test('setLanguage with the current language leaves config reference unchanged',
+        () async {
+      final currentLanguage = appState.config.language;
+      final before = appState.config;
+      await appState.setLanguage(currentLanguage);
+      expect(
+        identical(before, appState.config),
+        isTrue,
+        reason: 'setLanguage always goes through copyWith, which allocates a '
+            'new ConfigModel instance; the no-op fast path must recognize '
+            'this as a true no-op via value equality (==), not reference '
+            'identity, since copyWith never returns the same instance',
+      );
+    });
+
+    test('setLanguage with a different language changes config reference',
+        () async {
+      final otherLanguage = appState.config.language == AppLanguage.system
+          ? AppLanguage.english
+          : AppLanguage.system;
+      final before = appState.config;
+      await appState.setLanguage(otherLanguage);
+      expect(identical(before, appState.config), isFalse);
+      expect(appState.config.language, equals(otherLanguage));
     });
   });
 }

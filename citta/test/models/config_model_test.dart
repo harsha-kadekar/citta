@@ -6,38 +6,33 @@ import 'package:citta/models/app_language.dart';
 import 'package:citta/models/audio_source.dart';
 
 void main() {
-  group('ConfigModel.copyWith list-reference stability', () {
-    test('copyWith preserves tags reference when tags not changed', () {
+  group('ConfigModel copyWith produces value-equal results', () {
+    test('copyWith with an unrelated field change is still == in tags/quoteSources content', () {
       final config = ConfigModel(tags: ['calm', 'deep']);
       final updated = config.copyWith(calendarViewEnabled: true);
       expect(
-        identical(config.tags, updated.tags),
-        isTrue,
-        reason: 'context.select() uses reference equality for lists; '
-            'creating a new list on every copyWith defeats selective rebuilds',
+        updated.tags,
+        equals(config.tags),
+        reason: 'unrelated copyWith calls must not alter tags content',
       );
     });
 
-    test('copyWith preserves quoteSources reference when quoteSources not changed', () {
+    test('copyWith with an unrelated field change leaves the whole config unequal '
+        'only in the changed field', () {
       final config = ConfigModel();
       final updated = config.copyWith(themeMode: AppThemeMode.light);
-      expect(
-        identical(config.quoteSources, updated.quoteSources),
-        isTrue,
-        reason: 'same as tags — preserve reference to avoid spurious rebuilds',
-      );
+      expect(updated == config, isFalse,
+          reason: 'themeMode differs, so the configs must not be value-equal');
+      expect(updated.quoteSources, equals(config.quoteSources));
     });
 
-    test('copyWith replaces tags reference when tags explicitly provided', () {
+    test('copyWith replaces tags content when tags explicitly provided', () {
       final config = ConfigModel(tags: ['calm']);
       final newTags = ['calm', 'deep'];
       final updated = config.copyWith(tags: newTags);
-      expect(
-        identical(config.tags, updated.tags),
-        isFalse,
-        reason: 'when tags are explicitly updated, a new list must be used',
-      );
       expect(updated.tags, equals(['calm', 'deep']));
+      expect(updated == config, isFalse,
+          reason: 'tags content changed, so the configs must not be value-equal');
     });
   });
 
@@ -119,57 +114,121 @@ void main() {
     });
   });
 
-  group('ConfigModel default-constructor list reference identity', () {
-    test('ConfigModel() tags is identical to defaultTags const', () {
-      final config = ConfigModel();
-      expect(
-        identical(config.tags, ConfigModel.defaultTags),
-        isTrue,
-        reason: 'no-arg constructor must reuse the const reference so that two '
-            'default ConfigModels produced by loadConfig() share the same '
-            'tags object and context.select() does not fire spuriously',
-      );
-    });
-
-    test('ConfigModel() quoteSources is identical to defaultQuoteSources const', () {
-      final config = ConfigModel();
-      expect(
-        identical(config.quoteSources, ConfigModel.defaultQuoteSources),
-        isTrue,
-        reason: 'same rationale as tags — preserve the const reference',
-      );
-    });
-
-    test('two consecutive ConfigModel() instances share the same tags reference', () {
+  group('ConfigModel value equality', () {
+    test('two default ConfigModel() instances are == even though not identical', () {
       final a = ConfigModel();
       final b = ConfigModel();
-      expect(
-        identical(a.tags, b.tags),
-        isTrue,
-        reason: 'repeated no-arg construction must not allocate fresh lists '
-            'on every call or context.select will rebuild on every loadConfig',
-      );
+      expect(identical(a, b), isFalse);
+      expect(a == b, isTrue,
+          reason: 'proper value semantics must not depend on reference identity');
+      expect(a.hashCode, equals(b.hashCode));
     });
 
-    test('ConfigModel() then copyWith without tags preserves the const reference', () {
-      final config = ConfigModel();
-      final updated = config.copyWith(themeMode: AppThemeMode.light);
-      expect(
-        identical(updated.tags, ConfigModel.defaultTags),
-        isTrue,
-        reason: 'copyWith already preserves this.tags; the const reference '
-            'must flow through correctly',
-      );
+    test('two configs with same tags content but different list instances are ==', () {
+      final a = ConfigModel(tags: ['calm', 'deep']);
+      final b = ConfigModel(tags: ['calm', 'deep']);
+      expect(identical(a.tags, b.tags), isFalse);
+      expect(a == b, isTrue,
+          reason: 'tags equality must be content-based (listEquals), not reference-based');
+      expect(a.hashCode, equals(b.hashCode));
     });
 
-    test('ConfigModel.fromJson with no tags key preserves defaultTags reference', () {
+    test('configs differing only in tags content are not ==', () {
+      final a = ConfigModel(tags: ['calm']);
+      final b = ConfigModel(tags: ['calm', 'deep']);
+      expect(a == b, isFalse);
+    });
+
+    test('configs differing only in quoteSources content are not ==', () {
+      final a = ConfigModel(quoteSources: ['subhashita']);
+      final b = ConfigModel(quoteSources: ['subhashita', 'yoga_sutra']);
+      expect(a == b, isFalse);
+    });
+
+    test('configs differing only in themeMode are not ==', () {
+      final a = ConfigModel(themeMode: AppThemeMode.dark);
+      final b = ConfigModel(themeMode: AppThemeMode.light);
+      expect(a == b, isFalse);
+    });
+
+    test('configs differing only in userName are not ==', () {
+      final a = ConfigModel(userName: 'Alice');
+      final b = ConfigModel(userName: 'Bob');
+      expect(a == b, isFalse);
+    });
+
+    test('configs differing only in backgroundMusic are not ==', () {
+      final a = ConfigModel();
+      final b = ConfigModel(backgroundMusic: const AudioSource.custom('/music/a.mp3'));
+      expect(a == b, isFalse);
+    });
+
+    test('configs differing only in timerMode are not ==', () {
+      final a = ConfigModel(timerMode: TimerMode.countdown);
+      final b = ConfigModel(timerMode: TimerMode.stopwatch);
+      expect(a == b, isFalse);
+    });
+
+    test('configs differing only in countdownDuration are not ==', () {
+      final a = ConfigModel(countdownDuration: 300);
+      final b = ConfigModel(countdownDuration: 600);
+      expect(a == b, isFalse);
+    });
+
+    test('configs differing only in bellStart are not ==', () {
+      final a = ConfigModel(bellStart: const AudioSource.bundled('bright_tibetan_bell'));
+      final b = ConfigModel(bellStart: const AudioSource.bundled('singing_bell'));
+      expect(a == b, isFalse);
+    });
+
+    test('configs differing only in bellEnd are not ==', () {
+      final a = ConfigModel(bellEnd: const AudioSource.bundled('bell_meditation'));
+      final b = ConfigModel(bellEnd: const AudioSource.bundled('singing_bell'));
+      expect(a == b, isFalse);
+    });
+
+    test('configs differing only in bellInterval are not ==', () {
+      final a = ConfigModel(bellInterval: const AudioSource.bundled('singing_bell'));
+      final b = ConfigModel(bellInterval: AudioSource.none);
+      expect(a == b, isFalse);
+    });
+
+    test('configs differing only in intervalDuration are not ==', () {
+      final a = ConfigModel(intervalDuration: 300);
+      final b = ConfigModel(intervalDuration: 600);
+      expect(a == b, isFalse);
+    });
+
+    test('configs differing only in intervalEnabled are not ==', () {
+      final a = ConfigModel(intervalEnabled: false);
+      final b = ConfigModel(intervalEnabled: true);
+      expect(a == b, isFalse);
+    });
+
+    test('configs differing only in calendarViewEnabled are not ==', () {
+      final a = ConfigModel(calendarViewEnabled: false);
+      final b = ConfigModel(calendarViewEnabled: true);
+      expect(a == b, isFalse);
+    });
+
+    test('configs differing only in language are not ==', () {
+      final a = ConfigModel(language: AppLanguage.system);
+      final b = ConfigModel(language: AppLanguage.english);
+      expect(a == b, isFalse);
+    });
+
+    test('ConfigModel.fromJson with no tags key produces a config == to the default', () {
       final config = ConfigModel.fromJson(<String, dynamic>{});
-      expect(
-        identical(config.tags, ConfigModel.defaultTags),
-        isTrue,
-        reason: 'fromJson must not allocate a fresh list when the tags key '
-            'is absent — this is the most common cold-start path',
-      );
+      expect(config == ConfigModel(), isTrue,
+          reason: 'value equality, not reference reuse, is what keeps repeated '
+              'loadConfig() calls from looking like a change');
+    });
+
+    test('copyWith producing the same values as the original is == to the original', () {
+      final config = ConfigModel(tags: ['calm', 'deep']);
+      final updated = config.copyWith(tags: ['calm', 'deep']);
+      expect(identical(config, updated), isFalse);
+      expect(config == updated, isTrue);
     });
   });
 
