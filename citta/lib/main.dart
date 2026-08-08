@@ -9,8 +9,7 @@ import 'services/storage_service.dart';
 import 'services/quote_service.dart';
 import 'services/audio_service.dart';
 import 'services/stats_service.dart';
-import 'screens/splash_screen.dart';
-import 'screens/main_shell.dart';
+import 'screens/app_root.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -50,90 +49,9 @@ class CittaApp extends StatelessWidget {
               FallbackCupertinoLocalizationsDelegate(),
             ],
             supportedLocales: AppLocalizations.supportedLocales,
-            home: const _AppRoot(),
+            home: const AppRoot(),
           );
         },
-      ),
-    );
-  }
-}
-
-class _AppRoot extends StatefulWidget {
-  const _AppRoot();
-
-  @override
-  State<_AppRoot> createState() => _AppRootState();
-}
-
-class _AppRootState extends State<_AppRoot> {
-  bool _showSplash = true;
-  bool _hasPromptedName = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final appState = context.watch<AppState>();
-    final l10n = AppLocalizations.of(context)!;
-
-    if (appState.isLoading) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-
-    // Prompt for name on first launch
-    if (!_hasPromptedName && appState.config.userName == null) {
-      _hasPromptedName = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showNamePrompt(context, appState, l10n);
-      });
-    }
-
-    if (_showSplash) {
-      return SplashScreen(
-        quote: appState.quoteService.todayQuote,
-        userName: appState.config.userName,
-        onDismiss: () => setState(() => _showSplash = false),
-      );
-    }
-
-    return const MainShell();
-  }
-
-  void _showNamePrompt(BuildContext context, AppState appState, AppLocalizations l10n) {
-    final controller = TextEditingController();
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.welcomeTitle),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(
-            hintText: l10n.welcomeNameHint,
-          ),
-          textCapitalization: TextCapitalization.words,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.actionSkip),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final name = controller.text.trim();
-              if (name.isNotEmpty) {
-                appState.mutateConfig(
-                  (current) => current.copyWith(userName: name),
-                );
-              }
-              Navigator.pop(context);
-            },
-            child: Text(l10n.actionContinue),
-          ),
-        ],
       ),
     );
   }
