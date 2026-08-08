@@ -24,13 +24,13 @@ class SplashScreen extends StatelessWidget {
       onTap: onDismiss,
       child: Scaffold(
         body: SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const Spacer(flex: 2),
+                const SizedBox(height: 32),
                 // Namaskara greeting
                 Text(
                   userName != null
@@ -98,7 +98,7 @@ class SplashScreen extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                 ],
-                const Spacer(flex: 3),
+                const SizedBox(height: 32),
                 // Tap to dismiss hint
                 Text(
                   l10n.splashTapToBegin,
