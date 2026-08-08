@@ -477,3 +477,34 @@ through the extraction.
   - Result: the issue-related tests passed, but three unrelated widget tests
     failed because the local runtime cannot decode `shaders/ink_sparkle.frag`
     (runtime-stage format version mismatch: expected 1, got 2).
+
+---
+
+## Review: issue #44 — Clean up app startup flow and avoid side effects during build
+
+## Findings
+
+No code-review findings in the current revision.
+
+`_AppRoot`/`_AppRootState` in `lib/main.dart` moved into a public `AppRoot`
+widget in `lib/screens/app_root.dart`, making it directly testable. The
+first-launch name-prompt trigger is no longer decided inside `build()`;
+`_maybeTriggerNamePrompt()` is invoked once from `initState()` and again from
+an `AppState` listener registered in `initState`/removed in `dispose`, guarded
+by `_namePromptTriggered` so it fires at most once per launch regardless of
+how many times `AppState` notifies afterward. `build()` is now a pure
+function of `isLoading` / `_showSplash` / `config.userName`.
+
+## Verification
+
+- Ran `codex review --uncommitted --title "issue #44: Clean up app startup
+  flow and avoid side effects during build"` against the local diff
+  (`citta/lib/main.dart`, `citta/lib/screens/app_root.dart`,
+  `citta/test/screens/app_root_test.dart`).
+  - Result: "No actionable issues identified."
+- Ran `flutter test test/screens/app_root_test.dart`.
+  - Result: passes (6 tests).
+- Ran `flutter analyze`.
+  - Result: passes, no issues found.
+- Ran the full `flutter test` suite.
+  - Result: passes (499 tests).
