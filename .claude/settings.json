@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter test:*)",
+      "Bash(flutter analyze:*)",
+      "Bash(/home/harsha/.local/share/mise/installs/flutter/3.44.5/bin/flutter test *)",
+      "Bash(/home/harsha/.local/share/mise/installs/flutter/3.44.5/bin/flutter analyze *)",
+      "Bash(mise where:*)"
+    ]
+  }
+}
