@@ -41,6 +41,27 @@ explicit confirmation ("I AUTHORIZE SKIPPING TESTS") rather than quietly skippin
 - Run them via the `flutter-test` skill and confirm they fail for the *right* reason
   (missing behavior, not a typo or compile error).
 - Do not write the implementation yet.
+- **A private root/startup widget you intend to test must become public first.**
+  Dart privacy (`_Foo`) is file-scoped, so a widget like `_AppRoot` embedded in
+  `main.dart` cannot be imported from a test file. If the plan calls for testing
+  it, extract it into its own file under `lib/screens/` (or `lib/widgets/`) as a
+  public class before writing the test.
+- **Widget tests that touch real storage must run outside the fake-async test
+  zone.** Constructing/initializing `AppState` (or anything backed by
+  `StorageService`) performs real `dart:io` file I/O; calling it directly inside
+  a `testWidgets` body — rather than in `setUp()` or wrapped in
+  `tester.runAsync(...)` — hangs the test for its full timeout instead of
+  failing fast, because `tester.pump()` never drains real I/O. The same applies
+  to fire-and-forget async work a tap triggers (e.g. a dialog's `onPressed`
+  calling `appState.mutateConfig(...)` without awaiting it) — wrap the tap
+  itself in `runAsync` too, or the underlying write never completes within the
+  test. `test/screens/home_screen_test.dart`'s `_makeAndInit` doc comment
+  states this rule directly — follow it.
+- If a test run doesn't return within a minute or two, don't keep waiting on the
+  same foreground call: background it (or give it a short intrinsic
+  `testWidgets(..., timeout: const Timeout(Duration(seconds: 20)))`) and add
+  `debugPrint` checkpoints between awaits to localize which one is stuck —
+  usually the `runAsync` issue above — then remove the scaffolding once green.
 
 ## 4. Implement (GREEN)
 
@@ -62,10 +83,16 @@ explicit confirmation ("I AUTHORIZE SKIPPING TESTS") rather than quietly skippin
 
 ## 7. Work through code-review findings — repeat until clean
 
-A review may arrive two ways: the user runs `/code-review` or an external tool and
-asks you to check it, or asks you to read a review artifact (e.g. `docs/codex-review`
-or `docs/codex-review.md` — check both, since either may be the active one for a
-given repo). For each finding:
+A review may arrive several ways: the user runs `/code-review` and asks you to
+check it; asks you to read a review artifact (e.g. `docs/codex-review` or
+`docs/codex-review.md` — check both, since either may be the active one for a
+given repo); or asks you to run the `codex` CLI directly (e.g.
+`codex review --uncommitted --title "issue #<N>: <title>"`, assuming `codex` is
+already authenticated). If asked to log a direct `codex` run into
+`docs/codex-review`, append a new entry in the same format as the existing ones
+— `## Review: issue #<N> — <title>`, then `## Findings`, then `## Verification`,
+separated from the prior entry by a `---` line — rather than pasting the raw CLI
+transcript. For each finding:
 
 1. **Understand the exact failure scenario** the finding describes before touching
    code — don't pattern-match on the summary alone.
