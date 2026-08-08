@@ -447,3 +447,33 @@ explicit content-based selector, avoiding reliance on list identity.
 - Ran `flutter test test/models test/providers/app_state_tags_test.dart test/screens/history_screen_test.dart`.
   - Result: passes (140 tests).
 - Ran `flutter analyze lib/models lib/providers/app_state.dart lib/screens/history_screen.dart test/models test/providers/app_state_tags_test.dart test/screens/history_screen_test.dart`.
+
+---
+
+## Review: issue #43 — Split AppState into smaller focused responsibilities
+
+## Findings
+
+No code-review findings in the current revision.
+
+`AppState` is now a thin notification-facing facade. Bootstrap/recovery,
+config persistence, session state and derived statistics, import lifecycle,
+and import orchestration are separated into focused collaborators while
+preserving the existing public screen-facing API. The import-aware config
+mutation and storage-lock ordering from the preceding import work are carried
+through the extraction.
+
+## Verification
+
+- Reviewed issue `#43` through `gh api repos/harsha-kadekar/citta/issues/43`.
+- Inspected the AppState extraction and all new provider tests, including
+  initialization/recovery, config/session mutations, import resync, and
+  overlapping-import tracking.
+- Ran `flutter test test/providers/app_bootstrapper_test.dart test/providers/config_controller_test.dart test/providers/import_activity_tracker_test.dart test/providers/import_coordinator_test.dart test/providers/session_recovery_service_test.dart test/providers/session_repository_test.dart test/providers/app_state_caching_test.dart`.
+  - Result: passes (50 tests).
+- Ran `flutter analyze lib/providers test/providers/app_bootstrapper_test.dart test/providers/config_controller_test.dart test/providers/import_activity_tracker_test.dart test/providers/import_coordinator_test.dart test/providers/session_recovery_service_test.dart test/providers/session_repository_test.dart`.
+  - Result: passes.
+- Ran the full `flutter test` suite.
+  - Result: the issue-related tests passed, but three unrelated widget tests
+    failed because the local runtime cannot decode `shaders/ink_sparkle.frag`
+    (runtime-stage format version mismatch: expected 1, got 2).
