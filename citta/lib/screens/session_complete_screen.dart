@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:citta/l10n/app_localizations.dart';
 import '../models/session_model.dart';
@@ -15,14 +17,34 @@ class SessionCompleteScreen extends StatefulWidget {
 }
 
 class _SessionCompleteScreenState extends State<SessionCompleteScreen> {
+  Timer? _autoAdvanceTimer;
+  bool _hasAdvanced = false;
+
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 3), _continue);
+    _autoAdvanceTimer = Timer(const Duration(seconds: 3), _continue);
+  }
+
+  @override
+  void dispose() {
+    _autoAdvanceTimer?.cancel();
+    super.dispose();
   }
 
   void _continue() {
-    if (!mounted) return;
+    // Cancelling here (rather than relying on `mounted` alone) closes a race
+    // where a manual tap starts the push-replacement transition but this
+    // widget stays `mounted` until the transition finishes — if the
+    // auto-advance timer were still pending, it could fire mid-transition
+    // and push a second, duplicate NotesScreen.
+    _autoAdvanceTimer?.cancel();
+    // Guards against _continue() itself being re-entered a second time
+    // (e.g. a double-tap on Continue) before the widget unmounts —
+    // `mounted` alone doesn't catch that, since it stays true for as long
+    // as this screen remains in the tree.
+    if (_hasAdvanced || !mounted) return;
+    _hasAdvanced = true;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (context) => NotesScreen(session: widget.session),

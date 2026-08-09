@@ -508,3 +508,63 @@ function of `isLoading` / `_showSplash` / `config.userName`.
   - Result: passes, no issues found.
 - Ran the full `flutter test` suite.
   - Result: passes (499 tests).
+
+---
+
+## Review: issue #45 — Make delayed navigation in SessionCompleteScreen explicit and cancellable
+
+## Findings
+
+No code-review findings in the current revision.
+
+`SessionCompleteScreen`'s auto-advance now uses an owned `Timer` instead of
+an uncancelled `Future.delayed`. `_continue()` cancels the timer before
+acting (rather than relying on `mounted` alone), and `dispose()` cancels it
+too, so it can never fire after the screen leaves the tree. A `_hasAdvanced`
+flag added during an earlier local review pass (an in-house `/code-review`
+run flagged that `mounted` alone doesn't stop `_continue()` from being
+re-entered by a second manual invocation, e.g. a double-tap, while the
+push-replacement transition is still in flight) makes the navigation
+idempotent regardless of what triggers it.
+
+## Verification
+
+- Ran `codex review --uncommitted --title "issue #45: Make delayed
+  navigation in SessionCompleteScreen explicit and cancellable"` against the
+  local diff (`citta/lib/screens/session_complete_screen.dart`,
+  `citta/test/screens/session_complete_screen_test.dart`).
+  - Result: "The timer is safely cancelled on manual navigation and
+    disposal, and the re-entrancy guard prevents duplicate replacements."
+    No findings.
+- Ran `flutter test test/screens/session_complete_screen_test.dart`.
+  - Result: passes (5 tests).
+- Ran `flutter analyze`.
+  - Result: passes, no issues found.
+- Ran the full `flutter test` suite.
+  - Result: passes (506 tests).
+
+
+---
+
+## Independent review: issue #45 — delayed navigation cancellation
+
+## Findings
+
+No actionable code-review findings in the current revision.
+
+`SessionCompleteScreen` owns its auto-advance `Timer`, cancels it for both
+manual continuation and disposal, and uses `_hasAdvanced` to make navigation
+idempotent while a replacement transition is pending. This meets the issue’s
+cancellation and duplicate/stale-navigation requirements.
+
+## Verification
+
+- Reviewed the issue through `gh api repos/harsha-kadekar/citta/issues/45`
+  and inspected the changed screen, navigation call site, and focused tests.
+- Ran `flutter test test/screens/session_complete_screen_test.dart`.
+  - Result: passes (5 tests).
+- Ran `flutter analyze lib/screens/session_complete_screen.dart
+  test/screens/session_complete_screen_test.dart`.
+  - Result: passes, no issues found.
+- Ran `git diff --check`.
+  - Result: passes.
