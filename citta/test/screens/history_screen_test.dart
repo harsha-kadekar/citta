@@ -193,6 +193,23 @@ void main() {
       expect(find.byType(Card), findsNWidgets(1));
     });
 
+    testWidgets('8. selecting two filter chips shows sessions matching either tag',
+        (tester) async {
+      await tester.pumpWidget(_testApp(appState));
+      await tester.pump();
+
+      // find.text(...).first selects the filter chip, not a session card tag.
+      await tester.tap(find.text('calm').first);
+      await tester.pump();
+      await tester.tap(find.text('deep').first);
+      await tester.pump();
+
+      // s1 has 'calm', s2 has 'deep', s3 has neither — both s1 and s2 must
+      // show since HistoryScreen now delegates to AppState.filterByTags,
+      // which matches a session if it has ANY of the selected tags.
+      expect(find.byType(Card), findsNWidgets(2));
+    });
+
     testWidgets('7. deleting an active filter tag from config clears the ghost filter',
         (tester) async {
       await tester.pumpWidget(_testApp(appState));

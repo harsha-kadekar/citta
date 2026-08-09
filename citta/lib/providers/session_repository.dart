@@ -62,11 +62,12 @@ class SessionRepository {
     _refreshDerivedData();
   }
 
-  Future<void> delete(List<String> sessionIds) async {
+  Future<void> delete(Iterable<String> sessionIds) async {
+    final idsToDelete = sessionIds.toSet();
     _sessions = List.unmodifiable(await storageService.runExclusive(() async {
       final current = await storageService.loadSessions();
       final updated =
-          current.where((s) => !sessionIds.contains(s.id)).toList();
+          current.where((s) => !idsToDelete.contains(s.id)).toList();
       await storageService.saveSessions(updated);
       return updated;
     }));
@@ -78,10 +79,23 @@ class SessionRepository {
       ..sort((a, b) => b.date.compareTo(a.date));
   }
 
-  List<SessionModel> filterByTags(List<String> tags) {
-    if (tags.isEmpty) return _sortedSessions;
-    return _sortedSessions
-        .where((s) => tags.any((tag) => s.tags.contains(tag)))
-        .toList();
-  }
+  /// Matches sessions that have any of [tags]. Sessions are already sorted
+  /// (newest first), so the result preserves that order without re-sorting.
+  List<SessionModel> filterByTags(Iterable<String> tags) =>
+      filterSessionsByTags(_sortedSessions, tags);
+}
+
+/// Matches sessions that have any of [tags], preserving [sessions]' order.
+/// Returns [sessions] unchanged (same reference) when [tags] is empty.
+///
+/// Shared by [SessionRepository.filterByTags] and any caller that already
+/// holds a session list (e.g. a screen watching [SessionRepository.sortedSessions]
+/// via Provider) and wants the identical tag-match semantics applied to it.
+List<SessionModel> filterSessionsByTags(
+  List<SessionModel> sessions,
+  Iterable<String> tags,
+) {
+  final tagSet = tags.toSet();
+  if (tagSet.isEmpty) return sessions;
+  return sessions.where((s) => s.tags.any(tagSet.contains)).toList();
 }

@@ -506,6 +506,7 @@ function of `isLoading` / `_showSplash` / `config.userName`.
   - Result: passes (6 tests).
 - Ran `flutter analyze`.
   - Result: passes, no issues found.
+
 - Ran the full `flutter test` suite.
   - Result: passes (499 tests).
 
@@ -643,3 +644,84 @@ same-widget accessibility finding caught by an earlier `/code-review` pass
   - Result: passes (520 tests).
 - Ran `flutter analyze`.
   - Result: passes, no issues found.
+
+---
+
+## Review: issue #47 — Optimize session filtering and deletion paths
+
+## Scope
+
+Review of the current local changes for GitHub issue `#47`: `Optimize session filtering and deletion paths`.
+
+Issue requirement reviewed against:
+
+- Use `Set`-based membership where appropriate
+- Consolidate repeated filtering helpers
+- Preserve current sort order and filtering behavior
+- Add targeted benchmarks/tests only if needed to validate changes
+
+## Findings
+
+No code-review findings in the current branch state.
+
+`SessionRepository.delete` and `SessionRepository.filterByTags`
+([session_repository.dart](/home/harsha/workspace/Citta/citta/lib/providers/session_repository.dart))
+now convert their id/tag arguments to a `Set` once up front instead of doing
+per-session `List.contains` scans, and both were widened to accept
+`Iterable<String>` (mirrored in `AppState.deleteSessions`/`filterByTags`) so
+callers that already hold a `Set` — like `HistoryScreen`'s
+`_selectedSessionIds` — can pass it straight through with no `.toList()`
+round-trip. The tag-filter logic that `HistoryScreen` used to reimplement
+locally was extracted into a shared top-level `filterSessionsByTags`
+function, used by both the repository and the screen (applied directly to
+the same `sortedSessions` list the widget already watches via
+`context.select`), so there is one filtering implementation instead of two
+kept in sync by hand.
+
+An earlier `/code-review` pass on this same diff (run before this `codex
+review`) had already flagged and this branch had already fixed: the
+Set→List→Set round-trip in `_deleteSelected`, a `context.select()` call
+whose return value was discarded (fragile — looked like dead code, and
+didn't tie the rebuild-trigger data to the rendered data), and an
+unnecessary `tags is Set<String>` type-check branch in `filterByTags`. This
+`codex review` run, against the branch state with those fixes already
+applied, found nothing further.
+
+## Verification
+
+- Reviewed issue `#47` via `gh issue view 47 --repo harsha-kadekar/citta --json title,body,labels,comments`
+- Ran `codex review --uncommitted -c sandbox_mode="danger-full-access" --title "issue #47: Optimize session filtering and deletion paths"` against the local diff (`citta/lib/providers/app_state.dart`, `citta/lib/providers/session_repository.dart`, `citta/lib/screens/history_screen.dart`, and their tests).
+  - Codex inspected the diff, then ran `flutter test test/providers/session_repository_test.dart test/screens/history_screen_test.dart && flutter analyze` itself inside the review.
+  - Result: "The changes consistently broaden the APIs to Iterable, avoid repeated membership scans during deletion, and reuse equivalent tag-filter semantics in the history screen. Targeted tests and static analysis pass." No findings.
+- Ran `flutter test`.
+  - Result: passes (524 tests).
+- Ran `flutter analyze`.
+  - Result: passes, no issues found.
+
+---
+
+## Independent review: issue #47 — Optimize session filtering and deletion paths
+
+## Findings
+
+No actionable code-review findings in the current local changes.
+
+`delete` materializes the supplied IDs as a `Set` before entering the storage
+critical section, eliminating repeated per-session linear membership scans.
+The shared `filterSessionsByTags` likewise materializes tags once, retains the
+existing any-tag matching semantics, and preserves the incoming session order.
+`HistoryScreen` applies that helper to its observed `sortedSessions` value and
+passes its selected-ID set directly to deletion, so it avoids the former
+Set-to-List conversion without changing UI behavior.
+
+## Verification
+
+- Reviewed issue #47 via `gh api repos/harsha-kadekar/citta/issues/47` and
+  inspected the local diff and affected call sites.
+- Ran `flutter test test/providers/session_repository_test.dart
+  test/screens/history_screen_test.dart`.
+  - Result: passes (20 tests).
+- Ran `flutter analyze`.
+  - Result: passes, no issues found.
+- Ran `git diff --check`.
+  - Result: passes.
