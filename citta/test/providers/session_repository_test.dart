@@ -122,6 +122,43 @@ void main() {
       expect(result.map((s) => s.id), ['tagged-newer', 'tagged']);
     });
 
+    test('delete() removes matching sessions even when ids contain duplicates and unrelated ids',
+        () async {
+      repo.seed([_session('a'), _session('b'), _session('c')]);
+      await storage.saveSessions([_session('a'), _session('b'), _session('c')]);
+
+      await repo.delete(['a', 'a', 'does-not-exist']);
+
+      expect(repo.sessions.map((s) => s.id), ['b', 'c'],
+          reason: 'duplicate or unrelated ids in the delete list must not '
+              'change which sessions get removed');
+    });
+
+    test('delete() accepts a Set<String> directly, matching the List<String> result', () async {
+      repo.seed([_session('a'), _session('b')]);
+      await storage.saveSessions([_session('a'), _session('b')]);
+
+      await repo.delete(<String>{'a'});
+
+      expect(repo.sessions.map((s) => s.id), ['b']);
+    });
+
+    test('filterByTags accepts a Set<String> directly and matches the List<String> result', () {
+      final a = SessionModel(
+        id: 'a',
+        date: DateTime.utc(2024, 6, 1),
+        duration: 300,
+        timerMode: TimerMode.countdown,
+        tags: const ['calm'],
+      );
+      final b = _session('b', date: DateTime.utc(2024, 5, 1));
+      repo.seed([a, b]);
+
+      final result = repo.filterByTags(<String>{'calm'});
+
+      expect(result.map((s) => s.id), ['a']);
+    });
+
     test('filterByTags returns sortedSessions unchanged when tags is empty', () {
       repo.seed([_session('a'), _session('b')]);
 

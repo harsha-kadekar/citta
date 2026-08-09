@@ -128,12 +128,12 @@ class AppState extends ChangeNotifier {
   List<SessionModel> filterByTag(String tag) =>
       _sessionRepository.filterByTag(tag);
 
-  Future<void> deleteSessions(List<String> sessionIds) async {
+  Future<void> deleteSessions(Iterable<String> sessionIds) async {
     await _sessionRepository.delete(sessionIds);
     notifyListeners();
   }
 
-  List<SessionModel> filterByTags(List<String> tags) =>
+  List<SessionModel> filterByTags(Iterable<String> tags) =>
       _sessionRepository.filterByTags(tags);
 
   // --- Tags ---

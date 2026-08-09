@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:citta/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
+import '../providers/session_repository.dart' show filterSessionsByTags;
 import '../models/session_model.dart';
 import '../theme/adaptive_colors.dart';
 import '../utils/formatters.dart';
@@ -70,7 +71,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ),
     );
     if (confirmed == true && mounted) {
-      await context.read<AppState>().deleteSessions(_selectedSessionIds.toList());
+      await context.read<AppState>().deleteSessions(_selectedSessionIds);
       _exitSelectionMode();
     }
   }
@@ -96,11 +97,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         // incorporates the update.
         _selectedFilterTags.retainAll(allTags);
 
-        final sessions = _selectedFilterTags.isEmpty
-            ? sortedSessions
-            : sortedSessions
-                .where((s) => _selectedFilterTags.any((t) => s.tags.contains(t)))
-                .toList();
+        final sessions = filterSessionsByTags(sortedSessions, _selectedFilterTags);
 
         return Scaffold(
           appBar: AppBar(
