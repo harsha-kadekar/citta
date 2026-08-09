@@ -17,6 +17,7 @@ import 'package:citta/services/audio_service.dart';
 import 'package:citta/services/quote_service.dart';
 import 'package:citta/services/stats_service.dart';
 import 'package:citta/services/storage_service.dart';
+import 'package:citta/theme/app_theme.dart';
 import 'package:citta/widgets/calendar_view.dart';
 
 // ---------------------------------------------------------------------------
@@ -85,6 +86,20 @@ Widget _testApp(AppState appState) => ChangeNotifierProvider<AppState>.value(
         ],
         supportedLocales: AppLocalizations.supportedLocales,
         home: StatsScreen(),
+      ),
+    );
+
+Widget _darkTestApp(AppState appState) => ChangeNotifierProvider<AppState>.value(
+      value: appState,
+      child: MaterialApp(
+        theme: AppTheme.darkTheme,
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: const StatsScreen(),
       ),
     );
 
@@ -193,6 +208,33 @@ void main() {
 
       expect(find.byType(CalendarView), findsNothing,
           reason: 'disabling calendarViewEnabled must hide the CalendarView');
+    });
+  });
+
+  group('StatsScreen — dark mode', () {
+    late Directory tmpDir;
+    late AppState appState;
+
+    setUp(() async {
+      tmpDir = Directory.systemTemp.createTempSync('citta_stats_dark_test_');
+      appState = await _makeAndInit(tmpDir.path);
+    });
+
+    tearDown(() => tmpDir.deleteSync(recursive: true));
+
+    testWidgets(
+        '7. stat cards never use the literal light-theme surface color under dark theme',
+        (tester) async {
+      await tester.pumpWidget(_darkTestApp(appState));
+      await tester.pump();
+
+      final lightSurfaceCards = find.byWidgetPredicate((widget) =>
+          widget is Container &&
+          (widget.decoration as BoxDecoration?)?.color == AppColors.surface);
+
+      expect(lightSurfaceCards, findsNothing,
+          reason:
+              'stat cards must adapt to the dark theme instead of hardcoding light AppColors');
     });
   });
 }

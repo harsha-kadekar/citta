@@ -3,8 +3,9 @@ import 'package:citta/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import '../models/session_model.dart';
 import '../providers/app_state.dart';
-import '../theme/app_theme.dart';
+import '../theme/adaptive_colors.dart';
 import '../utils/formatters.dart';
+import '../widgets/tag_chip.dart';
 
 class NotesScreen extends StatefulWidget {
   final SessionModel session;
@@ -70,6 +71,8 @@ class _NotesScreenState extends State<NotesScreen> {
     final appState = context.watch<AppState>();
     final l10n = AppLocalizations.of(context)!;
     final availableTags = appState.config.tags;
+    final colorScheme = Theme.of(context).colorScheme;
+    final adaptiveColors = context.adaptiveColors;
 
     return Scaffold(
       appBar: AppBar(
@@ -92,14 +95,14 @@ class _NotesScreenState extends State<NotesScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceVariant,
+                  color: adaptiveColors.surfaceVariant,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.self_improvement,
-                        color: AppColors.primary, size: 20),
+                    Icon(Icons.self_improvement,
+                        color: colorScheme.primary, size: 20),
                     const SizedBox(width: 8),
                     Text(
                       formatDuration(widget.session.duration),
@@ -107,8 +110,8 @@ class _NotesScreenState extends State<NotesScreen> {
                     ),
                     if (widget.session.completedFully) ...[
                       const SizedBox(width: 12),
-                      const Icon(Icons.check_circle,
-                          color: AppColors.success, size: 18),
+                      Icon(Icons.check_circle,
+                          color: colorScheme.primary, size: 18),
                     ],
                   ],
                 ),
@@ -129,8 +132,8 @@ class _NotesScreenState extends State<NotesScreen> {
                   counterText: l10n.notesWordCount(_wordCount),
                   counterStyle: TextStyle(
                     color: _wordCount >= _maxWords
-                        ? AppColors.error
-                        : AppColors.textHint,
+                        ? colorScheme.error
+                        : adaptiveColors.textHint,
                   ),
                 ),
               ),
@@ -146,21 +149,18 @@ class _NotesScreenState extends State<NotesScreen> {
                 runSpacing: 8,
                 children: availableTags.map((tag) {
                   final selected = _selectedTags.contains(tag);
-                  return FilterChip(
-                    label: Text(tag),
+                  return SelectableTagChip(
+                    label: tag,
                     selected: selected,
-                    onSelected: (val) {
+                    onTap: () {
                       setState(() {
-                        if (val) {
-                          _selectedTags.add(tag);
-                        } else {
+                        if (selected) {
                           _selectedTags.remove(tag);
+                        } else {
+                          _selectedTags.add(tag);
                         }
                       });
                     },
-                    selectedColor:
-                        AppColors.primaryLight.withValues(alpha: 0.3),
-                    checkmarkColor: AppColors.primary,
                   );
                 }).toList(),
               ),

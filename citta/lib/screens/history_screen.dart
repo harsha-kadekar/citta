@@ -4,8 +4,9 @@ import 'package:citta/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
 import '../models/session_model.dart';
-import '../theme/app_theme.dart';
+import '../theme/adaptive_colors.dart';
 import '../utils/formatters.dart';
+import '../widgets/tag_chip.dart';
 import 'session_detail_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -133,18 +134,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        _buildFilterChip(context, l10n.historyFilterAll,
-                            _selectedFilterTags.isEmpty, () {
-                          setState(() => _selectedFilterTags.clear());
-                        }),
+                        SelectableTagChip(
+                          label: l10n.historyFilterAll,
+                          selected: _selectedFilterTags.isEmpty,
+                          onTap: () {
+                            setState(() => _selectedFilterTags.clear());
+                          },
+                        ),
                         const SizedBox(width: 8),
                         ...allTags.map((tag) => Padding(
                               padding: const EdgeInsets.only(right: 8),
-                              child: _buildFilterChip(
-                                context,
-                                tag,
-                                _selectedFilterTags.contains(tag),
-                                () {
+                              child: SelectableTagChip(
+                                label: tag,
+                                selected: _selectedFilterTags.contains(tag),
+                                onTap: () {
                                   setState(() {
                                     if (_selectedFilterTags.contains(tag)) {
                                       _selectedFilterTags.remove(tag);
@@ -180,37 +183,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  Widget _buildFilterChip(BuildContext context, String label, bool selected, VoidCallback onTap) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surfaceVariant = isDark ? DarkAppColors.surfaceVariant : AppColors.surfaceVariant;
-    final textSecondary = isDark ? DarkAppColors.textSecondary : AppColors.textSecondary;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: selected
-              ? colorScheme.primary.withValues(alpha: 0.15)
-              : surfaceVariant,
-          borderRadius: BorderRadius.circular(20),
-          border: selected
-              ? Border.all(color: colorScheme.primary, width: 1)
-              : null,
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            color: selected ? colorScheme.primary : textSecondary,
-            fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildSessionCard(
       BuildContext context, SessionModel session, AppLocalizations l10n) {
     final date = session.date.toLocal();
@@ -220,10 +192,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final duration = formatDuration(session.duration);
     final isSelected = _selectedSessionIds.contains(session.id);
     final colorScheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surfaceVariant = isDark ? DarkAppColors.surfaceVariant : AppColors.surfaceVariant;
-    final textSecondary = isDark ? DarkAppColors.textSecondary : AppColors.textSecondary;
-    final textHint = isDark ? DarkAppColors.textHint : AppColors.textHint;
+    final textHint = context.adaptiveColors.textHint;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -287,22 +256,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
               const SizedBox(height: 6),
               Wrap(
                 spacing: 4,
-                children: session.tags
-                    .map((tag) => Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: surfaceVariant,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            tag,
-                            style: TextStyle(
-                                fontSize: 11,
-                                color: textSecondary),
-                          ),
-                        ))
-                    .toList(),
+                children:
+                    session.tags.map((tag) => TagChip(label: tag)).toList(),
               ),
             ],
           ],
@@ -315,8 +270,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Widget _buildEmptyState(BuildContext context, AppLocalizations l10n) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textHint = isDark ? DarkAppColors.textHint : AppColors.textHint;
+    final textHint = context.adaptiveColors.textHint;
 
     return Center(
       child: Column(

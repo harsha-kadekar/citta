@@ -3,8 +3,9 @@ import 'package:citta/l10n/app_localizations.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import '../models/session_model.dart';
 import '../models/timer_mode.dart';
-import '../theme/app_theme.dart';
+import '../theme/adaptive_colors.dart';
 import '../utils/formatters.dart';
+import '../widgets/tag_chip.dart';
 
 class SessionDetailScreen extends StatelessWidget {
   final SessionModel session;
@@ -20,9 +21,9 @@ class SessionDetailScreen extends StatelessWidget {
         formatSessionDate(date, localeStr), formatSessionTime(date, localeStr));
 
     final colorScheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surfaceVariant = isDark ? DarkAppColors.surfaceVariant : AppColors.surfaceVariant;
-    final textHint = isDark ? DarkAppColors.textHint : AppColors.textHint;
+    final adaptiveColors = context.adaptiveColors;
+    final surfaceVariant = adaptiveColors.surfaceVariant;
+    final textHint = adaptiveColors.textHint;
 
     return Scaffold(
       appBar: AppBar(
@@ -88,17 +89,8 @@ class SessionDetailScreen extends StatelessWidget {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: session.tags
-                    .map((tag) => Chip(
-                          label: Text(tag),
-                          backgroundColor:
-                              colorScheme.primary.withValues(alpha: 0.15),
-                          labelStyle: TextStyle(
-                            fontSize: 13,
-                            color: colorScheme.primary,
-                          ),
-                        ))
-                    .toList(),
+                children:
+                    session.tags.map((tag) => TagChip(label: tag)).toList(),
               ),
             ],
             // Notes
