@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/session_model.dart';
 import '../services/stats_service.dart';
-import '../theme/app_theme.dart';
+import '../theme/adaptive_colors.dart';
 import '../utils/formatters.dart';
 
 class CalendarView extends StatefulWidget {
@@ -99,10 +99,10 @@ class _CalendarViewState extends State<CalendarView> {
     ).weekday; // 1 = Monday
 
     final colorScheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardShadow = isDark ? DarkAppColors.cardShadow : AppColors.cardShadow;
-    final textHint = isDark ? DarkAppColors.textHint : AppColors.textHint;
-    final textSecondary = isDark ? DarkAppColors.textSecondary : AppColors.textSecondary;
+    final adaptiveColors = context.adaptiveColors;
+    final cardShadow = adaptiveColors.cardShadow;
+    final textHint = adaptiveColors.textHint;
+    final textSecondary = adaptiveColors.textSecondary;
 
     return Container(
       padding: const EdgeInsets.all(16),

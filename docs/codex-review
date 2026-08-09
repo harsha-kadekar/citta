@@ -568,3 +568,78 @@ cancellation and duplicate/stale-navigation requirements.
   - Result: passes, no issues found.
 - Ran `git diff --check`.
   - Result: passes.
+
+
+---
+
+## Review: issue #46 — Extract shared session/tag UI components and theme helpers
+
+## Findings
+
+### P2 — Preserve the distinct existing read-only tag presentations (intentional, not a regression)
+
+`TagChip` hard-codes the primary-tinted, 11px compact-pills style
+([tag_chip.dart](/home/harsha/workspace/Citta/citta/lib/widgets/tag_chip.dart):14),
+which replaces two previously different-looking widgets: `HistoryScreen`'s
+neutral `surfaceVariant` / `textSecondary` tag badges, and
+`SessionDetailScreen`'s Material `Chip`s (13px label, default Chip
+padding/min-height, primary-tinted). Read on its own, this looks like a
+regression against the issue's "Keep current visuals unless deliberately
+improved" requirement.
+
+It is not — this is the "deliberately improved" case that clause carves out.
+Issue #46 also required "Visual behavior remains consistent across screens,"
+which the two screens' original divergent tag styles did not satisfy; one
+side had to move. During planning, Claude flagged this exact tradeoff to the
+user and asked which existing style should become the shared one
+(`AskUserQuestion`, "read-only tag display" choice). The user picked
+"Primary-tinted (Recommended)" — i.e., `SessionDetailScreen`'s prior look —
+so `HistoryScreen`'s session-card tags now match it. Re-confirmed with the
+user after this finding surfaced; the response was to keep the unified style
+and document the decision here rather than add per-screen variants or revert
+the consolidation. No code change made in response to this finding.
+
+Two rounds of `codex review` on the working tree found real regressions in
+the initial implementation of the shared `SelectableTagChip`
+(`citta/lib/widgets/tag_chip.dart`), both since fixed:
+
+- The bare `GestureDetector` used for the chip had no keyboard focus or
+  Space/Enter activation, unlike the `FilterChip` it replaced in
+  `NotesScreen`. Fixed by wrapping the tap target in
+  `Material(type: MaterialType.transparency)` + `InkWell`, which binds
+  `ActivateIntent`/`ButtonActivateIntent` automatically.
+- The chip's touch target was ~27 logical px tall, under the 48dp Material
+  minimum, making tag selection hard to hit on touch devices. Fixed by
+  wrapping the visual pill in a `ConstrainedBox` with
+  `kMinInteractiveDimension` min width/height, centered, so the compact
+  pill look is unchanged but the tap/click region meets the minimum.
+
+Both fixes have dedicated regression tests in
+[tag_chip_test.dart](/home/harsha/workspace/Citta/citta/test/widgets/tag_chip_test.dart)
+(keyboard activation via `Tab` + `Enter`, and a minimum-size assertion via
+`tester.getSize`), plus the pre-existing semantics test added for a
+same-widget accessibility finding caught by an earlier `/code-review` pass
+(selection state wasn't exposed to screen readers — fixed with a wrapping
+`Semantics(button: true, selected: ..., onTap: ...)`).
+
+## Verification
+
+- Ran `codex -s danger-full-access review --uncommitted --title "issue #46:
+  Extract shared session/tag UI components and theme helpers"` against the
+  local diff (`citta/lib/theme/adaptive_colors.dart`,
+  `citta/lib/widgets/tag_chip.dart`, and the six screens/widgets wired to
+  use them).
+  - Round 1 result: flagged missing keyboard focus/activation on
+    `SelectableTagChip`. Fixed with `Material`/`InkWell`.
+  - Round 2 result: flagged the sub-48dp touch target on
+    `SelectableTagChip`. Fixed with a `ConstrainedBox` + `Center` wrapper;
+    also had to add `tester.ensureVisible(...)` before tapping Save in
+    `notes_screen_test.dart` since the larger tap targets pushed the button
+    below the fixed test-viewport height.
+  - Round 3 result: "The changes consistently use theme-adaptive colors and
+    the shared tag widgets. Full test suite and static analysis pass." No
+    findings.
+- Ran `flutter test`.
+  - Result: passes (520 tests).
+- Ran `flutter analyze`.
+  - Result: passes, no issues found.

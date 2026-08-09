@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:citta/l10n/app_localizations.dart';
 import '../models/config_model.dart';
 import '../services/timer_service.dart';
-import '../theme/app_theme.dart';
+import '../theme/adaptive_colors.dart';
 
 class PreSessionConfig extends StatelessWidget {
   final ConfigModel config;
@@ -31,8 +31,7 @@ class PreSessionConfig extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
 
     final colorScheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardShadow = isDark ? DarkAppColors.cardShadow : AppColors.cardShadow;
+    final cardShadow = context.adaptiveColors.cardShadow;
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -134,10 +133,10 @@ class _ModeButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surfaceVariant = isDark ? DarkAppColors.surfaceVariant : AppColors.surfaceVariant;
-    final textSecondary = isDark ? DarkAppColors.textSecondary : AppColors.textSecondary;
-    final textHint = isDark ? DarkAppColors.textHint : AppColors.textHint;
+    final adaptiveColors = context.adaptiveColors;
+    final surfaceVariant = adaptiveColors.surfaceVariant;
+    final textSecondary = adaptiveColors.textSecondary;
+    final textHint = adaptiveColors.textHint;
 
     return GestureDetector(
       onTap: onTap,

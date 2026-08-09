@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/session_model.dart';
 import '../providers/app_state.dart';
 import '../services/stats_service.dart';
-import '../theme/app_theme.dart';
+import '../theme/adaptive_colors.dart';
 import '../utils/formatters.dart';
 import '../widgets/calendar_view.dart';
 
@@ -19,6 +19,8 @@ class StatsScreen extends StatelessWidget {
         context.select<AppState, bool>((s) => s.config.calendarViewEnabled);
     final sessions = context
         .select<AppState, List<SessionModel>>((s) => s.sessions);
+    final colorScheme = Theme.of(context).colorScheme;
+    final adaptiveColors = context.adaptiveColors;
 
     return Scaffold(
       appBar: AppBar(
@@ -29,8 +31,9 @@ class StatsScreen extends StatelessWidget {
               showCalendar
                   ? Icons.calendar_month
                   : Icons.calendar_month_outlined,
-              color:
-                  showCalendar ? AppColors.primary : AppColors.textHint,
+              color: showCalendar
+                  ? colorScheme.primary
+                  : adaptiveColors.textHint,
             ),
             onPressed: () {
               final appState = context.read<AppState>();
@@ -64,7 +67,7 @@ class StatsScreen extends StatelessWidget {
                 Expanded(
                   child: _StatCard(
                     icon: Icons.emoji_events,
-                    iconColor: AppColors.secondary,
+                    iconColor: colorScheme.secondary,
                     label: l10n.statsLongestStreak,
                     value: '${stats.longestStreak}',
                     unit: l10n.statsDays(stats.longestStreak),
@@ -78,7 +81,7 @@ class StatsScreen extends StatelessWidget {
                 Expanded(
                   child: _StatCard(
                     icon: Icons.self_improvement,
-                    iconColor: AppColors.primary,
+                    iconColor: colorScheme.primary,
                     label: l10n.statsTotalSessions,
                     value: '${stats.totalSessions}',
                     unit: '',
@@ -88,7 +91,7 @@ class StatsScreen extends StatelessWidget {
                 Expanded(
                   child: _StatCard(
                     icon: Icons.schedule,
-                    iconColor: AppColors.accent,
+                    iconColor: adaptiveColors.accent,
                     label: l10n.statsAverage,
                     value: formatDuration(stats.averageDurationSeconds,
                         style: DurationDisplayStyle.compact),
@@ -126,16 +129,19 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final adaptiveColors = context.adaptiveColors;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: AppColors.cardShadow,
+            color: adaptiveColors.cardShadow,
             blurRadius: 8,
-            offset: Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -150,19 +156,19 @@ class _StatCard extends StatelessWidget {
             children: [
               Text(
                 value,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+                  color: adaptiveColors.textPrimary,
                 ),
               ),
               if (unit.isNotEmpty) ...[
                 const SizedBox(width: 4),
                 Text(
                   unit,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: AppColors.textSecondary,
+                    color: adaptiveColors.textSecondary,
                   ),
                 ),
               ],
@@ -171,9 +177,9 @@ class _StatCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: AppColors.textHint,
+              color: adaptiveColors.textHint,
             ),
           ),
         ],
