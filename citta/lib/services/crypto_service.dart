@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 import 'package:cryptography/cryptography.dart';
 
@@ -17,9 +18,9 @@ class CryptoService {
   /// mismatched length would make the derived key unusable for [encrypt] /
   /// [wrapKey] (AES-256-GCM rejects any other key length).
   CryptoService({
-    int argon2Parallelism = 1,
-    int argon2MemoryKiB = 19456,
-    int argon2Iterations = 2,
+    this.argon2Parallelism = 1,
+    this.argon2MemoryKiB = 19456,
+    this.argon2Iterations = 2,
   }) : _kdf = Argon2id(
           parallelism: argon2Parallelism,
           memory: argon2MemoryKiB,
@@ -29,6 +30,13 @@ class CryptoService {
 
   static const int saltLengthBytes = 16;
   static const int _aesKeyLengthBytes = 32;
+
+  /// The Argon2id cost params this instance was configured with — recorded
+  /// alongside a derived key's salt (e.g. in encryption metadata) so a
+  /// later derivation can be reproduced with the exact same params.
+  final int argon2Parallelism;
+  final int argon2MemoryKiB;
+  final int argon2Iterations;
 
   final Argon2id _kdf;
   final AesGcm _cipher = AesGcm.with256bits();
@@ -119,6 +127,21 @@ class EncryptedPayload {
     required this.nonce,
     required this.mac,
   });
+
+  /// Serializes to base64-encoded fields, suitable for embedding in a JSON
+  /// document (e.g. an encrypted file envelope or encryption metadata).
+  Map<String, dynamic> toJson() => {
+        'cipherText': base64Encode(cipherText),
+        'nonce': base64Encode(nonce),
+        'mac': base64Encode(mac),
+      };
+
+  factory EncryptedPayload.fromJson(Map<String, dynamic> json) =>
+      EncryptedPayload(
+        cipherText: base64Decode(json['cipherText'] as String),
+        nonce: base64Decode(json['nonce'] as String),
+        mac: base64Decode(json['mac'] as String),
+      );
 }
 
 /// Thrown by [CryptoService.decrypt] / [CryptoService.unwrapKey] when the

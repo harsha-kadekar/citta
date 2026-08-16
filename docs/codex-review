@@ -760,3 +760,121 @@ unwrap failures. This meets the issue acceptance criteria.
   - Result: passes, no issues found.
 - Ran `git diff --check`.
   - Result: passes.
+
+
+---
+
+## Review: issue #50 — Cache master key securely via `flutter_secure_storage`
+
+## Findings
+
+### P0 — The secure-key cache required by the issue is not implemented
+
+The current diff adds password-wrapped session encryption, but it never adds
+the `flutter_secure_storage` dependency (see `pubspec.yaml`) or a secure
+storage collaborator. `unlockWithPassword` only assigns the unwrapped key to
+the process-local `_masterKey` ([storage_service.dart](/home/harsha/workspace/Citta/citta/lib/services/storage_service.dart):240), and `lock` only
+sets that field to `null` ([storage_service.dart](/home/harsha/workspace/Citta/citta/lib/services/storage_service.dart):179). Consequently, every new
+`StorageService` instance remains locked and must be password-unlocked again;
+there is no cache write after a successful password/recovery unlock, cache
+read at startup, or cache clear on explicit lock/reset, password change, or
+disabling encryption.
+
+This also makes an encrypted existing install fail during normal app startup:
+`AppBootstrapper.run` calls `loadSessions` directly
+([app_bootstrapper.dart](/home/harsha/workspace/Citta/citta/lib/providers/app_bootstrapper.dart):31), which throws `StorageLockedException` in a fresh
+instance. Wire a mockable `FlutterSecureStorage` wrapper into
+`StorageService`; persist only the raw master-key bytes after a successful
+unlock; attempt to restore it before `loadSessions` in startup; and clear the
+same entry on every required invalidation path. Add tests proving the
+cross-instance no-password startup, cache miss fallback, and each clear path.
+
+### P1 — Persisted Argon2 parameters are ignored when unlocking
+
+`enableEncryption` stores the instance Argon2 parameters in
+`encryption_meta.json` ([storage_service.dart](/home/harsha/workspace/Citta/citta/lib/services/storage_service.dart):213), but `unlockWithPassword` derives
+with the `CryptoService` instance configured at construction rather than with
+`EncryptionMetadata.kdfMemoryKiB`, `kdfIterations`, and `kdfParallelism`
+([storage_service.dart](/home/harsha/workspace/Citta/citta/lib/services/storage_service.dart):249). The metadata therefore cannot fulfill its stated
+purpose, and data created with a previous or non-default parameter set becomes
+impossible to unlock after the defaults change. Validate the metadata version
+and algorithms, then derive using its recorded parameters (or reject an
+unsupported version explicitly); cover a cross-instance test whose unlocker
+uses different constructor defaults.
+
+## Verification
+
+- Reviewed issue #50 via `gh api repos/harsha-kadekar/citta/issues/50` and
+  inspected the current working-tree implementation, startup path, and tests.
+- Ran `git diff --check`.
+  - Result: passes.
+
+
+---
+
+## Follow-up review: issue #50 — secure master-key cache
+
+## Findings
+
+### P0 — The secure-keystore implementation is still absent
+
+The previous KDF-compatibility finding is resolved: `unlockWithPassword` now
+constructs its KDF from the values persisted in `EncryptionMetadata`, and the
+new cross-parameter regression test covers it. The P0 finding remains,
+however. `pubspec.yaml` still has no `flutter_secure_storage` dependency, and
+`StorageService` still contains only the process-local `SecretKey? _masterKey`
+([storage_service.dart](/home/harsha/workspace/Citta/citta/lib/services/storage_service.dart):20).
+There is no secure-storage read/write/delete path, and no startup integration;
+a fresh process with encrypted sessions still reaches `loadSessions` without a
+master key and throws `StorageLockedException`.
+
+Please implement the OS-keystore cache required by issue #50: inject a
+mockable secure-storage adapter, store the raw master-key bytes after a
+successful password/recovery unlock, restore them before bootstrap loads
+sessions, and delete the entry when encryption is disabled, the password
+changes, or the user locks/resets. Add mocked cache set/read/delete tests,
+including a new-instance startup that succeeds without a password prompt.
+
+## Verification
+
+- Re-inspected the current uncommitted diff, `pubspec.yaml`, the storage
+  startup path, and the focused encryption tests.
+- Ran `git diff --check`.
+  - Result: passes.
+
+
+---
+
+## Disposition: issue #50 P0 (secure master-key cache) — deferred, not a #49 defect
+
+## Findings
+
+### Triaged as out of scope for issue #49
+
+Both `#50`-labeled review passes above ran against the working-tree diff for
+issue `#49` ("Define encryption metadata format and integrate into
+StorageService for sessions.json"), but reviewed it against issue `#50`'s
+("Cache master key securely via `flutter_secure_storage`") acceptance
+criteria. The P0 finding — no `flutter_secure_storage` dependency, no
+secure-storage adapter, no startup cache-restore path — is accurate, but it
+describes `#50`'s scope in full, not a regression introduced by `#49`. Issue
+`#49`'s own stated scope is the on-disk metadata format and wiring
+`sessions.json` load/save through `CryptoService`; it explicitly does not
+cover key caching or UI.
+
+The P1 finding from the first `#50`-labeled pass (KDF params in
+`encryption_meta.json` ignored on unlock) was a genuine `#49` defect and was
+fixed and regression-tested (`storage_service_test.dart`: "unlockWithPassword
+derives using the KDF params recorded in metadata, not this instance's
+configured params").
+
+Confirmed with the repo owner (2026-08-16): leave the secure-keystore cache
+for a dedicated pass on issue `#50` rather than folding it into `#49`. Issue
+`#49` is considered complete as-is; the P0 finding will resurface in review
+until `#50` is picked up, which is expected.
+
+## Verification
+
+- Re-read both `#50`-labeled entries above against `#49`'s and `#50`'s GitHub
+  issue bodies to confirm the scope mismatch.
+- No code changes in this entry — triage/documentation only.
