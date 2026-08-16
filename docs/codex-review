@@ -725,3 +725,38 @@ Set-to-List conversion without changing UI behavior.
   - Result: passes, no issues found.
 - Ran `git diff --check`.
   - Result: passes.
+
+---
+
+## Independent review: issue #48 — Add crypto core utilities (`CryptoService`)
+
+## Findings
+
+No actionable code-review findings in the current local changes.
+
+`CryptoService` is storage/UI-agnostic and uses Argon2id with the documented
+OWASP baseline defaults (19 MiB, two iterations, parallelism one) to produce
+the 32-byte AES-256 key required by its cipher. It generates salts and master
+keys with secure randomness, carries the AES-GCM nonce and MAC alongside the
+ciphertext, and translates `cryptography` authentication failures into the
+service-owned `CryptoAuthenticationException`. Key wrapping is deliberately
+implemented as AES-GCM encryption of extracted master-key bytes, and unwrap
+therefore gets the same tamper/wrong-key authentication guarantee.
+
+The new unit tests cover deterministic/different-salt KDF behavior, master
+key generation, byte and empty-payload encryption round trips, ciphertext and
+MAC tampering, master-key wrapping, password-derived wrapping, and wrong-key
+unwrap failures. This meets the issue acceptance criteria.
+
+## Verification
+
+- Reviewed GitHub issue #48 via `gh api repos/harsha-kadekar/citta/issues/48`
+  and inspected `pubspec.yaml`, `lib/services/crypto_service.dart`, and
+  `test/services/crypto_service_test.dart`.
+- Ran `flutter test test/services/crypto_service_test.dart`.
+  - Result: passes (12 tests).
+- Ran `flutter analyze lib/services/crypto_service.dart
+  test/services/crypto_service_test.dart`.
+  - Result: passes, no issues found.
+- Ran `git diff --check`.
+  - Result: passes.
