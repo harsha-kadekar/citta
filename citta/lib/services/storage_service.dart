@@ -1,21 +1,32 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:cryptography/cryptography.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/config_model.dart';
+import '../models/encryption_metadata.dart';
 import '../models/session_model.dart';
 import '../models/quote_model.dart';
+import 'crypto_service.dart';
 
 class StorageService {
   Future<String>? _basePathFuture;
   final _writeLock = _AsyncLock();
+  final CryptoService _cryptoService;
 
-  StorageService();
+  /// The unwrapped master key, held only in memory. Set by [enableEncryption]
+  /// or a successful [unlockWithPassword]; cleared by [lock]. Never null once
+  /// set for the lifetime of this instance unless explicitly locked.
+  SecretKey? _masterKey;
+
+  StorageService({CryptoService? cryptoService})
+      : _cryptoService = cryptoService ?? CryptoService();
 
   @visibleForTesting
-  StorageService.withBasePath(String basePath)
-      : _basePathFuture = Future.value(basePath);
+  StorageService.withBasePath(String basePath, {CryptoService? cryptoService})
+      : _basePathFuture = Future.value(basePath),
+        _cryptoService = cryptoService ?? CryptoService();
 
   Future<String> get basePath => _basePathFuture ??= _resolveBasePath();
 
@@ -146,9 +157,190 @@ class StorageService {
     await _atomicWrite(path, content);
   }
 
+  // --- Encryption ---
+
+  Future<String> get _encryptionMetaPath async =>
+      '${await basePath}/encryption_meta.json';
+
+  /// Whether encryption has been set up on this device (metadata file
+  /// exists), independent of whether this instance currently holds the
+  /// unwrapped master key — see [isUnlocked] for that.
+  Future<bool> get isEncryptionEnabled async =>
+      File(await _encryptionMetaPath).exists();
+
+  /// Whether this instance currently holds the unwrapped master key in
+  /// memory, i.e. [saveSessions] will write ciphertext and [loadSessions]
+  /// can read it back.
+  bool get isUnlocked => _masterKey != null;
+
+  /// Clears the in-memory master key. Subsequent saves revert to plaintext
+  /// and reads of already-encrypted files will throw [StorageLockedException]
+  /// until unlocked again.
+  void lock() => _masterKey = null;
+
+  /// Generates a new master key, wraps it under a key derived from
+  /// [password], and persists the result to `encryption_meta.json`. Any
+  /// sessions already on disk are migrated to the encrypted envelope format
+  /// immediately, so "enabled" always means "protected on disk right now",
+  /// not just "future saves will be protected". Sets the in-memory master
+  /// key so subsequent saves are encrypted immediately.
+  ///
+  /// Runs under the same lock as [runExclusive] so it can never interleave
+  /// with a concurrent save or import.
+  ///
+  /// Throws [StateError] if encryption is already enabled on this device —
+  /// re-running setup would silently discard the previous master key (and
+  /// permanently strand any data already encrypted under it).
+  Future<void> enableEncryption({required String password}) {
+    return _writeLock.run(() async {
+      if (await isEncryptionEnabled) {
+        throw StateError('encryption is already enabled');
+      }
+
+      final existingSessions = await loadSessions();
+
+      final salt = _cryptoService.generateSalt();
+      final passwordKey = await _cryptoService.deriveKeyFromPassword(
+        password: password,
+        salt: salt,
+      );
+      final masterKey = await _cryptoService.generateMasterKey();
+      final wrapped = await _cryptoService.wrapKey(
+        keyToWrap: masterKey,
+        wrappingKey: passwordKey,
+      );
+
+      final metadata = EncryptionMetadata(
+        salt: salt,
+        kdfMemoryKiB: _cryptoService.argon2MemoryKiB,
+        kdfIterations: _cryptoService.argon2Iterations,
+        kdfParallelism: _cryptoService.argon2Parallelism,
+        wrappedMasterKeyPassword: wrapped,
+      );
+      final path = await _encryptionMetaPath;
+      final content =
+          const JsonEncoder.withIndent('  ').convert(metadata.toJson());
+      await _atomicWrite(path, content);
+
+      _masterKey = masterKey;
+      await saveSessions(existingSessions);
+    });
+  }
+
+  /// Attempts to unwrap the master key using [password] against the stored
+  /// metadata. On success, sets the in-memory master key and returns true.
+  /// Returns false — without altering any existing in-memory key — if the
+  /// metadata file is missing or [password] is wrong. A corrupt/malformed
+  /// metadata file is a distinct failure from a wrong password, so it is
+  /// not swallowed here — it propagates rather than being reported
+  /// indistinguishably as "wrong password".
+  ///
+  /// Runs under the same lock as [runExclusive] so it can never interleave
+  /// with a concurrent save or import.
+  Future<bool> unlockWithPassword(String password) {
+    return _writeLock.run(() async {
+      final path = await _encryptionMetaPath;
+      final file = File(path);
+      if (!await file.exists()) return false;
+
+      final json =
+          jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+      final metadata = EncryptionMetadata.fromJson(json);
+      // Derive with the KDF params recorded in the metadata, not this
+      // instance's configured params: the two only coincide today because
+      // there has only ever been one set of defaults. Recording them per
+      // install is what lets a future change to those defaults happen
+      // without breaking installs encrypted under the old ones. AES-GCM
+      // itself (via _cryptoService below) has no such per-install params.
+      final unlockKdf = CryptoService(
+        argon2MemoryKiB: metadata.kdfMemoryKiB,
+        argon2Iterations: metadata.kdfIterations,
+        argon2Parallelism: metadata.kdfParallelism,
+      );
+      final passwordKey = await unlockKdf.deriveKeyFromPassword(
+        password: password,
+        salt: metadata.salt,
+      );
+      try {
+        final masterKey = await _cryptoService.unwrapKey(
+          wrapped: metadata.wrappedMasterKeyPassword,
+          wrappingKey: passwordKey,
+        );
+        _masterKey = masterKey;
+        return true;
+      } on CryptoAuthenticationException {
+        return false;
+      }
+    });
+  }
+
   // --- Sessions ---
 
   Future<String> get _sessionsPath async => '${await basePath}/sessions.json';
+
+  /// Marker key on the on-disk envelope written by [_encodeSessionsContent]
+  /// when a master key is in memory at save time.
+  static const _encryptedMarkerKey = 'encrypted';
+
+  /// Reads and, if necessary, decrypts the on-disk sessions content.
+  ///
+  /// Distinguishes a *locked* file (encrypted, but no master key available)
+  /// from a *corrupt* one: the former throws [StorageLockedException] so
+  /// [loadSessions] can let it propagate instead of treating it as
+  /// corruption and renaming it away via `_saveCorrupt`. Genuine corruption
+  /// (malformed JSON, failed GCM authentication) is left for the caller's
+  /// existing try/catch to handle.
+  Future<String> _readSessionsContent(File file) async {
+    final raw = await file.readAsString();
+    Object? decoded;
+    try {
+      decoded = jsonDecode(raw);
+    } catch (_) {
+      return raw;
+    }
+    if (decoded is! Map<String, dynamic> || decoded[_encryptedMarkerKey] != true) {
+      return raw;
+    }
+    final masterKey = _masterKey;
+    if (masterKey == null) {
+      throw const StorageLockedException(
+        'sessions.json is encrypted but no master key is available',
+      );
+    }
+    final payload =
+        EncryptedPayload.fromJson(decoded['payload'] as Map<String, dynamic>);
+    final plaintext =
+        await _cryptoService.decrypt(payload: payload, key: masterKey);
+    return utf8.decode(plaintext);
+  }
+
+  /// Encrypts [content] into the on-disk envelope format when a master key
+  /// is in memory; returns it unchanged when encryption has never been
+  /// enabled (today's plaintext behavior). Throws [StorageLockedException]
+  /// if encryption is enabled but this instance hasn't been unlocked —
+  /// otherwise a save made in that state would silently downgrade
+  /// previously-encrypted data back to plaintext with no error.
+  Future<String> _encodeSessionsContent(String content) async {
+    final masterKey = _masterKey;
+    if (masterKey == null) {
+      if (await isEncryptionEnabled) {
+        throw const StorageLockedException(
+          'encryption is enabled but no master key is available; '
+          'cannot save sessions.json',
+        );
+      }
+      return content;
+    }
+    final payload = await _cryptoService.encrypt(
+      plaintext: utf8.encode(content),
+      key: masterKey,
+    );
+    final envelope = {
+      _encryptedMarkerKey: true,
+      'payload': payload.toJson(),
+    };
+    return const JsonEncoder.withIndent('  ').convert(envelope);
+  }
 
   Future<List<SessionModel>> loadSessions() async {
     final path = await _sessionsPath;
@@ -158,13 +350,15 @@ class StorageService {
       return [];
     }
     try {
-      final content = await file.readAsString();
+      final content = await _readSessionsContent(file);
       final json = jsonDecode(content) as Map<String, dynamic>;
       final sessions = (json['sessions'] as List<dynamic>?)
               ?.map((e) => SessionModel.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [];
       return sessions;
+    } on StorageLockedException {
+      rethrow;
     } catch (_) {
       await _saveCorrupt(path);
       return [];
@@ -177,7 +371,7 @@ class StorageService {
       'sessions': sessions.map((s) => s.toJson()).toList(),
     };
     final content = const JsonEncoder.withIndent('  ').convert(json);
-    await _atomicWrite(path, content);
+    await _atomicWrite(path, await _encodeSessionsContent(content));
   }
 
   // --- In-Progress Session ---
@@ -563,6 +757,8 @@ class StorageService {
         quotes: parsed.quotes,
         replaceAll: replaceAll,
       );
+    } on StorageLockedException {
+      rethrow;
     } catch (_) {
       return false;
     }
@@ -580,6 +776,22 @@ class StorageService {
     await file.writeAsString(content);
     return file.path;
   }
+}
+
+/// Thrown by [StorageService.loadSessions] and [StorageService.saveSessions]
+/// when encryption is enabled but no master key is available in memory (not
+/// yet unlocked). On load, this is distinct from a corrupt-file failure: the
+/// underlying file is left untouched, so callers can prompt for unlock and
+/// retry rather than losing data to `_saveCorrupt`. On save, it prevents a
+/// write from silently downgrading already-encrypted data back to
+/// plaintext.
+class StorageLockedException implements Exception {
+  final String message;
+
+  const StorageLockedException(this.message);
+
+  @override
+  String toString() => 'StorageLockedException: $message';
 }
 
 /// A minimal FIFO async mutex. Queued actions run one at a time, in the

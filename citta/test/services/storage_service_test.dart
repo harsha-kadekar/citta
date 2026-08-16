@@ -9,7 +9,17 @@ import 'package:citta/models/session_model.dart';
 import 'package:citta/models/timer_mode.dart';
 import 'package:citta/models/app_theme_mode.dart';
 import 'package:citta/models/audio_source.dart';
+import 'package:citta/services/crypto_service.dart';
 import 'package:citta/services/storage_service.dart';
+
+/// Argon2id cost params for tests only: fast, not secure. Production code
+/// must use [CryptoService]'s default (OWASP-recommended) params. Mirrors
+/// `test/services/crypto_service_test.dart`.
+CryptoService _testCryptoService() => CryptoService(
+      argon2Parallelism: 1,
+      argon2MemoryKiB: 8,
+      argon2Iterations: 1,
+    );
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -406,6 +416,258 @@ void main() {
       await service.saveSessions([_makeSession(id: 's1')]);
       await service.saveSessions([]);
       expect(await service.loadSessions(), isEmpty);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // sessions.json encryption
+  // -------------------------------------------------------------------------
+
+  group('sessions.json encryption', () {
+    test('with no master key configured, sessions.json stays plaintext',
+        () async {
+      final encService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await encService.saveSessions([_makeSession(notes: 'peaceful sit')]);
+
+      final path = '${tempDir.path}/sessions.json';
+      final raw = await File(path).readAsString();
+
+      expect(raw, contains('peaceful sit'));
+      expect(encService.isUnlocked, false);
+      expect(await encService.loadSessions(), hasLength(1));
+    });
+
+    test('enableEncryption writes ciphertext bytes, not plaintext, on save',
+        () async {
+      final encService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await encService.enableEncryption(password: 'correct horse battery staple');
+      await encService.saveSessions([_makeSession(notes: 'peaceful sit')]);
+
+      final path = '${tempDir.path}/sessions.json';
+      final raw = await File(path).readAsString();
+
+      expect(raw, isNot(contains('peaceful sit')));
+      expect(raw, isNot(contains('session-1')));
+      expect(jsonDecode(raw), containsPair('encrypted', true));
+    });
+
+    test('round-trips sessions through the same unlocked instance', () async {
+      final encService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await encService.enableEncryption(password: 'correct horse battery staple');
+      final sessions = [
+        _makeSession(id: 's1', notes: 'peaceful sit', tags: ['calm']),
+        _makeSession(id: 's2', duration: 900),
+      ];
+
+      await encService.saveSessions(sessions);
+      final restored = await encService.loadSessions();
+
+      expect(restored.map((s) => s.id).toList(), ['s1', 's2']);
+      expect(restored.first.notes, 'peaceful sit');
+      expect(restored.first.tags, ['calm']);
+    });
+
+    test('a fresh instance can unlock with the correct password and decrypt',
+        () async {
+      final setupService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await setupService.enableEncryption(password: 'correct horse battery staple');
+      await setupService.saveSessions([_makeSession(notes: 'peaceful sit')]);
+
+      final freshService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      expect(await freshService.isEncryptionEnabled, true);
+
+      final unlocked =
+          await freshService.unlockWithPassword('correct horse battery staple');
+
+      expect(unlocked, true);
+      expect(freshService.isUnlocked, true);
+      final restored = await freshService.loadSessions();
+      expect(restored.single.notes, 'peaceful sit');
+    });
+
+    test('unlockWithPassword returns false for the wrong password and leaves '
+        'the encrypted file untouched', () async {
+      final setupService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await setupService.enableEncryption(password: 'correct horse battery staple');
+      await setupService.saveSessions([_makeSession(notes: 'peaceful sit')]);
+
+      final path = '${tempDir.path}/sessions.json';
+      final beforeAttempt = await File(path).readAsString();
+
+      final freshService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      final unlocked = await freshService.unlockWithPassword('wrong password');
+
+      expect(unlocked, false);
+      expect(freshService.isUnlocked, false);
+      expect(await File(path).readAsString(), beforeAttempt);
+    });
+
+    test('loadSessions throws StorageLockedException when the file is '
+        'encrypted but no master key is available, without touching the file',
+        () async {
+      final setupService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await setupService.enableEncryption(password: 'correct horse battery staple');
+      await setupService.saveSessions([_makeSession(notes: 'peaceful sit')]);
+
+      final path = '${tempDir.path}/sessions.json';
+      final beforeAttempt = await File(path).readAsString();
+
+      final freshService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+
+      await expectLater(
+        freshService.loadSessions(),
+        throwsA(isA<StorageLockedException>()),
+      );
+      expect(await File(path).readAsString(), beforeAttempt);
+      expect(await File('$path.bak_corrupt').exists(), false);
+    });
+
+    test('saveSessions throws StorageLockedException instead of silently '
+        'writing plaintext when encryption is enabled but this instance is '
+        'locked', () async {
+      final setupService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await setupService.enableEncryption(password: 'correct horse battery staple');
+      await setupService.saveSessions([_makeSession(notes: 'peaceful sit')]);
+
+      final path = '${tempDir.path}/sessions.json';
+      final beforeAttempt = await File(path).readAsString();
+
+      final lockedService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      // Never unlocked: isUnlocked is false, but encryption IS enabled.
+
+      await expectLater(
+        lockedService.saveSessions([_makeSession(notes: 'new plaintext data')]),
+        throwsA(isA<StorageLockedException>()),
+      );
+      // The previously-encrypted file must not have been overwritten with
+      // plaintext (or at all).
+      expect(await File(path).readAsString(), beforeAttempt);
+    });
+
+    test('enableEncryption throws StateError and leaves existing metadata/'
+        'master key untouched when encryption is already enabled', () async {
+      final encService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await encService.enableEncryption(password: 'first password');
+
+      final metaPath = '${tempDir.path}/encryption_meta.json';
+      final metaBefore = await File(metaPath).readAsString();
+
+      await expectLater(
+        encService.enableEncryption(password: 'second password'),
+        throwsA(isA<StateError>()),
+      );
+
+      expect(await File(metaPath).readAsString(), metaBefore);
+      // The original master key must still work — a second enableEncryption
+      // call must not have discarded it.
+      final freshService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      expect(
+        await freshService.unlockWithPassword('first password'),
+        true,
+      );
+    });
+
+    test('enableEncryption migrates sessions already on disk to ciphertext '
+        'immediately, not only on the next save', () async {
+      final encService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await encService.saveSessions([_makeSession(notes: 'pre-existing plaintext')]);
+
+      await encService.enableEncryption(password: 'correct horse battery staple');
+
+      final path = '${tempDir.path}/sessions.json';
+      final raw = await File(path).readAsString();
+      expect(raw, isNot(contains('pre-existing plaintext')));
+      expect(jsonDecode(raw), containsPair('encrypted', true));
+
+      final restored = await encService.loadSessions();
+      expect(restored.single.notes, 'pre-existing plaintext');
+    });
+
+    test('unlockWithPassword propagates rather than reporting "wrong '
+        'password" when the metadata file itself is corrupt', () async {
+      final encService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await encService.enableEncryption(password: 'correct horse battery staple');
+
+      final metaPath = '${tempDir.path}/encryption_meta.json';
+      await File(metaPath).writeAsString('not valid json!!!');
+
+      final freshService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+
+      await expectLater(
+        freshService.unlockWithPassword('correct horse battery staple'),
+        throwsA(anything),
+      );
+    });
+
+    test('unlockWithPassword derives using the KDF params recorded in '
+        "metadata, not this instance's configured params", () async {
+      final setupService = StorageService.withBasePath(
+        tempDir.path,
+        cryptoService: CryptoService(
+          argon2Parallelism: 1,
+          argon2MemoryKiB: 8,
+          argon2Iterations: 1,
+        ),
+      );
+      await setupService.enableEncryption(password: 'correct horse battery staple');
+      await setupService.saveSessions([_makeSession(notes: 'peaceful sit')]);
+
+      // A fresh instance configured with DIFFERENT Argon2 params — as if
+      // production defaults changed since this install's data was
+      // encrypted. Deriving with these (instead of the params recorded in
+      // encryption_meta.json) would produce the wrong key and reject the
+      // correct password.
+      final freshService = StorageService.withBasePath(
+        tempDir.path,
+        cryptoService: CryptoService(
+          argon2Parallelism: 1,
+          argon2MemoryKiB: 16,
+          argon2Iterations: 3,
+        ),
+      );
+
+      final unlocked =
+          await freshService.unlockWithPassword('correct horse battery staple');
+
+      expect(unlocked, true);
+      expect((await freshService.loadSessions()).single.notes, 'peaceful sit');
+    });
+
+    test('enableEncryption serializes with a concurrent runExclusive call '
+        'instead of racing it', () async {
+      final order = <int>[];
+      final encService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+
+      final first = encService
+          .enableEncryption(password: 'correct horse battery staple')
+          .then((_) => order.add(1));
+      final second = encService.runExclusive(() async {
+        order.add(2);
+      });
+
+      await Future.wait([first, second]);
+
+      expect(order, [1, 2],
+          reason: 'enableEncryption must take the same write lock as '
+              'runExclusive, or a concurrent save could interleave with '
+              'setup and observe an inconsistent half-enabled state');
     });
   });
 
@@ -1102,6 +1364,29 @@ void main() {
       expect(ok, isFalse);
       expect((await service.loadConfig()).timerMode, TimerMode.stopwatch,
           reason: 'a failed importValidated must roll back like importData');
+    });
+
+    test('propagates StorageLockedException instead of reporting a plain '
+        'false when the store is locked (encrypted sessions.json, no '
+        'master key)', () async {
+      final setupService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await setupService.enableEncryption(password: 'correct horse battery staple');
+      await setupService.saveSessions([_makeSession(notes: 'peaceful sit')]);
+
+      final lockedService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+
+      final content = jsonEncode({
+        'version': 1,
+        'config': ConfigModel().toJson(),
+        'sessions': [_makeSession(id: 'imported').toJson()],
+      });
+
+      await expectLater(
+        lockedService.importValidated(content),
+        throwsA(isA<StorageLockedException>()),
+      );
     });
   });
 
