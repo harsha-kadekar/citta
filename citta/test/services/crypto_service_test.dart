@@ -196,4 +196,33 @@ void main() {
       );
     });
   });
+
+  group('masterKeyVerifier', () {
+    test('is deterministic for the same key bytes', () async {
+      final key = await cryptoService.generateMasterKey();
+
+      final verifierA = await cryptoService.masterKeyVerifier(key);
+      final verifierB = await cryptoService.masterKeyVerifier(key);
+
+      expect(verifierA, verifierB);
+    });
+
+    test('differs for different keys', () async {
+      final keyA = await cryptoService.generateMasterKey();
+      final keyB = await cryptoService.generateMasterKey();
+
+      final verifierA = await cryptoService.masterKeyVerifier(keyA);
+      final verifierB = await cryptoService.masterKeyVerifier(keyB);
+
+      expect(verifierA, isNot(verifierB));
+    });
+
+    test('does not reveal the raw key bytes', () async {
+      final key = await cryptoService.generateMasterKey();
+
+      final verifier = await cryptoService.masterKeyVerifier(key);
+
+      expect(verifier, isNot(contains(String.fromCharCodes(await key.extractBytes()))));
+    });
+  });
 }

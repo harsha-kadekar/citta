@@ -28,6 +28,7 @@ class AppBootstrapper {
     required AudioService audioService,
   }) async {
     final config = await storageService.loadConfig();
+    await storageService.tryUnlockWithCachedKey();
     var sessions = List<SessionModel>.unmodifiable(await storageService.loadSessions());
     await quoteService.initialize();
     await audioService.init();
