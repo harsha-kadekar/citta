@@ -9,24 +9,32 @@ import '../models/encryption_metadata.dart';
 import '../models/session_model.dart';
 import '../models/quote_model.dart';
 import 'crypto_service.dart';
+import 'secure_key_cache.dart';
 
 class StorageService {
   Future<String>? _basePathFuture;
   final _writeLock = _AsyncLock();
   final CryptoService _cryptoService;
+  final SecureKeyCache _secureKeyCache;
 
   /// The unwrapped master key, held only in memory. Set by [enableEncryption]
-  /// or a successful [unlockWithPassword]; cleared by [lock]. Never null once
-  /// set for the lifetime of this instance unless explicitly locked.
+  /// or a successful [unlockWithPassword]/[tryUnlockWithCachedKey]; cleared
+  /// by [lock]. Never null once set for the lifetime of this instance unless
+  /// explicitly locked.
   SecretKey? _masterKey;
 
-  StorageService({CryptoService? cryptoService})
-      : _cryptoService = cryptoService ?? CryptoService();
+  StorageService({CryptoService? cryptoService, SecureKeyCache? secureKeyCache})
+      : _cryptoService = cryptoService ?? CryptoService(),
+        _secureKeyCache = secureKeyCache ?? SecureStorageKeyCache();
 
   @visibleForTesting
-  StorageService.withBasePath(String basePath, {CryptoService? cryptoService})
-      : _basePathFuture = Future.value(basePath),
-        _cryptoService = cryptoService ?? CryptoService();
+  StorageService.withBasePath(
+    String basePath, {
+    CryptoService? cryptoService,
+    SecureKeyCache? secureKeyCache,
+  })  : _basePathFuture = Future.value(basePath),
+        _cryptoService = cryptoService ?? CryptoService(),
+        _secureKeyCache = secureKeyCache ?? InMemoryKeyCache();
 
   Future<String> get basePath => _basePathFuture ??= _resolveBasePath();
 
@@ -173,10 +181,23 @@ class StorageService {
   /// can read it back.
   bool get isUnlocked => _masterKey != null;
 
-  /// Clears the in-memory master key. Subsequent saves revert to plaintext
-  /// and reads of already-encrypted files will throw [StorageLockedException]
-  /// until unlocked again.
-  void lock() => _masterKey = null;
+  /// Clears the in-memory master key and the persisted secure-storage cache
+  /// (see [clearCachedMasterKey]) — an explicit lock must require the
+  /// password again, not be silently undone by [tryUnlockWithCachedKey] on
+  /// the next launch. Subsequent saves revert to plaintext and reads of
+  /// already-encrypted files will throw [StorageLockedException] until
+  /// unlocked again.
+  ///
+  /// The in-memory key is cleared first and unconditionally, so this
+  /// instance is locked even if the cache clear below fails. That failure
+  /// is not swallowed, though — it is rethrown so callers know the OS
+  /// keystore may still hold a cached key (e.g. a fresh instance could
+  /// still auto-unlock via [tryUnlockWithCachedKey] until the clear is
+  /// retried successfully).
+  Future<void> lock() async {
+    _masterKey = null;
+    await clearCachedMasterKey();
+  }
 
   /// Generates a new master key, wraps it under a key derived from
   /// [password], and persists the result to `encryption_meta.json`. Any
@@ -216,6 +237,7 @@ class StorageService {
         kdfIterations: _cryptoService.argon2Iterations,
         kdfParallelism: _cryptoService.argon2Parallelism,
         wrappedMasterKeyPassword: wrapped,
+        masterKeyVerifier: await _cryptoService.masterKeyVerifier(masterKey),
       );
       final path = await _encryptionMetaPath;
       final content =
@@ -223,6 +245,7 @@ class StorageService {
       await _atomicWrite(path, content);
 
       _masterKey = masterKey;
+      await _cacheMasterKeyBestEffort(masterKey);
       await saveSessions(existingSessions);
     });
   }
@@ -267,12 +290,139 @@ class StorageService {
           wrappingKey: passwordKey,
         );
         _masterKey = masterKey;
+        if (metadata.masterKeyVerifier == null) {
+          await _migrateMetadataWithVerifier(path, metadata, masterKey);
+        }
+        await _cacheMasterKeyBestEffort(masterKey);
         return true;
       } on CryptoAuthenticationException {
         return false;
       }
     });
   }
+
+  /// Rewrites `encryption_meta.json` to add a [EncryptionMetadata.masterKeyVerifier]
+  /// for metadata written before that field existed, now that [password]
+  /// has been confirmed correct and [masterKey] is known — this is the only
+  /// point where a verifier can be computed for such an install, since
+  /// deriving it requires the unwrapped master key. Best-effort: a write
+  /// failure here must not turn an otherwise-successful password unlock
+  /// into a failure; the migration is simply retried on the next
+  /// successful password unlock.
+  Future<void> _migrateMetadataWithVerifier(
+    String path,
+    EncryptionMetadata legacyMetadata,
+    SecretKey masterKey,
+  ) async {
+    try {
+      final migrated = EncryptionMetadata(
+        version: legacyMetadata.version,
+        salt: legacyMetadata.salt,
+        kdfMemoryKiB: legacyMetadata.kdfMemoryKiB,
+        kdfIterations: legacyMetadata.kdfIterations,
+        kdfParallelism: legacyMetadata.kdfParallelism,
+        wrappedMasterKeyPassword: legacyMetadata.wrappedMasterKeyPassword,
+        wrappedMasterKeyRecovery: legacyMetadata.wrappedMasterKeyRecovery,
+        masterKeyVerifier: await _cryptoService.masterKeyVerifier(masterKey),
+      );
+      final content =
+          const JsonEncoder.withIndent('  ').convert(migrated.toJson());
+      await _atomicWrite(path, content);
+    } catch (_) {}
+  }
+
+  /// Caches [key] for a later [tryUnlockWithCachedKey] call, swallowing any
+  /// failure. Caching is a convenience (avoiding a repeat password prompt),
+  /// not a security-critical step — a keystore write failure here must not
+  /// block [enableEncryption] or [unlockWithPassword] from completing an
+  /// otherwise-successful unlock, nor strand [enableEncryption] behind its
+  /// "already enabled" guard with no way to retry.
+  Future<void> _cacheMasterKeyBestEffort(SecretKey key) async {
+    try {
+      await _secureKeyCache.save(key);
+    } catch (_) {}
+  }
+
+  /// Attempts to restore the master key from the secure cache without a
+  /// password — e.g. on app startup, so a device that has already unlocked
+  /// once isn't prompted again. Returns true if the instance is unlocked
+  /// afterwards (either it already was, or a valid cached key was found);
+  /// false if encryption isn't enabled, nothing is cached, the cache itself
+  /// is unreadable (corrupt entry, keystore unavailable), or the cached key
+  /// doesn't match `encryption_meta.json`'s [EncryptionMetadata.masterKeyVerifier]
+  /// (e.g. stale relative to a documents restore, or an unrelated keystore
+  /// entry left behind by a reset) — in every such case callers should fall
+  /// back to prompting for a password. Never throws: a caching-layer
+  /// failure must not be able to abort app startup.
+  ///
+  /// The verifier check runs regardless of whether sessions.json exists
+  /// yet: relying on a successful decrypt of that file alone would accept
+  /// any cached key when there's nothing on disk to decrypt against, which
+  /// would let saveSessions() silently encrypt new data under a wrong key
+  /// that the real master key (found later via [unlockWithPassword]) can
+  /// never decrypt again.
+  ///
+  /// Runs under the same lock as [runExclusive] so it can never interleave
+  /// with a concurrent save or import.
+  Future<bool> tryUnlockWithCachedKey() {
+    return _writeLock.run(() async {
+      if (_masterKey != null) return true;
+      if (!await isEncryptionEnabled) return false;
+
+      final SecretKey cached;
+      try {
+        final read = await _secureKeyCache.read();
+        if (read == null) return false;
+        cached = read;
+      } catch (_) {
+        return false;
+      }
+
+      if (!await _matchesStoredMasterKeyVerifier(cached)) {
+        try {
+          await _secureKeyCache.clear();
+        } catch (_) {}
+        return false;
+      }
+
+      _masterKey = cached;
+      return true;
+    });
+  }
+
+  /// Returns true if [candidateKey]'s digest matches the
+  /// [EncryptionMetadata.masterKeyVerifier] recorded in
+  /// `encryption_meta.json` when this instance was set up — i.e.
+  /// [candidateKey] really is this install's master key, not just some
+  /// other key that happens to be present. Used by [tryUnlockWithCachedKey]
+  /// to reject a stale or unrelated cached key up front, independent of
+  /// whether there's any encrypted file on disk yet to test-decrypt.
+  ///
+  /// Returns false — never true — if the stored metadata predates
+  /// [EncryptionMetadata.masterKeyVerifier] (null field): there is nothing
+  /// to check a candidate key against yet, and a missing verifier must
+  /// never be silently treated as a match, even if the cached key happens
+  /// to be correct. [unlockWithPassword] migrates such metadata to add a
+  /// verifier the next time the user unlocks with their password.
+  Future<bool> _matchesStoredMasterKeyVerifier(SecretKey candidateKey) async {
+    final path = await _encryptionMetaPath;
+    final json =
+        jsonDecode(await File(path).readAsString()) as Map<String, dynamic>;
+    final metadata = EncryptionMetadata.fromJson(json);
+    final storedVerifier = metadata.masterKeyVerifier;
+    if (storedVerifier == null) return false;
+    final candidateVerifier =
+        await _cryptoService.masterKeyVerifier(candidateKey);
+    return candidateVerifier == storedVerifier;
+  }
+
+  /// Removes the master key from the secure cache, without affecting the
+  /// in-memory key held by this instance. Called by [lock] as part of an
+  /// explicit lock; also intended to be called directly by future flows
+  /// that must invalidate the cache without necessarily locking this
+  /// instance's in-memory key too — e.g. disabling encryption, or changing
+  /// the password (the old cache entry is stale once re-wrapped).
+  Future<void> clearCachedMasterKey() => _secureKeyCache.clear();
 
   // --- Sessions ---
 

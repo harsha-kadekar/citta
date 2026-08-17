@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:cryptography/cryptography.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
@@ -10,6 +11,7 @@ import 'package:citta/models/timer_mode.dart';
 import 'package:citta/models/app_theme_mode.dart';
 import 'package:citta/models/audio_source.dart';
 import 'package:citta/services/crypto_service.dart';
+import 'package:citta/services/secure_key_cache.dart';
 import 'package:citta/services/storage_service.dart';
 
 /// Argon2id cost params for tests only: fast, not secure. Production code
@@ -68,6 +70,66 @@ class _FlakyPostCommitSessionsStorageService extends StorageService {
     if (_saveSessionsCalls == 1) {
       throw const FileSystemException('simulated post-commit failure');
     }
+  }
+}
+
+/// A [SecureKeyCache] that records every call and fails the test if [read]
+/// is invoked when [allowRead] is false — used to assert that a cache read
+/// is skipped entirely (e.g. when encryption was never enabled), not just
+/// that its result is ignored.
+class _SpyKeyCache extends InMemoryKeyCache {
+  bool allowRead = true;
+  int saveCalls = 0;
+  int readCalls = 0;
+  int clearCalls = 0;
+
+  @override
+  Future<void> save(SecretKey key) async {
+    saveCalls++;
+    await super.save(key);
+  }
+
+  @override
+  Future<SecretKey?> read() async {
+    readCalls++;
+    if (!allowRead) {
+      throw StateError('read() should not have been called');
+    }
+    return super.read();
+  }
+
+  @override
+  Future<void> clear() async {
+    clearCalls++;
+    await super.clear();
+  }
+}
+
+/// A [SecureKeyCache] whose [save] always throws, simulating a real-device
+/// keystore write failure (locked keystore, denied permission, etc).
+class _ThrowingSaveKeyCache extends InMemoryKeyCache {
+  @override
+  Future<void> save(SecretKey key) async {
+    throw PlatformException(code: 'simulated_keystore_write_failure');
+  }
+}
+
+/// A [SecureKeyCache] whose [read] always throws, simulating a corrupt
+/// stored value or an unavailable OS keystore (e.g. iOS Keychain before
+/// first device unlock after reboot).
+class _ThrowingReadKeyCache extends InMemoryKeyCache {
+  @override
+  Future<SecretKey?> read() async {
+    throw PlatformException(code: 'simulated_keystore_read_failure');
+  }
+}
+
+/// A [SecureKeyCache] whose [clear] always throws, simulating a keystore
+/// delete failure.
+class _ThrowingClearKeyCache extends InMemoryKeyCache {
+  @override
+  Future<void> clear() async {
+    throw PlatformException(code: 'simulated_keystore_delete_failure');
   }
 }
 
@@ -668,6 +730,523 @@ void main() {
           reason: 'enableEncryption must take the same write lock as '
               'runExclusive, or a concurrent save could interleave with '
               'setup and observe an inconsistent half-enabled state');
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Master key caching (issue #50)
+  // -------------------------------------------------------------------------
+
+  group('master key caching', () {
+    test('enableEncryption caches the master key', () async {
+      final cache = _SpyKeyCache();
+      final encService = StorageService.withBasePath(
+        tempDir.path,
+        cryptoService: _testCryptoService(),
+        secureKeyCache: cache,
+      );
+
+      await encService.enableEncryption(password: 'correct horse battery staple');
+
+      expect(cache.saveCalls, 1);
+      expect(await cache.read(), isNotNull);
+    });
+
+    test('unlockWithPassword caches the master key on success', () async {
+      final setupCache = _SpyKeyCache();
+      final setupService = StorageService.withBasePath(
+        tempDir.path,
+        cryptoService: _testCryptoService(),
+        secureKeyCache: setupCache,
+      );
+      await setupService.enableEncryption(password: 'correct horse battery staple');
+
+      final unlockCache = _SpyKeyCache();
+      final freshService = StorageService.withBasePath(
+        tempDir.path,
+        cryptoService: _testCryptoService(),
+        secureKeyCache: unlockCache,
+      );
+
+      final unlocked =
+          await freshService.unlockWithPassword('correct horse battery staple');
+
+      expect(unlocked, true);
+      expect(unlockCache.saveCalls, 1);
+      expect(await unlockCache.read(), isNotNull);
+    });
+
+    test('unlockWithPassword does not cache anything on a wrong password',
+        () async {
+      final setupService = StorageService.withBasePath(
+        tempDir.path,
+        cryptoService: _testCryptoService(),
+      );
+      await setupService.enableEncryption(password: 'correct horse battery staple');
+
+      final cache = _SpyKeyCache();
+      final freshService = StorageService.withBasePath(
+        tempDir.path,
+        cryptoService: _testCryptoService(),
+        secureKeyCache: cache,
+      );
+
+      final unlocked = await freshService.unlockWithPassword('wrong password');
+
+      expect(unlocked, false);
+      expect(cache.saveCalls, 0);
+      expect(await cache.read(), isNull);
+    });
+
+    test('tryUnlockWithCachedKey restores the master key on a fresh '
+        'instance sharing the same cache — simulating a restart', () async {
+      final sharedCache = _SpyKeyCache();
+      final setupService = StorageService.withBasePath(
+        tempDir.path,
+        cryptoService: _testCryptoService(),
+        secureKeyCache: sharedCache,
+      );
+      await setupService.enableEncryption(password: 'correct horse battery staple');
+      await setupService.saveSessions([_makeSession(notes: 'peaceful sit')]);
+
+      final freshService = StorageService.withBasePath(
+        tempDir.path,
+        cryptoService: _testCryptoService(),
+        secureKeyCache: sharedCache,
+      );
+      expect(freshService.isUnlocked, false,
+          reason: 'a fresh instance must not start unlocked before trying '
+              'the cache');
+
+      final restored = await freshService.tryUnlockWithCachedKey();
+
+      expect(restored, true);
+      expect(freshService.isUnlocked, true);
+      expect((await freshService.loadSessions()).single.notes, 'peaceful sit');
+    });
+
+    test('tryUnlockWithCachedKey returns false and leaves the instance '
+        'locked when encryption is enabled but nothing is cached '
+        '(simulated cache miss)', () async {
+      final setupService = StorageService.withBasePath(
+        tempDir.path,
+        cryptoService: _testCryptoService(),
+      );
+      await setupService.enableEncryption(password: 'correct horse battery staple');
+
+      final freshService = StorageService.withBasePath(
+        tempDir.path,
+        cryptoService: _testCryptoService(),
+        secureKeyCache: InMemoryKeyCache(),
+      );
+
+      final restored = await freshService.tryUnlockWithCachedKey();
+
+      expect(restored, false);
+      expect(freshService.isUnlocked, false);
+      expect(
+        () => freshService.loadSessions(),
+        throwsA(isA<StorageLockedException>()),
+      );
+    });
+
+    test('tryUnlockWithCachedKey returns false without touching the cache '
+        'when encryption was never enabled', () async {
+      final cache = _SpyKeyCache()..allowRead = false;
+      final freshService = StorageService.withBasePath(
+        tempDir.path,
+        secureKeyCache: cache,
+      );
+
+      final restored = await freshService.tryUnlockWithCachedKey();
+
+      expect(restored, false);
+      expect(freshService.isUnlocked, false);
+      expect(cache.readCalls, 0);
+    });
+
+    test('tryUnlockWithCachedKey returns true immediately when already '
+        'unlocked, without touching the cache', () async {
+      final cache = _SpyKeyCache()..allowRead = false;
+      final encService = StorageService.withBasePath(
+        tempDir.path,
+        cryptoService: _testCryptoService(),
+        secureKeyCache: cache,
+      );
+      await encService.enableEncryption(password: 'correct horse battery staple');
+      cache.allowRead = false;
+
+      final restored = await encService.tryUnlockWithCachedKey();
+
+      expect(restored, true);
+      expect(cache.readCalls, 0);
+    });
+
+    test('clearCachedMasterKey removes the cached key, so a later '
+        'tryUnlockWithCachedKey misses', () async {
+      final sharedCache = _SpyKeyCache();
+      final setupService = StorageService.withBasePath(
+        tempDir.path,
+        cryptoService: _testCryptoService(),
+        secureKeyCache: sharedCache,
+      );
+      await setupService.enableEncryption(password: 'correct horse battery staple');
+
+      await setupService.clearCachedMasterKey();
+
+      expect(sharedCache.clearCalls, 1);
+      expect(await sharedCache.read(), isNull);
+
+      final freshService = StorageService.withBasePath(
+        tempDir.path,
+        cryptoService: _testCryptoService(),
+        secureKeyCache: sharedCache,
+      );
+      expect(await freshService.tryUnlockWithCachedKey(), false);
+    });
+
+    test('clearCachedMasterKey does not clear the in-memory key of this '
+        'instance', () async {
+      final encService = StorageService.withBasePath(
+        tempDir.path,
+        cryptoService: _testCryptoService(),
+      );
+      await encService.enableEncryption(password: 'correct horse battery staple');
+
+      await encService.clearCachedMasterKey();
+
+      expect(encService.isUnlocked, true,
+          reason: 'clearCachedMasterKey only invalidates the persisted '
+              'cache; in-memory clearing is lock()\'s job');
+    });
+
+    test('tryUnlockWithCachedKey rejects a cached key that cannot decrypt '
+        'the on-disk sessions.json, clears the stale entry, and leaves the '
+        'file untouched — instead of trusting it and letting loadSessions '
+        'mistake the wrong key for corruption', () async {
+      final sharedCache = _SpyKeyCache();
+      final setupService = StorageService.withBasePath(
+        tempDir.path,
+        cryptoService: _testCryptoService(),
+        secureKeyCache: sharedCache,
+      );
+      await setupService.enableEncryption(password: 'correct horse battery staple');
+      await setupService.saveSessions([_makeSession(notes: 'peaceful sit')]);
+
+      // Simulate a keystore entry that has gone stale relative to what's on
+      // disk (e.g. documents restored from an older backup than the
+      // surviving OS keystore entry) by overwriting the shared cache with
+      // an unrelated key.
+      final staleKey = await _testCryptoService().generateMasterKey();
+      await sharedCache.save(staleKey);
+
+      final freshService = StorageService.withBasePath(
+        tempDir.path,
+        cryptoService: _testCryptoService(),
+        secureKeyCache: sharedCache,
+      );
+
+      final restored = await freshService.tryUnlockWithCachedKey();
+
+      expect(restored, false);
+      expect(freshService.isUnlocked, false);
+      expect(await sharedCache.read(), isNull,
+          reason: 'the stale entry must be dropped so a later attempt '
+              'does not keep retrying the same bad key');
+
+      // The original, correctly-encrypted file must survive untouched —
+      // not get renamed to .bak_corrupt by a wrong-key decrypt failure.
+      final path = '${tempDir.path}/sessions.json';
+      expect(await File(path).exists(), true);
+      expect(await File('$path.bak_corrupt').exists(), false);
+      final recheckService = StorageService.withBasePath(
+        tempDir.path,
+        cryptoService: _testCryptoService(),
+      );
+      expect(
+        await recheckService.unlockWithPassword('correct horse battery staple'),
+        true,
+      );
+      expect((await recheckService.loadSessions()).single.notes, 'peaceful sit');
+    });
+
+    test('tryUnlockWithCachedKey rejects a cached key that does not match '
+        "encryption_meta.json's verifier even when sessions.json does not "
+        'exist yet — otherwise a later saveSessions would silently encrypt '
+        'new data under the wrong key, unrecoverable after a real password '
+        'unlock', () async {
+      final sharedCache = _SpyKeyCache();
+      final setupService = StorageService.withBasePath(
+        tempDir.path,
+        cryptoService: _testCryptoService(),
+        secureKeyCache: sharedCache,
+      );
+      await setupService.enableEncryption(password: 'correct horse battery staple');
+      // No sessions saved yet — sessions.json does not exist on disk, so a
+      // decrypt-based check alone has nothing to verify the key against.
+
+      final staleKey = await _testCryptoService().generateMasterKey();
+      await sharedCache.save(staleKey);
+
+      final freshService = StorageService.withBasePath(
+        tempDir.path,
+        cryptoService: _testCryptoService(),
+        secureKeyCache: sharedCache,
+      );
+
+      final restored = await freshService.tryUnlockWithCachedKey();
+
+      expect(restored, false);
+      expect(freshService.isUnlocked, false);
+      expect(await sharedCache.read(), isNull);
+
+      // A real password unlock must still work, and a session saved
+      // through it must be readable afterward — proving no data was ever
+      // encrypted under the stale, unrelated key.
+      final recheckService = StorageService.withBasePath(
+        tempDir.path,
+        cryptoService: _testCryptoService(),
+      );
+      expect(
+        await recheckService.unlockWithPassword('correct horse battery staple'),
+        true,
+      );
+      await recheckService.saveSessions([_makeSession(notes: 'peaceful sit')]);
+      expect((await recheckService.loadSessions()).single.notes, 'peaceful sit');
+    });
+
+    test('tryUnlockWithCachedKey returns false instead of throwing when '
+        'the cache read itself fails (corrupt entry, keystore '
+        'unavailable, etc)', () async {
+      final setupService = StorageService.withBasePath(
+        tempDir.path,
+        cryptoService: _testCryptoService(),
+      );
+      await setupService.enableEncryption(password: 'correct horse battery staple');
+
+      final freshService = StorageService.withBasePath(
+        tempDir.path,
+        cryptoService: _testCryptoService(),
+        secureKeyCache: _ThrowingReadKeyCache(),
+      );
+
+      final restored = await freshService.tryUnlockWithCachedKey();
+
+      expect(restored, false);
+      expect(freshService.isUnlocked, false);
+    });
+
+    test('enableEncryption still enables encryption and migrates sessions '
+        'to ciphertext even if caching the master key fails', () async {
+      final encService = StorageService.withBasePath(
+        tempDir.path,
+        cryptoService: _testCryptoService(),
+        secureKeyCache: _ThrowingSaveKeyCache(),
+      );
+      await encService.saveSessions([_makeSession(notes: 'peaceful sit')]);
+
+      await encService.enableEncryption(password: 'correct horse battery staple');
+
+      expect(encService.isUnlocked, true);
+      final path = '${tempDir.path}/sessions.json';
+      final raw = await File(path).readAsString();
+      expect(raw, isNot(contains('peaceful sit')));
+      expect(jsonDecode(raw), containsPair('encrypted', true));
+    });
+
+    test('unlockWithPassword still returns true when caching the master '
+        'key afterward fails', () async {
+      final setupService = StorageService.withBasePath(
+        tempDir.path,
+        cryptoService: _testCryptoService(),
+      );
+      await setupService.enableEncryption(password: 'correct horse battery staple');
+
+      final freshService = StorageService.withBasePath(
+        tempDir.path,
+        cryptoService: _testCryptoService(),
+        secureKeyCache: _ThrowingSaveKeyCache(),
+      );
+
+      final unlocked =
+          await freshService.unlockWithPassword('correct horse battery staple');
+
+      expect(unlocked, true);
+      expect(freshService.isUnlocked, true);
+    });
+
+    test('lock() also clears the persisted cache, so a fresh instance '
+        'sharing it does not silently auto-unlock — an explicit lock must '
+        'require the password again', () async {
+      final sharedCache = _SpyKeyCache();
+      final encService = StorageService.withBasePath(
+        tempDir.path,
+        cryptoService: _testCryptoService(),
+        secureKeyCache: sharedCache,
+      );
+      await encService.enableEncryption(password: 'correct horse battery staple');
+
+      await encService.lock();
+
+      expect(encService.isUnlocked, false);
+      expect(await sharedCache.read(), isNull);
+
+      final freshService = StorageService.withBasePath(
+        tempDir.path,
+        cryptoService: _testCryptoService(),
+        secureKeyCache: sharedCache,
+      );
+      expect(await freshService.tryUnlockWithCachedKey(), false);
+    });
+
+    test('lock() surfaces a failure clearing the persisted cache instead '
+        'of silently leaving a stale entry behind, but still clears the '
+        'in-memory key regardless', () async {
+      final encService = StorageService.withBasePath(
+        tempDir.path,
+        cryptoService: _testCryptoService(),
+        secureKeyCache: _ThrowingClearKeyCache(),
+      );
+      await encService.enableEncryption(password: 'correct horse battery staple');
+
+      await expectLater(encService.lock(), throwsA(anything));
+
+      expect(encService.isUnlocked, false,
+          reason: 'the in-memory key must be cleared even if persisting '
+              'the clear fails');
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Legacy metadata migration for masterKeyVerifier (issue #50 follow-up)
+  // -------------------------------------------------------------------------
+
+  group('legacy metadata migration for masterKeyVerifier', () {
+    /// Writes an `encryption_meta.json` in the exact shape
+    /// `EncryptionMetadata.toJson()` produced before `masterKeyVerifier`
+    /// existed (no such key at all) — what a real pre-#50-follow-up
+    /// encrypted install has on disk — and a matching encrypted
+    /// `sessions.json`, without going through `enableEncryption` (which
+    /// would always write the current, verifier-including shape).
+    Future<SecretKey> seedLegacyEncryptedInstall(
+      Directory dir,
+      CryptoService crypto, {
+      required String password,
+    }) async {
+      final salt = crypto.generateSalt();
+      final passwordKey = await crypto.deriveKeyFromPassword(
+        password: password,
+        salt: salt,
+      );
+      final masterKey = await crypto.generateMasterKey();
+      final wrapped = await crypto.wrapKey(
+        keyToWrap: masterKey,
+        wrappingKey: passwordKey,
+      );
+
+      final legacyMetaJson = {
+        'version': 1,
+        'algorithm': 'aes-256-gcm',
+        'kdf': {
+          'algorithm': 'argon2id',
+          'salt': base64Encode(salt),
+          'memoryKiB': crypto.argon2MemoryKiB,
+          'iterations': crypto.argon2Iterations,
+          'parallelism': crypto.argon2Parallelism,
+        },
+        'wrappedMasterKeyPassword': wrapped.toJson(),
+        'wrappedMasterKeyRecovery': null,
+        // Deliberately no 'masterKeyVerifier' key — the legacy shape.
+      };
+      await File('${dir.path}/encryption_meta.json').writeAsString(
+        const JsonEncoder.withIndent('  ').convert(legacyMetaJson),
+      );
+
+      final sessionsContent = const JsonEncoder.withIndent('  ').convert({
+        'sessions': [_makeSession(notes: 'peaceful sit').toJson()],
+      });
+      final payload = await crypto.encrypt(
+        plaintext: utf8.encode(sessionsContent),
+        key: masterKey,
+      );
+      final envelope = {'encrypted': true, 'payload': payload.toJson()};
+      await File('${dir.path}/sessions.json').writeAsString(
+        const JsonEncoder.withIndent('  ').convert(envelope),
+      );
+
+      return masterKey;
+    }
+
+    test('unlockWithPassword accepts legacy metadata predating '
+        'masterKeyVerifier, reads the existing encrypted sessions, and '
+        'migrates the metadata so a later cached unlock can use it',
+        () async {
+      final crypto = _testCryptoService();
+      await seedLegacyEncryptedInstall(
+        tempDir,
+        crypto,
+        password: 'correct horse battery staple',
+      );
+
+      final sharedCache = InMemoryKeyCache();
+      final freshService = StorageService.withBasePath(
+        tempDir.path,
+        cryptoService: crypto,
+        secureKeyCache: sharedCache,
+      );
+
+      final unlocked =
+          await freshService.unlockWithPassword('correct horse battery staple');
+
+      expect(unlocked, true);
+      expect((await freshService.loadSessions()).single.notes, 'peaceful sit');
+
+      final migratedJson = jsonDecode(
+        await File('${tempDir.path}/encryption_meta.json').readAsString(),
+      ) as Map<String, dynamic>;
+      expect(migratedJson['masterKeyVerifier'], isA<String>(),
+          reason: 'a successful password unlock must upgrade legacy '
+              'metadata to include a verifier');
+
+      // The migration must actually take effect for auto-unlock: a later
+      // instance sharing the (now-populated) cache should unlock without a
+      // password and still read the pre-existing session.
+      final laterService = StorageService.withBasePath(
+        tempDir.path,
+        cryptoService: crypto,
+        secureKeyCache: sharedCache,
+      );
+      expect(await laterService.tryUnlockWithCachedKey(), true);
+      expect((await laterService.loadSessions()).single.notes, 'peaceful sit');
+    });
+
+    test('tryUnlockWithCachedKey never treats a missing verifier as a '
+        'match — a cached key from before this fix shipped must not '
+        'auto-unlock against unmigrated legacy metadata', () async {
+      final crypto = _testCryptoService();
+      final masterKey = await seedLegacyEncryptedInstall(
+        tempDir,
+        crypto,
+        password: 'correct horse battery staple',
+      );
+
+      // Simulate a cache entry that predates this fix: it holds the
+      // genuinely correct master key, but the metadata hasn't been
+      // migrated to record a verifier yet.
+      final cache = InMemoryKeyCache();
+      await cache.save(masterKey);
+      final freshService = StorageService.withBasePath(
+        tempDir.path,
+        cryptoService: crypto,
+        secureKeyCache: cache,
+      );
+
+      final restored = await freshService.tryUnlockWithCachedKey();
+
+      expect(restored, false,
+          reason: 'a missing verifier must never be silently treated as a '
+              'match, even if the cached key happens to be correct');
+      expect(freshService.isUnlocked, false);
     });
   });
 

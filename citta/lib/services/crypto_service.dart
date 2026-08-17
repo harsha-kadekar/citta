@@ -113,6 +113,20 @@ class CryptoService {
     final rawBytes = await decrypt(payload: wrapped, key: wrappingKey);
     return SecretKey(rawBytes);
   }
+
+  /// A non-secret digest of [key]'s raw bytes, suitable for storing
+  /// alongside [key]'s wrapped form (e.g. in encryption metadata) so a
+  /// later candidate key — such as one restored from a device cache — can
+  /// be confirmed to be the *same* key without needing the password. Not
+  /// itself secret: SHA-256 is one-way, so the digest doesn't help recover
+  /// [key], but it does let a wrong or unrelated key be rejected instantly
+  /// instead of only failing later when something encrypted under the real
+  /// key can't be decrypted.
+  Future<String> masterKeyVerifier(SecretKey key) async {
+    final bytes = await key.extractBytes();
+    final hash = await Sha256().hash(bytes);
+    return base64Encode(hash.bytes);
+  }
 }
 
 /// The output of [CryptoService.encrypt] / input to [CryptoService.decrypt]:

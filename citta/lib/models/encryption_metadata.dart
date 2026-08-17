@@ -24,6 +24,15 @@ class EncryptionMetadata {
   /// Null until recovery key setup (issue #52) populates it.
   final EncryptedPayload? wrappedMasterKeyRecovery;
 
+  /// A non-secret digest of the master key's raw bytes (see
+  /// `CryptoService.masterKeyVerifier`), used to confirm a candidate master
+  /// key — e.g. one restored from a device's secure-storage cache — is
+  /// actually the key this install was set up with, without needing the
+  /// password to check. Null for metadata written before this field
+  /// existed; `StorageService.unlockWithPassword` migrates such metadata to
+  /// populate it the next time the user unlocks with their password.
+  final String? masterKeyVerifier;
+
   const EncryptionMetadata({
     this.version = currentVersion,
     required this.salt,
@@ -32,6 +41,7 @@ class EncryptionMetadata {
     required this.kdfParallelism,
     required this.wrappedMasterKeyPassword,
     this.wrappedMasterKeyRecovery,
+    this.masterKeyVerifier,
   });
 
   Map<String, dynamic> toJson() => {
@@ -46,6 +56,7 @@ class EncryptionMetadata {
         },
         'wrappedMasterKeyPassword': wrappedMasterKeyPassword.toJson(),
         'wrappedMasterKeyRecovery': wrappedMasterKeyRecovery?.toJson(),
+        'masterKeyVerifier': masterKeyVerifier,
       };
 
   factory EncryptionMetadata.fromJson(Map<String, dynamic> json) {
@@ -63,6 +74,7 @@ class EncryptionMetadata {
       wrappedMasterKeyRecovery: recovery == null
           ? null
           : EncryptedPayload.fromJson(recovery as Map<String, dynamic>),
+      masterKeyVerifier: json['masterKeyVerifier'] as String?,
     );
   }
 }

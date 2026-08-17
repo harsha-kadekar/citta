@@ -573,6 +573,73 @@ cancellation and duplicate/stale-navigation requirements.
 
 ---
 
+## Follow-up review: issue #50 — legacy verifier migration
+
+## Findings
+
+No actionable code-review findings in the updated implementation.
+
+The legacy metadata path now keeps `masterKeyVerifier` nullable, rejects
+cache auto-unlock while it is absent, and upgrades the metadata only after a
+successful password unlock has established the true master key. The migration
+preserves the encrypted-session readability guarantee and makes the next
+cached unlock safe. The stale-key and explicit-lock protections remain
+intact.
+
+## Verification
+
+- Reviewed the metadata parser, password-unlock migration, cache-restore
+  logic, and legacy regression coverage.
+- Ran `flutter test test/services/crypto_service_test.dart
+  test/services/secure_key_cache_test.dart test/services/storage_service_test.dart
+  test/providers/app_bootstrapper_test.dart`.
+  - Result: passes (149 tests).
+- Ran `flutter analyze`.
+  - Result: passes with no issues.
+- Ran `git diff --check`.
+  - Result: passes.
+
+
+---
+
+## Follow-up review: issue #50 — stale-cache verifier fix
+
+## Findings
+
+### P0 — Requiring `masterKeyVerifier` without a metadata migration locks out existing encrypted installs
+
+`EncryptionMetadata.fromJson` now unconditionally casts
+`json['masterKeyVerifier']` to `String`
+([encryption_metadata.dart](/home/harsha/workspace/Citta/citta/lib/models/encryption_metadata.dart):75), but the existing version-1 metadata written before this change has no such field and `currentVersion` remains `1`. Consequently, `unlockWithPassword` throws while parsing a perfectly valid previously-written `encryption_meta.json` ([storage_service.dart](/home/harsha/workspace/Citta/citta/lib/services/storage_service.dart):271), rather than accepting the password and decrypting the user's sessions. This converts every pre-#50 encrypted installation into an unrecoverable startup failure.
+
+Treat the verifier as absent in the legacy v1 schema: skip cache auto-unlock
+for that case, then after a successful password/recovery-key unlock compute
+the verifier and atomically rewrite the metadata (or introduce and migrate
+to a new explicit metadata version). Add a fixture using the exact old v1
+JSON shape—no verifier—and prove that a fresh instance unlocks with the
+correct password, reads existing encrypted sessions, and is upgraded for
+subsequent cached unlocks. Do not silently reinterpret a missing verifier as
+a match during auto-unlock.
+
+The stale-cache finding is otherwise fixed: the implementation records and
+checks a SHA-256 verifier before accepting a cached key, including when no
+`sessions.json` exists.
+
+## Verification
+
+- Re-reviewed the verifier, metadata parse, and password-unlock paths.
+- Ran `flutter test test/services/crypto_service_test.dart
+  test/services/secure_key_cache_test.dart test/services/storage_service_test.dart
+  test/providers/app_bootstrapper_test.dart`.
+  - Result: passes (147 tests).
+- Ran `flutter analyze`.
+  - Result: passes with no issues.
+- Ran `git diff --check`.
+  - Result: passes.
+
+
+---
+
 ## Review: issue #46 — Extract shared session/tag UI components and theme helpers
 
 ## Findings
@@ -878,3 +945,78 @@ until `#50` is picked up, which is expected.
 - Re-read both `#50`-labeled entries above against `#49`'s and `#50`'s GitHub
   issue bodies to confirm the scope mismatch.
 - No code changes in this entry — triage/documentation only.
+
+
+---
+
+## Review: issue #50 — secure master-key cache implementation
+
+## Findings
+
+### P1 — Explicit lock does not evict the persisted key, so it is not a real lock across restarts
+
+`StorageService.lock()` still only sets `_masterKey` to `null`
+([storage_service.dart](/home/harsha/workspace/Citta/citta/lib/services/storage_service.dart):187).
+It does not call `SecureKeyCache.clear()`. On the next app launch,
+`AppBootstrapper.run` invokes `tryUnlockWithCachedKey`
+([app_bootstrapper.dart](/home/harsha/workspace/Citta/citta/lib/providers/app_bootstrapper.dart):31), which reloads the same cached key and unlocks the store without a password. That violates issue #50's required cache clear when the user explicitly locks/resets, and makes an explicit lock ineffective beyond the current `StorageService` instance.
+
+Make the explicit-lock flow asynchronously clear the secure-cache entry as
+well as the in-memory key (and surface or deliberately handle a keystore
+delete failure). Add a regression test that caches a key, explicitly locks,
+creates a fresh `StorageService` with the same cache, and verifies that
+`tryUnlockWithCachedKey()` returns `false`. When disable-encryption and
+password-change flows are introduced, route their invalidation through this
+same operation rather than relying on callers to remember to invoke the
+currently-unused `clearCachedMasterKey()` helper.
+
+## Verification
+
+- Reviewed issue #50 via `gh api repos/harsha-kadekar/citta/issues/50` and
+  inspected the uncommitted cache implementation, bootstrap path, and all
+  encryption lifecycle call sites.
+- Ran `git diff --check`.
+  - Result: passes.
+- Started `flutter analyze`; the sandbox session ended before it returned a
+  final status, so this review does not treat static analysis as verified.
+
+
+---
+
+## Follow-up review: issue #50 — explicit lock fix
+
+## Findings
+
+### P1 — A stale cache entry can still corrupt new session data when `sessions.json` is absent
+
+`tryUnlockWithCachedKey()` treats a missing `sessions.json` as proof that any
+cached key is valid: `_keyDecryptsStoredSessions` returns `true` before it
+authenticates anything ([storage_service.dart](/home/harsha/workspace/Citta/citta/lib/services/storage_service.dart):342).
+If the secure-storage entry belongs to a different encryption setup—for
+example after a documents restore, an app-data reset, or a keychain entry
+that survived while `sessions.json` was removed—the method installs that
+unrelated key. The next `saveSessions` encrypts new data with it, while
+`encryption_meta.json` still unwraps the actual master key. The new sessions
+then cannot be decrypted after a password unlock and are effectively lost.
+
+Persist a non-secret verifier for the master key in `encryption_meta.json`
+(for example, a versioned SHA-256 digest of the randomly generated 256-bit
+key), and require a cached key to match it before accepting it; clear the
+cache on a mismatch. Add a regression test with valid metadata, no
+`sessions.json`, and an unrelated cached key, asserting the cache unlock
+fails and a subsequent password unlock can read newly saved sessions.
+
+The previous explicit-lock finding is fixed: `lock()` now clears the
+in-memory key and awaits cache deletion, with coverage for both successful
+and failed deletion.
+
+## Verification
+
+- Re-reviewed the updated secure-cache, startup, and explicit-lock paths.
+- Ran `flutter test test/services/secure_key_cache_test.dart
+  test/services/storage_service_test.dart test/providers/app_bootstrapper_test.dart`.
+  - Result: passes (131 tests).
+- Ran `flutter analyze`.
+  - Result: passes with no issues.
+- Ran `git diff --check`.
+  - Result: passes.
