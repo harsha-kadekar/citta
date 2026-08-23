@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
 import 'splash_screen.dart';
 import 'main_shell.dart';
+import 'unlock_screen.dart';
 
 /// Root screen shown once [AppState] has been provided. Owns the app's
 /// startup sequence: a loading spinner while [AppState] bootstraps, a
@@ -47,6 +48,7 @@ class _AppRootState extends State<AppRoot> {
   void _maybeTriggerNamePrompt() {
     if (_namePromptTriggered) return;
     if (_appState.isLoading) return;
+    if (_appState.needsUnlock) return;
     if (_appState.config.userName != null) return;
 
     _namePromptTriggered = true;
@@ -66,6 +68,10 @@ class _AppRootState extends State<AppRoot> {
           child: CircularProgressIndicator(),
         ),
       );
+    }
+
+    if (appState.needsUnlock) {
+      return const UnlockScreen();
     }
 
     if (_showSplash) {

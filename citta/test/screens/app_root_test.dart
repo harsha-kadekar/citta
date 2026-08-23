@@ -11,7 +11,9 @@ import 'package:citta/models/config_model.dart';
 import 'package:citta/providers/app_state.dart';
 import 'package:citta/screens/app_root.dart';
 import 'package:citta/screens/main_shell.dart';
+import 'package:citta/screens/unlock_screen.dart';
 import 'package:citta/services/audio_service.dart';
+import 'package:citta/services/crypto_service.dart';
 import 'package:citta/services/quote_service.dart';
 import 'package:citta/services/stats_service.dart';
 import 'package:citta/services/storage_service.dart';
@@ -204,5 +206,82 @@ void main() {
     await tester.pump();
 
     expect(find.byType(MainShell), findsOneWidget);
+  });
+
+  group('locked state (issue #53)', () {
+    /// Argon2id cost params for tests only: fast, not secure.
+    CryptoService testCryptoService() => CryptoService(
+          argon2Parallelism: 1,
+          argon2MemoryKiB: 8,
+          argon2Iterations: 1,
+        );
+
+    // NOTE: StorageService (and the AppState wrapping it) must be
+    // constructed *inside* tester.runAsync(), not in the surrounding
+    // fake-async test body — StorageService's internal write lock chains
+    // off a Future created at construction time, and that Future's zone
+    // must match the zone `_writeLock.run()` is later awaited from, or the
+    // chained continuation never fires and every write hangs for the full
+    // test timeout instead of failing fast.
+    Future<AppState> setUpLockedAppState(String basePath) async {
+      final setupStorage = StorageService.withBasePath(
+        basePath,
+        cryptoService: testCryptoService(),
+      );
+      await setupStorage.enableEncryption(password: 'correct horse battery staple');
+      await setupStorage.saveConfig(ConfigModel(userName: 'Asha'));
+
+      final freshStorage = StorageService.withBasePath(
+        basePath,
+        cryptoService: testCryptoService(),
+      );
+      final appState = AppState(
+        storageService: freshStorage,
+        quoteService: QuoteService(freshStorage),
+        audioService: _fakeAudioService(),
+        statsService: const StatsService(),
+      );
+      await appState.initialize();
+      return appState;
+    }
+
+    testWidgets(
+        'encryption enabled with no cached key shows UnlockScreen instead '
+        'of the splash screen or main shell', (tester) async {
+      final appState =
+          await tester.runAsync(() => setUpLockedAppState(tmpDir.path));
+
+      await tester.pumpWidget(_testApp(appState!));
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byType(UnlockScreen), findsOneWidget);
+      expect(find.byType(MainShell), findsNothing);
+      expect(find.byType(AlertDialog), findsNothing,
+          reason: 'the name prompt must not be superimposed over the lock screen');
+    });
+
+    testWidgets(
+        'a successful unlock reveals the splash screen (no bypass path was '
+        'needed)', (tester) async {
+      final appState =
+          await tester.runAsync(() => setUpLockedAppState(tmpDir.path));
+
+      await tester.pumpWidget(_testApp(appState!));
+      await tester.pump();
+      await tester.pump();
+      expect(find.byType(UnlockScreen), findsOneWidget);
+
+      await tester.runAsync(() async {
+        expect(
+          await appState.unlockWithPassword('correct horse battery staple'),
+          isTrue,
+        );
+      });
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byType(UnlockScreen), findsNothing);
+    });
   });
 }

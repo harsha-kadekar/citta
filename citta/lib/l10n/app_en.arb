@@ -508,5 +508,26 @@
   "@recoveryKeyContinueButton": {},
 
   "recoveryKeyErrorGeneric": "Couldn't generate a recovery key. Please try again.",
-  "@recoveryKeyErrorGeneric": {}
+  "@recoveryKeyErrorGeneric": {},
+
+  "unlockTitle": "Unlock Citta",
+  "@unlockTitle": {},
+
+  "unlockSubtitle": "Enter your password or recovery key to access your reflections.",
+  "@unlockSubtitle": {},
+
+  "unlockInputLabel": "Password or recovery key",
+  "@unlockInputLabel": {},
+
+  "unlockSubmitButton": "Unlock",
+  "@unlockSubmitButton": {},
+
+  "unlockErrorEmpty": "Enter your password or recovery key",
+  "@unlockErrorEmpty": {},
+
+  "unlockErrorGeneric": "Incorrect password or recovery key. Please try again.",
+  "@unlockErrorGeneric": {},
+
+  "unlockErrorCorrupted": "Your encrypted data couldn't be read. It may be damaged.",
+  "@unlockErrorCorrupted": {}
 }
