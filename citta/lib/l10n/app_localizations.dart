@@ -1005,6 +1005,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'PAUSED'**
   String get timerPaused;
+
+  /// No description provided for @encryptionToggleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypt my reflections'**
+  String get encryptionToggleTitle;
+
+  /// No description provided for @encryptionToggleSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Protect your sessions on this device with a password'**
+  String get encryptionToggleSubtitle;
+
+  /// No description provided for @encryptionPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get encryptionPasswordLabel;
+
+  /// No description provided for @encryptionConfirmPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm password'**
+  String get encryptionConfirmPasswordLabel;
+
+  /// No description provided for @encryptionEnableButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable Encryption'**
+  String get encryptionEnableButton;
+
+  /// No description provided for @encryptionErrorEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a password'**
+  String get encryptionErrorEmpty;
+
+  /// No description provided for @encryptionErrorTooShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Password must be at least {minLength} characters'**
+  String encryptionErrorTooShort(int minLength);
+
+  /// No description provided for @encryptionErrorMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords don\'t match'**
+  String get encryptionErrorMismatch;
+
+  /// No description provided for @encryptionErrorGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t enable encryption. Please try again.'**
+  String get encryptionErrorGeneric;
 }
 
 class _AppLocalizationsDelegate

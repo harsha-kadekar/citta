@@ -454,5 +454,38 @@
   "@preSessionSetup": {},
 
   "timerPaused": "PAUSED",
-  "@timerPaused": {}
+  "@timerPaused": {},
+
+  "encryptionToggleTitle": "Encrypt my reflections",
+  "@encryptionToggleTitle": {},
+
+  "encryptionToggleSubtitle": "Protect your sessions on this device with a password",
+  "@encryptionToggleSubtitle": {},
+
+  "encryptionPasswordLabel": "Password",
+  "@encryptionPasswordLabel": {},
+
+  "encryptionConfirmPasswordLabel": "Confirm password",
+  "@encryptionConfirmPasswordLabel": {},
+
+  "encryptionEnableButton": "Enable Encryption",
+  "@encryptionEnableButton": {},
+
+  "encryptionErrorEmpty": "Enter a password",
+  "@encryptionErrorEmpty": {},
+
+  "encryptionErrorTooShort": "Password must be at least {minLength} characters",
+  "@encryptionErrorTooShort": {
+    "placeholders": {
+      "minLength": {
+        "type": "int"
+      }
+    }
+  },
+
+  "encryptionErrorMismatch": "Passwords don't match",
+  "@encryptionErrorMismatch": {},
+
+  "encryptionErrorGeneric": "Couldn't enable encryption. Please try again.",
+  "@encryptionErrorGeneric": {}
 }

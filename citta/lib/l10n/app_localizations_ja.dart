@@ -456,4 +456,35 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get timerPaused => '一時停止';
+
+  @override
+  String get encryptionToggleTitle => 'Encrypt my reflections';
+
+  @override
+  String get encryptionToggleSubtitle =>
+      'Protect your sessions on this device with a password';
+
+  @override
+  String get encryptionPasswordLabel => 'Password';
+
+  @override
+  String get encryptionConfirmPasswordLabel => 'Confirm password';
+
+  @override
+  String get encryptionEnableButton => 'Enable Encryption';
+
+  @override
+  String get encryptionErrorEmpty => 'Enter a password';
+
+  @override
+  String encryptionErrorTooShort(int minLength) {
+    return 'Password must be at least $minLength characters';
+  }
+
+  @override
+  String get encryptionErrorMismatch => 'Passwords don\'t match';
+
+  @override
+  String get encryptionErrorGeneric =>
+      'Couldn\'t enable encryption. Please try again.';
 }
