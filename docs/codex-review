@@ -1105,3 +1105,66 @@ began, not an oversight.
 - Ran `gh issue view 59 --repo harsha-kadekar/citta --json body` and
   `gh issue view 54 --repo harsha-kadekar/citta --json body` and confirmed
   both explicitly plan to consume the opt-in component.
+
+
+---
+
+## Review: issue #52 — recovery-key generation and display screen
+
+## Findings
+
+### P1 — Leaving or restarting before acknowledgment permanently strands the recovery setup
+
+`RecoveryKeyScreen` calls `setupRecoveryKey()` in `initState`
+([recovery_key_screen.dart](/home/harsha/workspace/Citta/citta/lib/screens/recovery_key_screen.dart):31), and that method immediately writes the recovery-key wrap and salt to `encryption_meta.json` before the user has copied, shared, or acknowledged the displayed plaintext key
+([storage_service.dart](/home/harsha/workspace/Citta/citta/lib/services/storage_service.dart):267). If the screen is disposed, the app is killed, or navigation returns to this step before the checkbox is accepted, a new screen instance calls `setupRecoveryKey()` again. Because the already-written `wrappedMasterKeyRecovery` is non-null, it throws `StateError` ([storage_service.dart](/home/harsha/workspace/Citta/citta/lib/services/storage_service.dart):280); the UI reduces that to a generic error with no recovery action ([recovery_key_screen.dart](/home/harsha/workspace/Citta/citta/lib/screens/recovery_key_screen.dart):58). The only plaintext key was held by the discarded widget, so it can never be displayed again even though the UI never allowed the user to confirm it was saved.
+
+Do not persist the recovery wrapper merely to render the screen. Keep a candidate recovery key and its wrapped payload in the in-progress screen/flow, then atomically commit it only when the user acknowledges it and immediately continue. If the candidate is abandoned before that point, no recovery setup should exist and a later visit may safely create a new candidate. Alternatively, introduce an explicit durable pending/acknowledged state with a safe retry/rollback design; it must never leave a persisted wrap whose plaintext has been discarded. Add a regression widget/integration test that creates the screen, waits for a key, disposes or recreates it before acknowledgment, and verifies the user can still complete setup without silently replacing a committed key. The existing one-call-only test does not cover this transition.
+
+`#53` owns the later password-or-recovery-key unlock UI and can add the actual recovery-unlock service entry point; this finding is about #52 committing irreversible recovery state before its own required acknowledgment gate.
+
+## Verification
+
+- Reviewed issue #52 and the current uncommitted implementation, including
+  metadata serialization, storage setup, screen lifecycle, tests, and related
+  issue #53 to separate the future unlock-screen scope.
+- Ran `git diff --check`.
+  - Result: passes.
+- Ran `flutter test test/services/crypto_service_test.dart
+  test/services/storage_service_test.dart test/models/encryption_metadata_test.dart
+  test/screens/recovery_key_screen_test.dart`.
+  - Result: 151 tests passed; the acknowledgment widget test then failed before
+    completing its assertion because the local Flutter runtime could not decode
+    `shaders/ink_sparkle.frag` (runtime-stage format expected 1, asset has 2).
+    This appears to be the known local Flutter asset/runtime mismatch rather
+    than a recovery-key assertion failure.
+
+
+---
+
+## Follow-up verification: issue #52 — P1 recovery-setup lifecycle fix
+
+## Findings
+
+The P1 finding above is resolved. `prepareRecoveryKey()` now produces an
+in-memory `PendingRecoveryKey` without changing `encryption_meta.json`, while
+`commitRecoveryKey()` performs the one-time metadata write only after the
+acknowledgment and Continue action ([storage_service.dart](/home/harsha/workspace/Citta/citta/lib/services/storage_service.dart):253).
+`RecoveryKeyScreen` awaits that commit before invoking its continuation, and
+keeps the acknowledgement control and Continue action disabled during the
+write ([recovery_key_screen.dart](/home/harsha/workspace/Citta/citta/lib/screens/recovery_key_screen.dart):56).
+
+Both storage- and widget-level regression coverage now exercise the original
+failure mode: discard a generated candidate before Continue, recreate the
+screen/flow, then commit a fresh candidate successfully. No new issue found
+in this follow-up review.
+
+## Verification
+
+- Ran `flutter test test/services/storage_service_test.dart --name
+  "prepareRecoveryKey / commitRecoveryKey"`.
+  - Result: 7 tests passed, including the abandoned-candidate regression.
+- Ran `flutter analyze`.
+  - Result: passes with no issues.
+- Ran `git diff --check`.
+  - Result: passes.

@@ -250,6 +250,84 @@ class StorageService {
     });
   }
 
+  /// Generates a random recovery key and wraps a second copy of the
+  /// in-memory master key under a key derived from it — entirely in memory;
+  /// nothing is written to disk. The caller (the recovery-key display
+  /// screen) is expected to show [PendingRecoveryKey.recoveryKey] and only
+  /// persist it via [commitRecoveryKey] once the user has explicitly
+  /// acknowledged saving it elsewhere. Discarding the result (e.g. the
+  /// screen is disposed before acknowledgment) leaves no trace on disk, so a
+  /// later call simply generates a fresh candidate rather than ever being
+  /// permanently stuck on an unrecoverable, already-persisted wrap.
+  ///
+  /// Throws [StateError] if this instance isn't currently unlocked (there is
+  /// no master key in memory to wrap).
+  Future<PendingRecoveryKey> prepareRecoveryKey() async {
+    final masterKey = _masterKey;
+    if (masterKey == null) {
+      throw StateError(
+        'cannot set up a recovery key before encryption is unlocked',
+      );
+    }
+
+    final recoveryKey = _cryptoService.generateRecoveryKey();
+    final recoverySalt = _cryptoService.generateSalt();
+    final recoveryWrappingKey = await _cryptoService.deriveKeyFromPassword(
+      password: recoveryKey,
+      salt: recoverySalt,
+    );
+    final wrapped = await _cryptoService.wrapKey(
+      keyToWrap: masterKey,
+      wrappingKey: recoveryWrappingKey,
+    );
+
+    return PendingRecoveryKey(
+      recoveryKey: recoveryKey,
+      recoverySalt: recoverySalt,
+      wrappedMasterKey: wrapped,
+    );
+  }
+
+  /// Persists a [pending] recovery key setup — produced by
+  /// [prepareRecoveryKey] and, by this point, acknowledged as saved by the
+  /// user — alongside the existing password-wrapped copy in
+  /// `encryption_meta.json`. The plaintext recovery key itself is never
+  /// written to disk, only the wrapped payload derived from it.
+  ///
+  /// Throws [StateError] if a recovery key has already been committed —
+  /// committing again would silently strand whatever the previous recovery
+  /// key protects, since the caller has no way to know it's about to be
+  /// replaced.
+  ///
+  /// Runs under the same lock as [runExclusive] so it can never interleave
+  /// with a concurrent save or import.
+  Future<void> commitRecoveryKey(PendingRecoveryKey pending) {
+    return _writeLock.run(() async {
+      final path = await _encryptionMetaPath;
+      final json =
+          jsonDecode(await File(path).readAsString()) as Map<String, dynamic>;
+      final metadata = EncryptionMetadata.fromJson(json);
+      if (metadata.wrappedMasterKeyRecovery != null) {
+        throw StateError('a recovery key has already been set up');
+      }
+
+      final updated = EncryptionMetadata(
+        version: metadata.version,
+        salt: metadata.salt,
+        kdfMemoryKiB: metadata.kdfMemoryKiB,
+        kdfIterations: metadata.kdfIterations,
+        kdfParallelism: metadata.kdfParallelism,
+        wrappedMasterKeyPassword: metadata.wrappedMasterKeyPassword,
+        wrappedMasterKeyRecovery: pending.wrappedMasterKey,
+        recoverySalt: pending.recoverySalt,
+        masterKeyVerifier: metadata.masterKeyVerifier,
+      );
+      final content =
+          const JsonEncoder.withIndent('  ').convert(updated.toJson());
+      await _atomicWrite(path, content);
+    });
+  }
+
   /// Attempts to unwrap the master key using [password] against the stored
   /// metadata. On success, sets the in-memory master key and returns true.
   /// Returns false — without altering any existing in-memory key — if the
@@ -323,6 +401,7 @@ class StorageService {
         kdfParallelism: legacyMetadata.kdfParallelism,
         wrappedMasterKeyPassword: legacyMetadata.wrappedMasterKeyPassword,
         wrappedMasterKeyRecovery: legacyMetadata.wrappedMasterKeyRecovery,
+        recoverySalt: legacyMetadata.recoverySalt,
         masterKeyVerifier: await _cryptoService.masterKeyVerifier(masterKey),
       );
       final content =
@@ -926,6 +1005,29 @@ class StorageService {
     await file.writeAsString(content);
     return file.path;
   }
+}
+
+/// An in-memory recovery key candidate produced by
+/// [StorageService.prepareRecoveryKey], not yet persisted. Holding this
+/// value is the only way [recoveryKey] exists anywhere — discarding it
+/// (never passing it to [StorageService.commitRecoveryKey]) leaves no trace
+/// on disk.
+class PendingRecoveryKey {
+  /// The plaintext recovery key to show the user. Never persisted as-is.
+  final String recoveryKey;
+
+  /// The salt used to derive the key that produced [wrappedMasterKey] from
+  /// [recoveryKey].
+  final List<int> recoverySalt;
+
+  /// The master key, wrapped under a key derived from [recoveryKey].
+  final EncryptedPayload wrappedMasterKey;
+
+  const PendingRecoveryKey({
+    required this.recoveryKey,
+    required this.recoverySalt,
+    required this.wrappedMasterKey,
+  });
 }
 
 /// Thrown by [StorageService.loadSessions] and [StorageService.saveSessions]

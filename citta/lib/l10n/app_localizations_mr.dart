@@ -496,4 +496,28 @@ class AppLocalizationsMr extends AppLocalizations {
   @override
   String get encryptionErrorGeneric =>
       'Couldn\'t enable encryption. Please try again.';
+
+  @override
+  String get recoveryKeyScreenTitle => 'Save your recovery key';
+
+  @override
+  String get recoveryKeyWarning =>
+      'This is the only way to recover your data if you forget your password. If you lose both, your data is permanently unrecoverable.';
+
+  @override
+  String get recoveryKeyCopyButton => 'Copy';
+
+  @override
+  String get recoveryKeyShareButton => 'Share';
+
+  @override
+  String get recoveryKeyAckLabel =>
+      'I\'ve saved my recovery key in a safe place';
+
+  @override
+  String get recoveryKeyContinueButton => 'Continue';
+
+  @override
+  String get recoveryKeyErrorGeneric =>
+      'Couldn\'t generate a recovery key. Please try again.';
 }

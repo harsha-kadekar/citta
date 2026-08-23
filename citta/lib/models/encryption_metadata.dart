@@ -24,6 +24,12 @@ class EncryptionMetadata {
   /// Null until recovery key setup (issue #52) populates it.
   final EncryptedPayload? wrappedMasterKeyRecovery;
 
+  /// The salt used to derive the key that wraps [wrappedMasterKeyRecovery]
+  /// from the recovery key string — a separate salt from [salt] (which is
+  /// scoped to the password derivation) since the two secrets must never
+  /// share one. Null exactly when [wrappedMasterKeyRecovery] is null.
+  final List<int>? recoverySalt;
+
   /// A non-secret digest of the master key's raw bytes (see
   /// `CryptoService.masterKeyVerifier`), used to confirm a candidate master
   /// key — e.g. one restored from a device's secure-storage cache — is
@@ -41,6 +47,7 @@ class EncryptionMetadata {
     required this.kdfParallelism,
     required this.wrappedMasterKeyPassword,
     this.wrappedMasterKeyRecovery,
+    this.recoverySalt,
     this.masterKeyVerifier,
   });
 
@@ -56,12 +63,15 @@ class EncryptionMetadata {
         },
         'wrappedMasterKeyPassword': wrappedMasterKeyPassword.toJson(),
         'wrappedMasterKeyRecovery': wrappedMasterKeyRecovery?.toJson(),
+        'recoverySalt':
+            recoverySalt == null ? null : base64Encode(recoverySalt!),
         'masterKeyVerifier': masterKeyVerifier,
       };
 
   factory EncryptionMetadata.fromJson(Map<String, dynamic> json) {
     final kdf = json['kdf'] as Map<String, dynamic>;
     final recovery = json['wrappedMasterKeyRecovery'];
+    final recoverySalt = json['recoverySalt'] as String?;
     return EncryptionMetadata(
       version: json['version'] as int,
       salt: base64Decode(kdf['salt'] as String),
@@ -74,6 +84,7 @@ class EncryptionMetadata {
       wrappedMasterKeyRecovery: recovery == null
           ? null
           : EncryptedPayload.fromJson(recovery as Map<String, dynamic>),
+      recoverySalt: recoverySalt == null ? null : base64Decode(recoverySalt),
       masterKeyVerifier: json['masterKeyVerifier'] as String?,
     );
   }

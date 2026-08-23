@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:citta/models/config_model.dart';
+import 'package:citta/models/encryption_metadata.dart';
 import 'package:citta/models/quote_model.dart';
 import 'package:citta/models/session_model.dart';
 import 'package:citta/models/timer_mode.dart';
@@ -730,6 +731,181 @@ void main() {
           reason: 'enableEncryption must take the same write lock as '
               'runExclusive, or a concurrent save could interleave with '
               'setup and observe an inconsistent half-enabled state');
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Recovery key setup (issue #52)
+  // -------------------------------------------------------------------------
+
+  group('prepareRecoveryKey / commitRecoveryKey', () {
+    test('prepareRecoveryKey throws StateError when called before the '
+        'instance is unlocked', () async {
+      final service =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+
+      expect(() => service.prepareRecoveryKey(), throwsStateError);
+    });
+
+    test('prepareRecoveryKey writes nothing to encryption_meta.json — the '
+        'candidate exists only in memory until committed', () async {
+      final service =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await service.enableEncryption(password: 'correct horse battery staple');
+      final path = '${tempDir.path}/encryption_meta.json';
+      final before = await File(path).readAsString();
+
+      await service.prepareRecoveryKey();
+
+      final after = await File(path).readAsString();
+      expect(after, before,
+          reason: 'preparing a candidate must not persist anything — only '
+              'commitRecoveryKey may write to disk');
+    });
+
+    test('a committed recovery key successfully unwraps the master key',
+        () async {
+      final service =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await service.enableEncryption(password: 'correct horse battery staple');
+
+      final pending = await service.prepareRecoveryKey();
+      await service.commitRecoveryKey(pending);
+
+      final path = '${tempDir.path}/encryption_meta.json';
+      final json = jsonDecode(await File(path).readAsString()) as Map<String, dynamic>;
+      final metadata = EncryptionMetadata.fromJson(json);
+      final crypto = _testCryptoService();
+      final wrappingKey = await crypto.deriveKeyFromPassword(
+        password: pending.recoveryKey,
+        salt: metadata.recoverySalt!,
+      );
+      final unwrapped = await crypto.unwrapKey(
+        wrapped: metadata.wrappedMasterKeyRecovery!,
+        wrappingKey: wrappingKey,
+      );
+
+      // Prove it's the same master key by round-tripping a save/load through
+      // a fresh instance manually unlocked with the recovered key's bytes:
+      // saveSessions()/loadSessions() only ever go through internal state, so
+      // comparing masterKeyVerifier output is the direct, black-box way to
+      // confirm this is the same key without reaching into private fields.
+      final verifierFromRecovery = await crypto.masterKeyVerifier(unwrapped);
+      expect(verifierFromRecovery, metadata.masterKeyVerifier);
+    });
+
+    test('commitRecoveryKey persists recoverySalt and '
+        'wrappedMasterKeyRecovery to encryption_meta.json', () async {
+      final service =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await service.enableEncryption(password: 'correct horse battery staple');
+
+      final pending = await service.prepareRecoveryKey();
+      await service.commitRecoveryKey(pending);
+
+      final path = '${tempDir.path}/encryption_meta.json';
+      final json = jsonDecode(await File(path).readAsString()) as Map<String, dynamic>;
+      final metadata = EncryptionMetadata.fromJson(json);
+      expect(metadata.recoverySalt, isNotNull);
+      expect(metadata.wrappedMasterKeyRecovery, isNotNull);
+      // The password-wrapped copy must be untouched by adding the recovery
+      // copy alongside it.
+      expect(
+        await service.unlockWithPassword('correct horse battery staple'),
+        isTrue,
+      );
+    });
+
+    test('a second commit throws StateError and does not overwrite the '
+        'first recovery wrap', () async {
+      final service =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await service.enableEncryption(password: 'correct horse battery staple');
+      await service.commitRecoveryKey(await service.prepareRecoveryKey());
+
+      final path = '${tempDir.path}/encryption_meta.json';
+      final before = await File(path).readAsString();
+
+      await expectLater(
+        service.commitRecoveryKey(await service.prepareRecoveryKey()),
+        throwsStateError,
+      );
+
+      final after = await File(path).readAsString();
+      expect(after, before,
+          reason: 'a rejected second commit must never regenerate or '
+              'overwrite the first recovery key setup, silently or '
+              'otherwise');
+    });
+
+    test('the plaintext recovery key is never written to '
+        'encryption_meta.json', () async {
+      final service =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await service.enableEncryption(password: 'correct horse battery staple');
+
+      final pending = await service.prepareRecoveryKey();
+      await service.commitRecoveryKey(pending);
+
+      final path = '${tempDir.path}/encryption_meta.json';
+      final raw = await File(path).readAsString();
+      expect(raw, isNot(contains(pending.recoveryKey)));
+    });
+
+    // Regression test for the scenario where a recovery-key screen is shown,
+    // a candidate is generated, but the user leaves or the app is killed
+    // before acknowledging/committing it (e.g. the screen is disposed and a
+    // fresh one is later shown). Discarding an uncommitted candidate must
+    // leave the store in a state where setup can still be completed — not
+    // permanently stranded on a persisted wrap whose plaintext key is gone.
+    test('an abandoned, uncommitted candidate does not block a later '
+        'successful setup', () async {
+      final service =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await service.enableEncryption(password: 'correct horse battery staple');
+
+      // Simulates a first RecoveryKeyScreen instance generating a candidate
+      // and then being disposed (e.g. navigated away from) before the user
+      // acknowledges it — the candidate is simply dropped, never committed.
+      final abandoned = await service.prepareRecoveryKey();
+
+      // A later visit to the screen must be able to generate a fresh
+      // candidate and complete setup normally, without the earlier
+      // abandoned one interfering.
+      final completed = await service.prepareRecoveryKey();
+      await service.commitRecoveryKey(completed);
+
+      final path = '${tempDir.path}/encryption_meta.json';
+      final json = jsonDecode(await File(path).readAsString()) as Map<String, dynamic>;
+      final metadata = EncryptionMetadata.fromJson(json);
+      final crypto = _testCryptoService();
+
+      // The abandoned candidate's key must NOT unwrap the persisted master
+      // key — only the completed, committed candidate's key may.
+      final wrappingKeyFromAbandoned = await crypto.deriveKeyFromPassword(
+        password: abandoned.recoveryKey,
+        salt: metadata.recoverySalt!,
+      );
+      await expectLater(
+        crypto.unwrapKey(
+          wrapped: metadata.wrappedMasterKeyRecovery!,
+          wrappingKey: wrappingKeyFromAbandoned,
+        ),
+        throwsA(isA<CryptoAuthenticationException>()),
+      );
+
+      final wrappingKeyFromCompleted = await crypto.deriveKeyFromPassword(
+        password: completed.recoveryKey,
+        salt: metadata.recoverySalt!,
+      );
+      final unwrapped = await crypto.unwrapKey(
+        wrapped: metadata.wrappedMasterKeyRecovery!,
+        wrappingKey: wrappingKeyFromCompleted,
+      );
+      expect(
+        await crypto.masterKeyVerifier(unwrapped),
+        metadata.masterKeyVerifier,
+      );
     });
   });
 
