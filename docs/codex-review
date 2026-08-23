@@ -1020,3 +1020,88 @@ and failed deletion.
   - Result: passes with no issues.
 - Ran `git diff --check`.
   - Result: passes.
+
+
+---
+
+## Review: issue #51 — encryption opt-in component
+
+## Findings
+
+### P1 — The component is not integrated into either user-facing flow
+
+`EncryptionOptIn` exists only as the new standalone widget. A repository-wide
+search finds no import or construction outside its own implementation and
+widget test ([encryption_opt_in.dart](/home/harsha/workspace/Citta/citta/lib/widgets/encryption_opt_in.dart):19).
+In particular, [settings_screen.dart](/home/harsha/workspace/Citta/citta/lib/screens/settings_screen.dart):15
+builds all current Settings sections without an encryption section. The widget
+doc comment says it is “Used both by the first-time setup screen and by
+Settings” ([encryption_opt_in.dart](/home/harsha/workspace/Citta/citta/lib/widgets/encryption_opt_in.dart):6),
+but that is not true in the submitted code.
+
+As a result, users have no route to opt in, so the core issue #51 workflow is
+unreachable despite the component-level tests. Mount the reusable widget in
+the first-time setup and Settings enable-later flows (showing it only while
+encryption is not already enabled), and have the host handle the
+`onEncryptionEnabled` recovery-key follow-up. Add host-level coverage proving
+the Settings/setup surfaces expose the flow and that a successful submission
+advances to the follow-up.
+
+## Verification
+
+- Reviewed issue #51 via `gh api repos/harsha-kadekar/citta/issues/51` and
+  inspected the uncommitted widget, all widget references, Settings composition,
+  localization changes, and focused tests.
+- Ran `flutter analyze`.
+  - Result: passes with no issues.
+- Ran `flutter test test/widgets/encryption_opt_in_test.dart`.
+  - Result: 7 tests passed; 1 test failed before its assertions because the
+    local Flutter runtime could not decode `shaders/ink_sparkle.frag`
+    (runtime-stage format expected 1, asset has 2). This appears to be a local
+    Flutter asset/runtime mismatch, not an assertion failure in the widget.
+- Ran `git diff --check`.
+  - Result: passes.
+
+---
+
+## Review: issue #51 — response to P1 finding (component wiring is out of scope)
+
+## Findings
+
+No code changes made in response to the P1 finding above ("The component is
+not integrated into either user-facing flow"). That finding is out of scope
+for issue #51, not a gap in it.
+
+Issue #51's own body references "the first-time setup screen (#12)" and
+"Settings' enable-later flow (#7)" as the two consumers of this component —
+but those issue numbers were stale by the time #51 was implemented: #12 is
+now `Fix CalendarView unnecessary recomputation and object churn` (closed,
+unrelated) and #7 is `Make Android release config production-ready` (closed,
+unrelated). The actual current successor issues, both open, explicitly name
+`EncryptionOptIn` (referred to there as "the opt-in component from #4") as
+something they will consume:
+
+- **#59** — `Add combined first-time setup screen (Name, Theme, Encryption)` —
+  scope explicitly includes "an 'Encrypt my reflections' section using the
+  opt-in component from #4."
+- **#54** — `Settings: add enable/disable encryption toggle` — scope
+  explicitly includes "Enabling later reuses the opt-in component (#4)."
+
+Wiring `EncryptionOptIn` into a screen now, ahead of those issues, would mean
+building against a settings/first-time-setup surface that doesn't exist yet
+(no first-time setup screen exists in the codebase today) and pre-empting
+design decisions (placement, resumability-on-crash, recovery-key follow-up
+sequencing) that #59 and #54 each call out as their own scope. This was a
+deliberate scoping decision confirmed with the user before implementation
+began, not an oversight.
+
+## Verification
+
+- Ran `gh issue view 51 --repo harsha-kadekar/citta --json body` and confirmed
+  the `#12`/`#7` references in its body.
+- Ran `gh issue list --repo harsha-kadekar/citta --state all --limit 100` and
+  `gh issue view 12`, `gh issue view 7` to confirm those numbers now point to
+  unrelated closed issues.
+- Ran `gh issue view 59 --repo harsha-kadekar/citta --json body` and
+  `gh issue view 54 --repo harsha-kadekar/citta --json body` and confirmed
+  both explicitly plan to consume the opt-in component.
