@@ -1059,6 +1059,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t enable encryption. Please try again.'**
   String get encryptionErrorGeneric;
+
+  /// No description provided for @recoveryKeyScreenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Save your recovery key'**
+  String get recoveryKeyScreenTitle;
+
+  /// No description provided for @recoveryKeyWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'This is the only way to recover your data if you forget your password. If you lose both, your data is permanently unrecoverable.'**
+  String get recoveryKeyWarning;
+
+  /// No description provided for @recoveryKeyCopyButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get recoveryKeyCopyButton;
+
+  /// No description provided for @recoveryKeyShareButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get recoveryKeyShareButton;
+
+  /// No description provided for @recoveryKeyAckLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'ve saved my recovery key in a safe place'**
+  String get recoveryKeyAckLabel;
+
+  /// No description provided for @recoveryKeyContinueButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get recoveryKeyContinueButton;
+
+  /// No description provided for @recoveryKeyErrorGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t generate a recovery key. Please try again.'**
+  String get recoveryKeyErrorGeneric;
 }
 
 class _AppLocalizationsDelegate

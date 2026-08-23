@@ -31,6 +31,14 @@ class CryptoService {
   static const int saltLengthBytes = 16;
   static const int _aesKeyLengthBytes = 32;
 
+  /// Characters used by [generateRecoveryKey]: uppercase letters and digits,
+  /// excluding those easily confused with one another (0/O, 1/I/L) so a
+  /// recovery key copied down by hand is unambiguous to transcribe.
+  static const String _recoveryKeyAlphabet =
+      'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  static const int _recoveryKeyGroupCount = 8;
+  static const int _recoveryKeyGroupLength = 4;
+
   /// The Argon2id cost params this instance was configured with — recorded
   /// alongside a derived key's salt (e.g. in encryption metadata) so a
   /// later derivation can be reproduced with the exact same params.
@@ -54,6 +62,22 @@ class CryptoService {
     required List<int> salt,
   }) {
     return _kdf.deriveKeyFromPassword(password: password, nonce: salt);
+  }
+
+  /// Generates a random, high-entropy recovery key: 8 dash-separated groups
+  /// of 4 characters from [_recoveryKeyAlphabet] (~158 bits of entropy).
+  /// Suitable as the "password" input to [deriveKeyFromPassword] when
+  /// wrapping a second copy of the master key for account recovery — unlike
+  /// a user-chosen password, it never needs to be memorized, only stored.
+  String generateRecoveryKey() {
+    final groups = List<String>.generate(_recoveryKeyGroupCount, (_) {
+      return List<String>.generate(
+        _recoveryKeyGroupLength,
+        (_) => _recoveryKeyAlphabet[
+            _random.nextInt(_recoveryKeyAlphabet.length)],
+      ).join();
+    });
+    return groups.join('-');
   }
 
   /// Generates a random AES-256 master key.

@@ -57,6 +57,23 @@ void main() {
     });
   });
 
+  group('generateRecoveryKey', () {
+    test('returns a dash-separated key from the unambiguous alphabet', () {
+      final key = cryptoService.generateRecoveryKey();
+
+      expect(
+        key,
+        matches(RegExp(r'^[A-Z2-9]{4}(-[A-Z2-9]{4}){7}$')),
+        reason: 'expected 8 groups of 4 unambiguous chars, dash-separated',
+      );
+    });
+
+    test('produces different keys on each call', () {
+      final keys = List.generate(50, (_) => cryptoService.generateRecoveryKey());
+      expect(keys.toSet().length, keys.length);
+    });
+  });
+
   group('generateMasterKey', () {
     test('produces a 32-byte AES-256 key', () async {
       final key = await cryptoService.generateMasterKey();

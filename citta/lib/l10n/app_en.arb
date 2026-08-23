@@ -487,5 +487,26 @@
   "@encryptionErrorMismatch": {},
 
   "encryptionErrorGeneric": "Couldn't enable encryption. Please try again.",
-  "@encryptionErrorGeneric": {}
+  "@encryptionErrorGeneric": {},
+
+  "recoveryKeyScreenTitle": "Save your recovery key",
+  "@recoveryKeyScreenTitle": {},
+
+  "recoveryKeyWarning": "This is the only way to recover your data if you forget your password. If you lose both, your data is permanently unrecoverable.",
+  "@recoveryKeyWarning": {},
+
+  "recoveryKeyCopyButton": "Copy",
+  "@recoveryKeyCopyButton": {},
+
+  "recoveryKeyShareButton": "Share",
+  "@recoveryKeyShareButton": {},
+
+  "recoveryKeyAckLabel": "I've saved my recovery key in a safe place",
+  "@recoveryKeyAckLabel": {},
+
+  "recoveryKeyContinueButton": "Continue",
+  "@recoveryKeyContinueButton": {},
+
+  "recoveryKeyErrorGeneric": "Couldn't generate a recovery key. Please try again.",
+  "@recoveryKeyErrorGeneric": {}
 }
