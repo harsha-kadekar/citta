@@ -202,9 +202,9 @@ void main() {
       expect(result.sessions.map((s) => s.id), ['s1']);
     });
 
-    test('still propagates StorageLockedException when encryption is '
-        'enabled but nothing is cached — no unlock UI exists yet to '
-        'recover from this, so the failure must not be swallowed',
+    test('reports needsUnlock instead of throwing when encryption is '
+        'enabled but nothing is cached — the caller (AppState/AppRoot) '
+        'shows UnlockScreen rather than crashing on a locked read',
         () async {
       final setupStorage = StorageService.withBasePath(
         tmpDir.path,
@@ -215,6 +215,14 @@ void main() {
         ),
       );
       await setupStorage.enableEncryption(password: 'correct horse battery staple');
+      await setupStorage.saveSessions([
+        SessionModel(
+          id: 's1',
+          date: DateTime.utc(2024, 6, 1),
+          duration: 300,
+          timerMode: TimerMode.countdown,
+        ),
+      ]);
 
       final freshStorage = StorageService.withBasePath(
         tmpDir.path,
@@ -228,14 +236,111 @@ void main() {
       const bootstrapper =
           AppBootstrapper(sessionRecoveryService: SessionRecoveryService());
 
-      await expectLater(
-        bootstrapper.run(
-          storageService: freshStorage,
-          quoteService: QuoteService(freshStorage),
-          audioService: _fakeAudioService(),
-        ),
-        throwsA(isA<StorageLockedException>()),
+      final result = await bootstrapper.run(
+        storageService: freshStorage,
+        quoteService: QuoteService(freshStorage),
+        audioService: _fakeAudioService(),
       );
+
+      expect(result.needsUnlock, true);
+      expect(result.sessions, isEmpty,
+          reason: 'encrypted sessions must not be read while locked');
+      expect(freshStorage.isUnlocked, false);
+    });
+
+    test('needsUnlock is false once a cached key auto-unlocks', () async {
+      final sharedCache = InMemoryKeyCache();
+      final setupStorage = StorageService.withBasePath(
+        tmpDir.path,
+        cryptoService: CryptoService(
+          argon2Parallelism: 1,
+          argon2MemoryKiB: 8,
+          argon2Iterations: 1,
+        ),
+        secureKeyCache: sharedCache,
+      );
+      await setupStorage.enableEncryption(password: 'correct horse battery staple');
+
+      final freshStorage = StorageService.withBasePath(
+        tmpDir.path,
+        cryptoService: CryptoService(
+          argon2Parallelism: 1,
+          argon2MemoryKiB: 8,
+          argon2Iterations: 1,
+        ),
+        secureKeyCache: sharedCache,
+      );
+      const bootstrapper =
+          AppBootstrapper(sessionRecoveryService: SessionRecoveryService());
+
+      final result = await bootstrapper.run(
+        storageService: freshStorage,
+        quoteService: QuoteService(freshStorage),
+        audioService: _fakeAudioService(),
+      );
+
+      expect(result.needsUnlock, false);
+    });
+
+    test('needsUnlock is false when encryption was never enabled', () async {
+      final storage = StorageService.withBasePath(tmpDir.path);
+      const bootstrapper =
+          AppBootstrapper(sessionRecoveryService: SessionRecoveryService());
+
+      final result = await bootstrapper.run(
+        storageService: storage,
+        quoteService: QuoteService(storage),
+        audioService: _fakeAudioService(),
+      );
+
+      expect(result.needsUnlock, false);
+    });
+
+    test('loadUnlockedSessions loads and recovers sessions once the '
+        'caller has unlocked the instance', () async {
+      final setupStorage = StorageService.withBasePath(
+        tmpDir.path,
+        cryptoService: CryptoService(
+          argon2Parallelism: 1,
+          argon2MemoryKiB: 8,
+          argon2Iterations: 1,
+        ),
+      );
+      await setupStorage.enableEncryption(password: 'correct horse battery staple');
+      await setupStorage.saveSessions([
+        SessionModel(
+          id: 's1',
+          date: DateTime.utc(2024, 6, 1),
+          duration: 300,
+          timerMode: TimerMode.countdown,
+        ),
+      ]);
+      await setupStorage.saveInProgressSession(
+        id: 'recovered',
+        startDate: DateTime.utc(2024, 6, 2),
+        elapsedSeconds: 45,
+        timerMode: TimerMode.countdown.toStorageString(),
+        targetDuration: 900,
+      );
+
+      final freshStorage = StorageService.withBasePath(
+        tmpDir.path,
+        cryptoService: CryptoService(
+          argon2Parallelism: 1,
+          argon2MemoryKiB: 8,
+          argon2Iterations: 1,
+        ),
+      );
+      final unlocked = await freshStorage
+          .unlockWithPassword('correct horse battery staple');
+      expect(unlocked, true);
+
+      const bootstrapper =
+          AppBootstrapper(sessionRecoveryService: SessionRecoveryService());
+      final sessions = await bootstrapper.loadUnlockedSessions(freshStorage);
+
+      expect(sessions.map((s) => s.id), containsAll(['s1', 'recovered']));
+      expect(await freshStorage.loadInProgressSession(), isNull);
     });
   });
 }

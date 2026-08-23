@@ -1101,6 +1101,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t generate a recovery key. Please try again.'**
   String get recoveryKeyErrorGeneric;
+
+  /// No description provided for @unlockTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock Citta'**
+  String get unlockTitle;
+
+  /// No description provided for @unlockSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your password or recovery key to access your reflections.'**
+  String get unlockSubtitle;
+
+  /// No description provided for @unlockInputLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Password or recovery key'**
+  String get unlockInputLabel;
+
+  /// No description provided for @unlockSubmitButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock'**
+  String get unlockSubmitButton;
+
+  /// No description provided for @unlockErrorEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your password or recovery key'**
+  String get unlockErrorEmpty;
+
+  /// No description provided for @unlockErrorGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Incorrect password or recovery key. Please try again.'**
+  String get unlockErrorGeneric;
+
+  /// No description provided for @unlockErrorCorrupted.
+  ///
+  /// In en, this message translates to:
+  /// **'Your encrypted data couldn\'t be read. It may be damaged.'**
+  String get unlockErrorCorrupted;
 }
 
 class _AppLocalizationsDelegate

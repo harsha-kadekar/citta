@@ -340,43 +340,99 @@ class StorageService {
   /// with a concurrent save or import.
   Future<bool> unlockWithPassword(String password) {
     return _writeLock.run(() async {
-      final path = await _encryptionMetaPath;
-      final file = File(path);
-      if (!await file.exists()) return false;
-
-      final json =
-          jsonDecode(await file.readAsString()) as Map<String, dynamic>;
-      final metadata = EncryptionMetadata.fromJson(json);
-      // Derive with the KDF params recorded in the metadata, not this
-      // instance's configured params: the two only coincide today because
-      // there has only ever been one set of defaults. Recording them per
-      // install is what lets a future change to those defaults happen
-      // without breaking installs encrypted under the old ones. AES-GCM
-      // itself (via _cryptoService below) has no such per-install params.
-      final unlockKdf = CryptoService(
-        argon2MemoryKiB: metadata.kdfMemoryKiB,
-        argon2Iterations: metadata.kdfIterations,
-        argon2Parallelism: metadata.kdfParallelism,
-      );
-      final passwordKey = await unlockKdf.deriveKeyFromPassword(
-        password: password,
+      final metadata = await _readEncryptionMetadata();
+      if (metadata == null) return false;
+      return _unwrapAndUnlock(
+        metadata: metadata,
+        wrapped: metadata.wrappedMasterKeyPassword,
         salt: metadata.salt,
+        secret: password,
       );
-      try {
-        final masterKey = await _cryptoService.unwrapKey(
-          wrapped: metadata.wrappedMasterKeyPassword,
-          wrappingKey: passwordKey,
-        );
-        _masterKey = masterKey;
-        if (metadata.masterKeyVerifier == null) {
-          await _migrateMetadataWithVerifier(path, metadata, masterKey);
-        }
-        await _cacheMasterKeyBestEffort(masterKey);
-        return true;
-      } on CryptoAuthenticationException {
-        return false;
-      }
     });
+  }
+
+  /// Attempts to unwrap the master key using [recoveryKey] against the
+  /// stored metadata's recovery wrap. Mirrors [unlockWithPassword]: returns
+  /// false — without altering any existing in-memory key — if the metadata
+  /// file is missing, no recovery key has ever been committed (see
+  /// [commitRecoveryKey]), or [recoveryKey] is wrong. A corrupt/malformed
+  /// metadata file is a distinct failure, so it is not swallowed here — it
+  /// propagates rather than being reported indistinguishably as "wrong
+  /// recovery key".
+  ///
+  /// Runs under the same lock as [runExclusive] so it can never interleave
+  /// with a concurrent save or import.
+  Future<bool> unlockWithRecoveryKey(String recoveryKey) {
+    return _writeLock.run(() async {
+      final metadata = await _readEncryptionMetadata();
+      if (metadata == null) return false;
+      final wrappedRecovery = metadata.wrappedMasterKeyRecovery;
+      final recoverySalt = metadata.recoverySalt;
+      if (wrappedRecovery == null || recoverySalt == null) return false;
+      return _unwrapAndUnlock(
+        metadata: metadata,
+        wrapped: wrappedRecovery,
+        salt: recoverySalt,
+        secret: recoveryKey,
+      );
+    });
+  }
+
+  /// Reads and parses `encryption_meta.json`, or null if it doesn't exist
+  /// (encryption was never enabled on this device). Shared by
+  /// [unlockWithPassword] and [unlockWithRecoveryKey]. A corrupt/malformed
+  /// file is a distinct failure from "doesn't exist", so it propagates
+  /// rather than being swallowed into a false here.
+  Future<EncryptionMetadata?> _readEncryptionMetadata() async {
+    final path = await _encryptionMetaPath;
+    final file = File(path);
+    if (!await file.exists()) return null;
+    final json = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+    return EncryptionMetadata.fromJson(json);
+  }
+
+  /// Derives a wrapping key from [secret] using the KDF params recorded in
+  /// [metadata] (not this instance's configured params: the two only
+  /// coincide today because there has only ever been one set of defaults —
+  /// recording them per install is what lets a future change to those
+  /// defaults happen without breaking installs encrypted under the old
+  /// ones) and [salt], then attempts to unwrap [wrapped] with it. On
+  /// success, sets the in-memory master key, migrates a legacy
+  /// verifier-less [metadata] if needed, best-effort caches the key, and
+  /// returns true. Returns false — without altering any existing in-memory
+  /// key — if [secret] is wrong. Shared by [unlockWithPassword] and
+  /// [unlockWithRecoveryKey], which differ only in which wrapped
+  /// payload/salt pair they pass in.
+  Future<bool> _unwrapAndUnlock({
+    required EncryptionMetadata metadata,
+    required EncryptedPayload wrapped,
+    required List<int> salt,
+    required String secret,
+  }) async {
+    final unlockKdf = CryptoService(
+      argon2MemoryKiB: metadata.kdfMemoryKiB,
+      argon2Iterations: metadata.kdfIterations,
+      argon2Parallelism: metadata.kdfParallelism,
+    );
+    final wrappingKey = await unlockKdf.deriveKeyFromPassword(
+      password: secret,
+      salt: salt,
+    );
+    try {
+      final masterKey = await _cryptoService.unwrapKey(
+        wrapped: wrapped,
+        wrappingKey: wrappingKey,
+      );
+      _masterKey = masterKey;
+      if (metadata.masterKeyVerifier == null) {
+        final path = await _encryptionMetaPath;
+        await _migrateMetadataWithVerifier(path, metadata, masterKey);
+      }
+      await _cacheMasterKeyBestEffort(masterKey);
+      return true;
+    } on CryptoAuthenticationException {
+      return false;
+    }
   }
 
   /// Rewrites `encryption_meta.json` to add a [EncryptionMetadata.masterKeyVerifier]

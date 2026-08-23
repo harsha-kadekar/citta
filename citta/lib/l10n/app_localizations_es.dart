@@ -519,4 +519,28 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get recoveryKeyErrorGeneric =>
       'Couldn\'t generate a recovery key. Please try again.';
+
+  @override
+  String get unlockTitle => 'Unlock Citta';
+
+  @override
+  String get unlockSubtitle =>
+      'Enter your password or recovery key to access your reflections.';
+
+  @override
+  String get unlockInputLabel => 'Password or recovery key';
+
+  @override
+  String get unlockSubmitButton => 'Unlock';
+
+  @override
+  String get unlockErrorEmpty => 'Enter your password or recovery key';
+
+  @override
+  String get unlockErrorGeneric =>
+      'Incorrect password or recovery key. Please try again.';
+
+  @override
+  String get unlockErrorCorrupted =>
+      'Your encrypted data couldn\'t be read. It may be damaged.';
 }

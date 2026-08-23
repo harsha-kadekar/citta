@@ -31,6 +31,7 @@ class AppState extends ChangeNotifier {
   late final ImportCoordinator _importCoordinator;
 
   bool _isLoading = true;
+  bool _needsUnlock = false;
 
   AppState({
     required this.storageService,
@@ -62,6 +63,12 @@ class AppState extends ChangeNotifier {
   StatsResult get stats => _sessionRepository.stats;
   bool get isLoading => _isLoading;
 
+  /// True when encryption is enabled and this run hasn't unlocked the
+  /// master key yet — see [BootstrapResult.needsUnlock]. While true, no
+  /// encrypted data has been read; [sessions] stays empty until
+  /// [unlockWithPassword] or [unlockWithRecoveryKey] succeeds.
+  bool get needsUnlock => _needsUnlock;
+
   Locale? get locale =>
       config.language == AppLanguage.system ? null : Locale(config.language.code);
 
@@ -76,9 +83,51 @@ class AppState extends ChangeNotifier {
     );
     _configController.seed(result.config);
     _sessionRepository.seed(result.sessions);
+    _needsUnlock = result.needsUnlock;
 
     _isLoading = false;
     notifyListeners();
+  }
+
+  // --- Unlock ---
+
+  /// Attempts to unlock with [password]. On success, loads the sessions that
+  /// were skipped at startup while [needsUnlock] was true, clears
+  /// [needsUnlock], and notifies listeners. Returns whether the unlock
+  /// succeeded either way.
+  Future<bool> unlockWithPassword(String password) =>
+      _unlock(() => storageService.unlockWithPassword(password));
+
+  /// Attempts to unlock with [recoveryKey]. Otherwise identical to
+  /// [unlockWithPassword].
+  Future<bool> unlockWithRecoveryKey(String recoveryKey) =>
+      _unlock(() => storageService.unlockWithRecoveryKey(recoveryKey));
+
+  /// Tries [input] first as a password, then — only if that fails — as a
+  /// recovery key, normalizing it (trimmed, uppercased) to match the
+  /// all-uppercase alphabet [CryptoService.generateRecoveryKey] produces,
+  /// so a hand-transcribed key still unlocks even if the user typed it in
+  /// lowercase or with stray whitespace. The password attempt is left
+  /// untouched — passwords are case- and whitespace-sensitive by design.
+  ///
+  /// This ordering is centralized here (rather than in each caller) so
+  /// every unlock entry point gets the same "never reveal which form was
+  /// attempted" guarantee: a caller only sees a single bool, whether the
+  /// input turned out to be a password, a recovery key, or neither.
+  Future<bool> unlockWithPasswordOrRecoveryKey(String input) async {
+    if (await unlockWithPassword(input)) return true;
+    return unlockWithRecoveryKey(input.trim().toUpperCase());
+  }
+
+  Future<bool> _unlock(Future<bool> Function() attempt) async {
+    final unlocked = await attempt();
+    if (!unlocked) return false;
+
+    final sessions = await _bootstrapper.loadUnlockedSessions(storageService);
+    _sessionRepository.seed(sessions);
+    _needsUnlock = false;
+    notifyListeners();
+    return true;
   }
 
   // --- In-Progress Session ---

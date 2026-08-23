@@ -1168,3 +1168,35 @@ in this follow-up review.
   - Result: passes with no issues.
 - Ran `git diff --check`.
   - Result: passes.
+
+
+---
+
+## Review: issue #53 — cached-key-miss unlock screen
+
+## Findings
+
+No actionable findings in the current implementation.
+
+The startup gate detects encryption enabled with no cached master key before
+attempting to read `sessions.json`, and `AppRoot` renders the non-dismissible
+`UnlockScreen` until `AppState` has successfully unwrapped the key. The screen
+tries the input as a password and then a normalized recovery key through a
+single boolean result, so failed credentials receive the same user-visible
+error. A successful unlock caches the key through the existing storage path,
+loads the previously withheld sessions, clears `needsUnlock`, and resumes the
+normal startup flow. Both wrong credentials and malformed encryption metadata
+remain non-destructive and keep the application gated.
+
+## Verification
+
+- Reviewed issue #53, the unlock/storage/bootstrap/root changes, the new
+  `AppState` and `UnlockScreen` tests, and the existing session-lock behavior.
+- Ran `flutter test test/providers/app_state_unlock_test.dart
+  test/screens/unlock_screen_test.dart test/providers/app_bootstrapper_test.dart
+  test/screens/app_root_test.dart test/services/storage_service_test.dart`.
+  - Result: 169 tests passed.
+- Ran `flutter analyze`.
+  - Result: passes with no issues.
+- Ran `git diff --check`.
+  - Result: passes.

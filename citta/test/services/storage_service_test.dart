@@ -910,6 +910,134 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
+  // unlockWithRecoveryKey (issue #53)
+  // -------------------------------------------------------------------------
+
+  group('unlockWithRecoveryKey', () {
+    test('a fresh instance can unlock with the correct recovery key and '
+        'decrypt', () async {
+      final setupService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await setupService.enableEncryption(password: 'correct horse battery staple');
+      final pending = await setupService.prepareRecoveryKey();
+      await setupService.commitRecoveryKey(pending);
+      await setupService.saveSessions([_makeSession(notes: 'peaceful sit')]);
+
+      final freshService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      final unlocked =
+          await freshService.unlockWithRecoveryKey(pending.recoveryKey);
+
+      expect(unlocked, true);
+      expect(freshService.isUnlocked, true);
+      final restored = await freshService.loadSessions();
+      expect(restored.single.notes, 'peaceful sit');
+    });
+
+    test('returns false for the wrong recovery key and leaves the encrypted '
+        'file and in-memory key untouched', () async {
+      final setupService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await setupService.enableEncryption(password: 'correct horse battery staple');
+      final pending = await setupService.prepareRecoveryKey();
+      await setupService.commitRecoveryKey(pending);
+      await setupService.saveSessions([_makeSession(notes: 'peaceful sit')]);
+
+      final path = '${tempDir.path}/sessions.json';
+      final beforeAttempt = await File(path).readAsString();
+
+      final freshService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      final unlocked = await freshService
+          .unlockWithRecoveryKey('WRNG-WRNG-WRNG-WRNG-WRNG-WRNG-WRNG-WRNG');
+
+      expect(unlocked, false);
+      expect(freshService.isUnlocked, false);
+      expect(await File(path).readAsString(), beforeAttempt);
+    });
+
+    test('returns false when no recovery key has ever been committed',
+        () async {
+      final setupService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await setupService.enableEncryption(password: 'correct horse battery staple');
+
+      final freshService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      final unlocked = await freshService
+          .unlockWithRecoveryKey('AAAA-AAAA-AAAA-AAAA-AAAA-AAAA-AAAA-AAAA');
+
+      expect(unlocked, false);
+      expect(freshService.isUnlocked, false);
+    });
+
+    test('returns false when encryption has never been enabled', () async {
+      final freshService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      final unlocked = await freshService
+          .unlockWithRecoveryKey('AAAA-AAAA-AAAA-AAAA-AAAA-AAAA-AAAA-AAAA');
+
+      expect(unlocked, false);
+      expect(freshService.isUnlocked, false);
+    });
+
+    test('caches the master key on success', () async {
+      final setupService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await setupService.enableEncryption(password: 'correct horse battery staple');
+      final pending = await setupService.prepareRecoveryKey();
+      await setupService.commitRecoveryKey(pending);
+
+      final cache = _SpyKeyCache();
+      final freshService = StorageService.withBasePath(
+        tempDir.path,
+        cryptoService: _testCryptoService(),
+        secureKeyCache: cache,
+      );
+      final unlocked =
+          await freshService.unlockWithRecoveryKey(pending.recoveryKey);
+
+      expect(unlocked, true);
+      expect(cache.saveCalls, 1);
+      expect(await cache.read(), isNotNull);
+    });
+  });
+
+  group('unlockWithPassword / unlockWithRecoveryKey — corrupt metadata '
+      '(issue #53 review)', () {
+    test('unlockWithPassword propagates rather than reporting "wrong '
+        'password" when encryption_meta.json is malformed JSON', () async {
+      final path = '${tempDir.path}/encryption_meta.json';
+      await File(path).writeAsString('not valid json');
+
+      final service =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+
+      await expectLater(
+        service.unlockWithPassword('anything'),
+        throwsFormatException,
+      );
+      expect(service.isUnlocked, false);
+    });
+
+    test('unlockWithRecoveryKey propagates rather than reporting "wrong '
+        'recovery key" when encryption_meta.json is malformed JSON',
+        () async {
+      final path = '${tempDir.path}/encryption_meta.json';
+      await File(path).writeAsString('not valid json');
+
+      final service =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+
+      await expectLater(
+        service.unlockWithRecoveryKey('AAAA-AAAA-AAAA-AAAA-AAAA-AAAA-AAAA-AAAA'),
+        throwsFormatException,
+      );
+      expect(service.isUnlocked, false);
+    });
+  });
+
+  // -------------------------------------------------------------------------
   // Master key caching (issue #50)
   // -------------------------------------------------------------------------
 
