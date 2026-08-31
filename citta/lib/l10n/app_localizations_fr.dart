@@ -575,4 +575,47 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get settingsEncryptionDisableError =>
       'Couldn\'t disable encryption. Please try again.';
+
+  @override
+  String get settingsChangePasswordTitle => 'Change Password';
+
+  @override
+  String get settingsChangePasswordSubtitle =>
+      'Update the password protecting your sessions';
+
+  @override
+  String get changePasswordScreenTitle => 'Change Password';
+
+  @override
+  String get changePasswordCurrentLabel => 'Current password';
+
+  @override
+  String get changePasswordNewLabel => 'New password';
+
+  @override
+  String get changePasswordConfirmLabel => 'Confirm new password';
+
+  @override
+  String get changePasswordSubmitButton => 'Change Password';
+
+  @override
+  String get changePasswordErrorEmpty => 'Enter your current and new passwords';
+
+  @override
+  String changePasswordErrorTooShort(int minLength) {
+    return 'New password must be at least $minLength characters';
+  }
+
+  @override
+  String get changePasswordErrorMismatch => 'New passwords don\'t match';
+
+  @override
+  String get changePasswordErrorWrongCurrent => 'Current password is incorrect';
+
+  @override
+  String get changePasswordErrorGeneric =>
+      'Couldn\'t change password. Please try again.';
+
+  @override
+  String get changePasswordSuccess => 'Password changed successfully';
 }

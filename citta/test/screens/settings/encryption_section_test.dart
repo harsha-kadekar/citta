@@ -146,6 +146,8 @@ final _disableCancelButton =
     find.byKey(const Key('encryptionDisableCancelButton'));
 final _disableConfirmButton =
     find.byKey(const Key('encryptionDisableConfirmButton'));
+final _changePasswordTile =
+    find.byKey(const Key('settingsChangePasswordTile'));
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -172,6 +174,12 @@ void main() {
       expect(find.text(l10n.settingsEncryptionSubtitleDisabled),
           findsOneWidget);
     });
+
+    testWidgets('does not show a Change Password tile', (tester) async {
+      await _pumpAndSettle(tester, _wrap(appState, const EncryptionSection()));
+
+      expect(_changePasswordTile, findsNothing);
+    });
   });
 
   group('EncryptionSection – already enabled', () {
@@ -195,6 +203,47 @@ void main() {
           AppLocalizations.of(tester.element(find.byType(EncryptionSection)))!;
       expect(
           find.text(l10n.settingsEncryptionSubtitleEnabled), findsOneWidget);
+    });
+
+    testWidgets('shows a Change Password tile', (tester) async {
+      await _pumpAndSettle(tester, _wrap(appState, const EncryptionSection()));
+
+      expect(_changePasswordTile, findsOneWidget);
+    });
+
+    testWidgets(
+        'tapping Change Password opens ChangePasswordScreen, and a '
+        'successful change returns here with a confirmation', (tester) async {
+      await _pumpAndSettle(tester, _wrap(appState, const EncryptionSection()));
+
+      await tester.tap(_changePasswordTile);
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+          find.byKey(const Key('changePasswordCurrentField')),
+          'correct horse battery staple');
+      await tester.enterText(
+          find.byKey(const Key('changePasswordNewField')),
+          'a brand new password');
+      await tester.enterText(
+          find.byKey(const Key('changePasswordConfirmField')),
+          'a brand new password');
+
+      await tester.runAsync(() async {
+        await tester.tap(find.byKey(const Key('changePasswordSubmitButton')));
+        await Future<void>.delayed(const Duration(seconds: 2));
+      });
+      await tester.pumpAndSettle();
+
+      final l10n =
+          AppLocalizations.of(tester.element(find.byType(EncryptionSection)))!;
+      expect(find.text(l10n.changePasswordSuccess), findsOneWidget);
+
+      final freshService =
+          StorageService.withBasePath(tmpDir.path);
+      final newWorks = await tester.runAsync(
+          () => freshService.unlockWithPassword('a brand new password'));
+      expect(newWorks, true);
     });
   });
 

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:citta/l10n/app_localizations.dart';
 import '../../providers/app_state.dart';
+import '../change_password_screen.dart';
 import '../enable_encryption_screen.dart';
+import 'settings_widgets.dart';
 
 /// Settings row for turning encryption on later (for users who skipped it at
 /// first launch) or off again (reverting to plaintext storage). Reflects the
@@ -86,18 +88,41 @@ class _EncryptionSectionState extends State<EncryptionSection> {
     }
   }
 
+  Future<void> _openChangePassword() async {
+    final l10n = AppLocalizations.of(context)!;
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const ChangePasswordScreen()),
+    );
+    if (changed == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.changePasswordSuccess)),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final enabled = _enabled ?? false;
-    return SwitchListTile(
-      key: const Key('encryptionSectionSwitch'),
-      title: Text(l10n.settingsEncryptionTitle),
-      subtitle: Text(enabled
-          ? l10n.settingsEncryptionSubtitleEnabled
-          : l10n.settingsEncryptionSubtitleDisabled),
-      value: enabled,
-      onChanged: (_enabled == null || _busy) ? null : _onToggle,
+    return Column(
+      children: [
+        SwitchListTile(
+          key: const Key('encryptionSectionSwitch'),
+          title: Text(l10n.settingsEncryptionTitle),
+          subtitle: Text(enabled
+              ? l10n.settingsEncryptionSubtitleEnabled
+              : l10n.settingsEncryptionSubtitleDisabled),
+          value: enabled,
+          onChanged: (_enabled == null || _busy) ? null : _onToggle,
+        ),
+        if (enabled)
+          SettingsTile(
+            key: const Key('settingsChangePasswordTile'),
+            title: l10n.settingsChangePasswordTitle,
+            subtitle: l10n.settingsChangePasswordSubtitle,
+            onTap: _openChangePassword,
+          ),
+      ],
     );
   }
 }

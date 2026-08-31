@@ -1041,6 +1041,128 @@ void main() {
     });
   });
 
+  group('changePassword', () {
+    test('throws StateError when encryption is not enabled', () async {
+      await expectLater(
+        service.changePassword(
+          currentPassword: 'anything',
+          newPassword: 'new password here',
+        ),
+        throwsA(isA<StateError>()),
+      );
+    });
+
+    test('returns false for the wrong current password and leaves the '
+        'metadata and old password untouched', () async {
+      final setupService = StorageService.withBasePath(tempDir.path,
+          cryptoService: _testCryptoService());
+      await setupService.enableEncryption(
+          password: 'correct horse battery staple');
+
+      final metaPath = '${tempDir.path}/encryption_meta.json';
+      final beforeAttempt = await File(metaPath).readAsString();
+
+      final changed = await setupService.changePassword(
+        currentPassword: 'wrong password',
+        newPassword: 'new password here',
+      );
+
+      expect(changed, false);
+      expect(await File(metaPath).readAsString(), beforeAttempt);
+
+      final freshService = StorageService.withBasePath(tempDir.path,
+          cryptoService: _testCryptoService());
+      expect(
+        await freshService.unlockWithPassword('correct horse battery staple'),
+        true,
+      );
+    });
+
+    test('a successful change makes the old password stop working and the '
+        'new one work, on a fresh instance', () async {
+      final setupService = StorageService.withBasePath(tempDir.path,
+          cryptoService: _testCryptoService());
+      await setupService.enableEncryption(
+          password: 'correct horse battery staple');
+
+      final changed = await setupService.changePassword(
+        currentPassword: 'correct horse battery staple',
+        newPassword: 'new password here',
+      );
+      expect(changed, true);
+
+      final oldPasswordService = StorageService.withBasePath(tempDir.path,
+          cryptoService: _testCryptoService());
+      expect(
+        await oldPasswordService
+            .unlockWithPassword('correct horse battery staple'),
+        false,
+      );
+
+      final newPasswordService = StorageService.withBasePath(tempDir.path,
+          cryptoService: _testCryptoService());
+      expect(
+        await newPasswordService.unlockWithPassword('new password here'),
+        true,
+      );
+    });
+
+    test('the recovery key continues to unlock the data, unchanged, after '
+        'a password change', () async {
+      final setupService = StorageService.withBasePath(tempDir.path,
+          cryptoService: _testCryptoService());
+      await setupService.enableEncryption(
+          password: 'correct horse battery staple');
+      final pending = await setupService.prepareRecoveryKey();
+      await setupService.commitRecoveryKey(pending);
+
+      final changed = await setupService.changePassword(
+        currentPassword: 'correct horse battery staple',
+        newPassword: 'new password here',
+      );
+      expect(changed, true);
+
+      final freshService = StorageService.withBasePath(tempDir.path,
+          cryptoService: _testCryptoService());
+      expect(
+        await freshService.unlockWithRecoveryKey(pending.recoveryKey),
+        true,
+      );
+    });
+
+    test('sessions saved before the change remain readable through the '
+        'same already-unlocked instance afterward, without re-encrypting '
+        'sessions.json', () async {
+      final setupService = StorageService.withBasePath(tempDir.path,
+          cryptoService: _testCryptoService());
+      await setupService.enableEncryption(
+          password: 'correct horse battery staple');
+      await setupService.saveSessions([_makeSession(notes: 'peaceful sit')]);
+      final sessionsPath = '${tempDir.path}/sessions.json';
+      final sessionsBeforeChange =
+          await File(sessionsPath).readAsString();
+
+      final changed = await setupService.changePassword(
+        currentPassword: 'correct horse battery staple',
+        newPassword: 'new password here',
+      );
+      expect(changed, true);
+
+      // The master key never changed, so sessions.json (ciphertext under
+      // that same master key) is untouched by the password change.
+      expect(await File(sessionsPath).readAsString(), sessionsBeforeChange);
+
+      final restored = await setupService.loadSessions();
+      expect(restored.single.notes, 'peaceful sit');
+
+      final freshService = StorageService.withBasePath(tempDir.path,
+          cryptoService: _testCryptoService());
+      await freshService.unlockWithPassword('new password here');
+      final restoredFresh = await freshService.loadSessions();
+      expect(restoredFresh.single.notes, 'peaceful sit');
+    });
+  });
+
   group('unlockWithPassword / unlockWithRecoveryKey — corrupt metadata '
       '(issue #53 review)', () {
     test('unlockWithPassword propagates rather than reporting "wrong '
