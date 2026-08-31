@@ -544,4 +544,32 @@ class AppLocalizationsHe extends AppLocalizations {
   @override
   String get unlockErrorCorrupted =>
       'Your encrypted data couldn\'t be read. It may be damaged.';
+
+  @override
+  String get settingsEncryptionTitle => 'Encryption';
+
+  @override
+  String get settingsEncryptionSubtitleEnabled =>
+      'Your sessions are encrypted on this device';
+
+  @override
+  String get settingsEncryptionSubtitleDisabled =>
+      'Protect your sessions with a password';
+
+  @override
+  String get enableEncryptionScreenTitle => 'Enable Encryption';
+
+  @override
+  String get settingsEncryptionDisableConfirmTitle => 'Disable encryption?';
+
+  @override
+  String get settingsEncryptionDisableConfirmMessage =>
+      'Your sessions will be stored as plain text on this device again.';
+
+  @override
+  String get settingsEncryptionDisableConfirmButton => 'Disable';
+
+  @override
+  String get settingsEncryptionDisableError =>
+      'Couldn\'t disable encryption. Please try again.';
 }

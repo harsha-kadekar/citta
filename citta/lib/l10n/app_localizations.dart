@@ -1143,6 +1143,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your encrypted data couldn\'t be read. It may be damaged.'**
   String get unlockErrorCorrupted;
+
+  /// No description provided for @settingsEncryptionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Encryption'**
+  String get settingsEncryptionTitle;
+
+  /// No description provided for @settingsEncryptionSubtitleEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Your sessions are encrypted on this device'**
+  String get settingsEncryptionSubtitleEnabled;
+
+  /// No description provided for @settingsEncryptionSubtitleDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Protect your sessions with a password'**
+  String get settingsEncryptionSubtitleDisabled;
+
+  /// No description provided for @enableEncryptionScreenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable Encryption'**
+  String get enableEncryptionScreenTitle;
+
+  /// No description provided for @settingsEncryptionDisableConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable encryption?'**
+  String get settingsEncryptionDisableConfirmTitle;
+
+  /// No description provided for @settingsEncryptionDisableConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Your sessions will be stored as plain text on this device again.'**
+  String get settingsEncryptionDisableConfirmMessage;
+
+  /// No description provided for @settingsEncryptionDisableConfirmButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable'**
+  String get settingsEncryptionDisableConfirmButton;
+
+  /// No description provided for @settingsEncryptionDisableError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t disable encryption. Please try again.'**
+  String get settingsEncryptionDisableError;
 }
 
 class _AppLocalizationsDelegate

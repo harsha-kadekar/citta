@@ -529,5 +529,29 @@
   "@unlockErrorGeneric": {},
 
   "unlockErrorCorrupted": "Your encrypted data couldn't be read. It may be damaged.",
-  "@unlockErrorCorrupted": {}
+  "@unlockErrorCorrupted": {},
+
+  "settingsEncryptionTitle": "Encryption",
+  "@settingsEncryptionTitle": {},
+
+  "settingsEncryptionSubtitleEnabled": "Your sessions are encrypted on this device",
+  "@settingsEncryptionSubtitleEnabled": {},
+
+  "settingsEncryptionSubtitleDisabled": "Protect your sessions with a password",
+  "@settingsEncryptionSubtitleDisabled": {},
+
+  "enableEncryptionScreenTitle": "Enable Encryption",
+  "@enableEncryptionScreenTitle": {},
+
+  "settingsEncryptionDisableConfirmTitle": "Disable encryption?",
+  "@settingsEncryptionDisableConfirmTitle": {},
+
+  "settingsEncryptionDisableConfirmMessage": "Your sessions will be stored as plain text on this device again.",
+  "@settingsEncryptionDisableConfirmMessage": {},
+
+  "settingsEncryptionDisableConfirmButton": "Disable",
+  "@settingsEncryptionDisableConfirmButton": {},
+
+  "settingsEncryptionDisableError": "Couldn't disable encryption. Please try again.",
+  "@settingsEncryptionDisableError": {}
 }
