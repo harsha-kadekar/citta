@@ -1261,3 +1261,42 @@ No actionable findings in the current revision.
   - Result: passes.
 - Ran `git diff --check`.
   - Result: passes.
+
+
+---
+
+## Review: issue #55 — change password flow
+
+## Findings
+
+No actionable findings in the current implementation.
+
+The Settings action is displayed only for an enabled encrypted install. Its
+screen requires the current password, enforces the existing minimum password
+length, and confirms the replacement password before calling storage. The
+storage operation authenticates the current password using the KDF parameters
+stored with the existing wrap, creates a fresh salt and a new password-derived
+wrap for the same master key, and atomically updates only the password-wrap
+metadata. It leaves `sessions.json`, the recovery-key wrap, and the cached
+unwrapped master key valid, as required by issue #55.
+
+Coverage exercises rejected and successful password changes, verifies a fresh
+service rejects the old password and accepts the new one, and confirms the
+existing recovery key still unlocks after the change.
+
+## Verification
+
+- Reviewed issue #55 and the uncommitted Settings, change-password UI,
+  storage, localization, and test changes.
+- Ran `flutter test test/services/storage_service_test.dart
+  test/screens/change_password_screen_test.dart
+  test/screens/settings/encryption_section_test.dart`.
+  - Result: 163 tests passed.
+- Ran `flutter analyze lib/services/storage_service.dart
+  lib/screens/change_password_screen.dart
+  lib/screens/settings/encryption_section.dart
+  test/services/storage_service_test.dart
+  test/screens/change_password_screen_test.dart
+  test/screens/settings/encryption_section_test.dart`.
+  - Result: passes with no issues.
+- Ran `git diff --check`.

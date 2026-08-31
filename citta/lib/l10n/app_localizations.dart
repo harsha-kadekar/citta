@@ -1191,6 +1191,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t disable encryption. Please try again.'**
   String get settingsEncryptionDisableError;
+
+  /// No description provided for @settingsChangePasswordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Password'**
+  String get settingsChangePasswordTitle;
+
+  /// No description provided for @settingsChangePasswordSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Update the password protecting your sessions'**
+  String get settingsChangePasswordSubtitle;
+
+  /// No description provided for @changePasswordScreenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Password'**
+  String get changePasswordScreenTitle;
+
+  /// No description provided for @changePasswordCurrentLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Current password'**
+  String get changePasswordCurrentLabel;
+
+  /// No description provided for @changePasswordNewLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'New password'**
+  String get changePasswordNewLabel;
+
+  /// No description provided for @changePasswordConfirmLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm new password'**
+  String get changePasswordConfirmLabel;
+
+  /// No description provided for @changePasswordSubmitButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Password'**
+  String get changePasswordSubmitButton;
+
+  /// No description provided for @changePasswordErrorEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your current and new passwords'**
+  String get changePasswordErrorEmpty;
+
+  /// No description provided for @changePasswordErrorTooShort.
+  ///
+  /// In en, this message translates to:
+  /// **'New password must be at least {minLength} characters'**
+  String changePasswordErrorTooShort(int minLength);
+
+  /// No description provided for @changePasswordErrorMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'New passwords don\'t match'**
+  String get changePasswordErrorMismatch;
+
+  /// No description provided for @changePasswordErrorWrongCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Current password is incorrect'**
+  String get changePasswordErrorWrongCurrent;
+
+  /// No description provided for @changePasswordErrorGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t change password. Please try again.'**
+  String get changePasswordErrorGeneric;
+
+  /// No description provided for @changePasswordSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Password changed successfully'**
+  String get changePasswordSuccess;
 }
 
 class _AppLocalizationsDelegate

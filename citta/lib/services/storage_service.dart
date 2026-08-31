@@ -378,6 +378,87 @@ class StorageService {
     });
   }
 
+  /// Verifies [currentPassword] against the stored password-wrapped master
+  /// key, then re-wraps that same master key under a newly-derived key from
+  /// [newPassword] (with a fresh salt), replacing `wrappedMasterKeyPassword`
+  /// and its salt in `encryption_meta.json`. The master key itself never
+  /// changes, so `sessions.json` is not touched, the recovery-key wrap (if
+  /// any) keeps working unchanged, and [EncryptionMetadata.masterKeyVerifier]
+  /// stays valid — no re-caching of the unwrapped master key is needed
+  /// either, since [SecureKeyCache] stores that same, unchanged key.
+  ///
+  /// Sets this instance's in-memory master key on success (whether or not it
+  /// was already unlocked) — verifying [currentPassword] against the stored
+  /// wrap proves it.
+  ///
+  /// Returns false — without altering anything on disk or in memory — if
+  /// [currentPassword] is wrong. Throws [StateError] if encryption isn't
+  /// enabled on this device. A corrupt/malformed metadata file propagates
+  /// rather than being reported indistinguishably as "wrong password".
+  ///
+  /// Runs under the same lock as [runExclusive] so it can never interleave
+  /// with a concurrent save or import.
+  Future<bool> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) {
+    return _writeLock.run(() async {
+      final metadata = await _readEncryptionMetadata();
+      if (metadata == null) {
+        throw StateError('encryption is not enabled');
+      }
+
+      final currentKdf = CryptoService(
+        argon2MemoryKiB: metadata.kdfMemoryKiB,
+        argon2Iterations: metadata.kdfIterations,
+        argon2Parallelism: metadata.kdfParallelism,
+      );
+      final currentWrappingKey = await currentKdf.deriveKeyFromPassword(
+        password: currentPassword,
+        salt: metadata.salt,
+      );
+
+      final SecretKey masterKey;
+      try {
+        masterKey = await _cryptoService.unwrapKey(
+          wrapped: metadata.wrappedMasterKeyPassword,
+          wrappingKey: currentWrappingKey,
+        );
+      } on CryptoAuthenticationException {
+        return false;
+      }
+
+      final newSalt = _cryptoService.generateSalt();
+      final newWrappingKey = await _cryptoService.deriveKeyFromPassword(
+        password: newPassword,
+        salt: newSalt,
+      );
+      final newWrapped = await _cryptoService.wrapKey(
+        keyToWrap: masterKey,
+        wrappingKey: newWrappingKey,
+      );
+
+      final updated = EncryptionMetadata(
+        version: metadata.version,
+        salt: newSalt,
+        kdfMemoryKiB: _cryptoService.argon2MemoryKiB,
+        kdfIterations: _cryptoService.argon2Iterations,
+        kdfParallelism: _cryptoService.argon2Parallelism,
+        wrappedMasterKeyPassword: newWrapped,
+        wrappedMasterKeyRecovery: metadata.wrappedMasterKeyRecovery,
+        recoverySalt: metadata.recoverySalt,
+        masterKeyVerifier: metadata.masterKeyVerifier,
+      );
+      final path = await _encryptionMetaPath;
+      final content =
+          const JsonEncoder.withIndent('  ').convert(updated.toJson());
+      await _atomicWrite(path, content);
+
+      _masterKey = masterKey;
+      return true;
+    });
+  }
+
   /// Reads and parses `encryption_meta.json`, or null if it doesn't exist
   /// (encryption was never enabled on this device). Shared by
   /// [unlockWithPassword] and [unlockWithRecoveryKey]. A corrupt/malformed

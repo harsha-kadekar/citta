@@ -553,5 +553,50 @@
   "@settingsEncryptionDisableConfirmButton": {},
 
   "settingsEncryptionDisableError": "Couldn't disable encryption. Please try again.",
-  "@settingsEncryptionDisableError": {}
+  "@settingsEncryptionDisableError": {},
+
+  "settingsChangePasswordTitle": "Change Password",
+  "@settingsChangePasswordTitle": {},
+
+  "settingsChangePasswordSubtitle": "Update the password protecting your sessions",
+  "@settingsChangePasswordSubtitle": {},
+
+  "changePasswordScreenTitle": "Change Password",
+  "@changePasswordScreenTitle": {},
+
+  "changePasswordCurrentLabel": "Current password",
+  "@changePasswordCurrentLabel": {},
+
+  "changePasswordNewLabel": "New password",
+  "@changePasswordNewLabel": {},
+
+  "changePasswordConfirmLabel": "Confirm new password",
+  "@changePasswordConfirmLabel": {},
+
+  "changePasswordSubmitButton": "Change Password",
+  "@changePasswordSubmitButton": {},
+
+  "changePasswordErrorEmpty": "Enter your current and new passwords",
+  "@changePasswordErrorEmpty": {},
+
+  "changePasswordErrorTooShort": "New password must be at least {minLength} characters",
+  "@changePasswordErrorTooShort": {
+    "placeholders": {
+      "minLength": {
+        "type": "int"
+      }
+    }
+  },
+
+  "changePasswordErrorMismatch": "New passwords don't match",
+  "@changePasswordErrorMismatch": {},
+
+  "changePasswordErrorWrongCurrent": "Current password is incorrect",
+  "@changePasswordErrorWrongCurrent": {},
+
+  "changePasswordErrorGeneric": "Couldn't change password. Please try again.",
+  "@changePasswordErrorGeneric": {},
+
+  "changePasswordSuccess": "Password changed successfully",
+  "@changePasswordSuccess": {}
 }
