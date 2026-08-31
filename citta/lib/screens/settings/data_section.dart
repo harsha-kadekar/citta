@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:citta/l10n/app_localizations.dart';
 import '../../providers/app_state.dart';
+import 'encryption_section.dart';
 import 'settings_widgets.dart';
 
 class DataSection extends StatelessWidget {
@@ -27,6 +28,7 @@ class DataSection extends StatelessWidget {
           subtitle: l10n.settingsImportDesc,
           onTap: () => _importData(context, appState, l10n),
         ),
+        const EncryptionSection(),
       ],
     );
   }

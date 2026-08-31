@@ -19,6 +19,12 @@ import '../services/storage_service.dart';
 /// acknowledges and continues, nothing is written to disk, so a later visit
 /// simply generates a fresh candidate rather than being permanently stuck on
 /// an already-persisted wrap whose plaintext key no longer exists anywhere.
+///
+/// Unlike the password-entry step before it, though, encryption is already
+/// committed by the time this screen is showing — so backing out of it isn't
+/// a harmless cancellation, it stops the recovery key from ever being saved.
+/// There is deliberately no back/skip affordance here, the same way
+/// [UnlockScreen] has none: the only way past this screen is Continue.
 class RecoveryKeyScreen extends StatefulWidget {
   final VoidCallback? onContinue;
 
@@ -79,116 +85,124 @@ class _RecoveryKeyScreenState extends State<RecoveryKeyScreen> {
     final appState = context.read<AppState>();
     final l10n = AppLocalizations.of(context)!;
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.recoveryKeyScreenTitle)),
-      body: FutureBuilder<PendingRecoveryKey>(
-        future: _pendingFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  l10n.recoveryKeyErrorGeneric,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(l10n.recoveryKeyScreenTitle),
+          automaticallyImplyLeading: false,
+        ),
+        body: FutureBuilder<PendingRecoveryKey>(
+          future: _pendingFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    l10n.recoveryKeyErrorGeneric,
+                    style:
+                        TextStyle(color: Theme.of(context).colorScheme.error),
+                  ),
                 ),
+              );
+            }
+
+            final pending = snapshot.data!;
+            final recoveryKey = pending.recoveryKey;
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.recoveryKeyWarning,
+                    style:
+                        TextStyle(color: Theme.of(context).colorScheme.error),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    key: const Key('recoveryKeyText'),
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Theme.of(context).dividerColor),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: SelectableText(
+                      recoveryKey,
+                      style: const TextStyle(
+                          fontFamily: 'monospace', fontSize: 16),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      TextButton.icon(
+                        key: const Key('recoveryKeyCopyButton'),
+                        onPressed: () => Clipboard.setData(
+                          ClipboardData(text: recoveryKey),
+                        ),
+                        icon: const Icon(Icons.copy),
+                        label: Text(l10n.recoveryKeyCopyButton),
+                      ),
+                      const SizedBox(width: 8),
+                      TextButton.icon(
+                        key: const Key('recoveryKeyShareButton'),
+                        onPressed: () => _share(recoveryKey),
+                        icon: const Icon(Icons.share),
+                        label: Text(l10n.recoveryKeyShareButton),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  CheckboxListTile(
+                    key: const Key('recoveryKeyAckCheckbox'),
+                    value: _acknowledged,
+                    // Locked once committing (an in-flight commit must not be
+                    // raced by toggling off mid-flight).
+                    onChanged: _committing
+                        ? null
+                        : (value) =>
+                            setState(() => _acknowledged = value ?? false),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(l10n.recoveryKeyAckLabel),
+                  ),
+                  if (_errorText != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        _errorText!,
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.error),
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      key: const Key('recoveryKeyContinueButton'),
+                      onPressed: (_acknowledged && !_committing)
+                          ? () => _continue(appState, l10n, pending)
+                          : null,
+                      child: _committing
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Text(l10n.recoveryKeyContinueButton),
+                    ),
+                  ),
+                ],
               ),
             );
-          }
-
-          final pending = snapshot.data!;
-          final recoveryKey = pending.recoveryKey;
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.recoveryKeyWarning,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  key: const Key('recoveryKeyText'),
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Theme.of(context).dividerColor),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: SelectableText(
-                    recoveryKey,
-                    style:
-                        const TextStyle(fontFamily: 'monospace', fontSize: 16),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    TextButton.icon(
-                      key: const Key('recoveryKeyCopyButton'),
-                      onPressed: () => Clipboard.setData(
-                        ClipboardData(text: recoveryKey),
-                      ),
-                      icon: const Icon(Icons.copy),
-                      label: Text(l10n.recoveryKeyCopyButton),
-                    ),
-                    const SizedBox(width: 8),
-                    TextButton.icon(
-                      key: const Key('recoveryKeyShareButton'),
-                      onPressed: () => _share(recoveryKey),
-                      icon: const Icon(Icons.share),
-                      label: Text(l10n.recoveryKeyShareButton),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                CheckboxListTile(
-                  key: const Key('recoveryKeyAckCheckbox'),
-                  value: _acknowledged,
-                  // Locked once committing (an in-flight commit must not be
-                  // raced by toggling off mid-flight).
-                  onChanged: _committing
-                      ? null
-                      : (value) =>
-                          setState(() => _acknowledged = value ?? false),
-                  controlAffinity: ListTileControlAffinity.leading,
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(l10n.recoveryKeyAckLabel),
-                ),
-                if (_errorText != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(
-                      _errorText!,
-                      style:
-                          TextStyle(color: Theme.of(context).colorScheme.error),
-                    ),
-                  ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    key: const Key('recoveryKeyContinueButton'),
-                    onPressed: (_acknowledged && !_committing)
-                        ? () => _continue(appState, l10n, pending)
-                        : null,
-                    child: _committing
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Text(l10n.recoveryKeyContinueButton),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
+          },
+        ),
       ),
     );
   }

@@ -559,6 +559,71 @@ class StorageService {
   /// the password (the old cache entry is stale once re-wrapped).
   Future<void> clearCachedMasterKey() => _secureKeyCache.clear();
 
+  /// Reverses [enableEncryption]: decrypts `sessions.json` back to plaintext
+  /// and discards `encryption_meta.json`, the in-memory master key, and the
+  /// secure-storage cache — a full return to pre-encryption behavior. Session
+  /// content is preserved exactly; only its on-disk format changes.
+  ///
+  /// The plaintext `sessions.json` write is committed *before*
+  /// `encryption_meta.json` is removed, not after — so an interruption
+  /// between the two steps leaves the password/recovery key still able to
+  /// unlock (the metadata is untouched) and [loadSessions] reads the
+  /// now-plaintext file straight through regardless of whether a master key
+  /// is available. The only visible effect of such an interruption is that
+  /// this device still reports [isEncryptionEnabled], and the toggle simply
+  /// needs to be retried — never lost data. Removing the metadata first
+  /// would instead risk stranding an unmigrated ciphertext file with no
+  /// remaining way to derive its key.
+  ///
+  /// Runs under the same lock as [runExclusive] so it can never interleave
+  /// with a concurrent save or import.
+  ///
+  /// Throws [StateError] if encryption isn't enabled on this device —
+  /// nothing to disable. Throws [StorageLockedException] if this instance
+  /// hasn't been unlocked — there is no master key in memory to decrypt the
+  /// existing `sessions.json`.
+  Future<void> disableEncryption() {
+    return _writeLock.run(() async {
+      if (!await isEncryptionEnabled) {
+        throw StateError('encryption is not enabled');
+      }
+      if (_masterKey == null) {
+        throw const StorageLockedException(
+          'cannot disable encryption before unlocking',
+        );
+      }
+
+      final sessions = await loadSessions();
+      final path = await _sessionsPath;
+      await _atomicWrite(path, _plainSessionsContent(sessions));
+
+      await deleteEncryptionMetadataFile();
+
+      // Best-effort from here: the device is already fully decrypted on
+      // disk (metadata gone, sessions.json plaintext), so a keystore
+      // failure clearing the cached key must not make an
+      // otherwise-successful disableEncryption() report failure — unlike
+      // lock() (which surfaces this same failure deliberately), a stale
+      // cache entry left behind here is harmless, since
+      // tryUnlockWithCachedKey() checks isEncryptionEnabled first and will
+      // refuse to use it regardless.
+      _masterKey = null;
+      try {
+        await clearCachedMasterKey();
+      } catch (_) {}
+    });
+  }
+
+  /// Deletes `encryption_meta.json`, if present. Split out from
+  /// [disableEncryption] (rather than inlined) purely so tests can override
+  /// it to simulate a crash between that method's plaintext-write and
+  /// metadata-delete steps.
+  @visibleForTesting
+  Future<void> deleteEncryptionMetadataFile() async {
+    final file = File(await _encryptionMetaPath);
+    if (await file.exists()) await file.delete();
+  }
+
   // --- Sessions ---
 
   Future<String> get _sessionsPath async => '${await basePath}/sessions.json';
@@ -652,11 +717,18 @@ class StorageService {
 
   Future<void> saveSessions(List<SessionModel> sessions) async {
     final path = await _sessionsPath;
+    final content = _plainSessionsContent(sessions);
+    await _atomicWrite(path, await _encodeSessionsContent(content));
+  }
+
+  /// The plaintext JSON encoding of [sessions], shared by [saveSessions]
+  /// (which may then encrypt it) and [disableEncryption] (which writes it
+  /// as-is).
+  String _plainSessionsContent(List<SessionModel> sessions) {
     final json = {
       'sessions': sessions.map((s) => s.toJson()).toList(),
     };
-    final content = const JsonEncoder.withIndent('  ').convert(json);
-    await _atomicWrite(path, await _encodeSessionsContent(content));
+    return const JsonEncoder.withIndent('  ').convert(json);
   }
 
   // --- In-Progress Session ---

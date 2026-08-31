@@ -74,6 +74,44 @@ class _FlakyPostCommitSessionsStorageService extends StorageService {
   }
 }
 
+/// A [StorageService] whose [deleteEncryptionMetadataFile] always throws —
+/// used to simulate a crash between [StorageService.disableEncryption]'s two
+/// steps: the plaintext `sessions.json` write has already committed, but the
+/// metadata deletion that would normally follow never runs.
+class _FlakyDeleteMetadataStorageService extends StorageService {
+  _FlakyDeleteMetadataStorageService.withBasePath(super.basePath,
+      {super.cryptoService})
+      : super.withBasePath();
+
+  @override
+  Future<void> deleteEncryptionMetadataFile() async {
+    throw const FileSystemException('simulated crash before metadata delete');
+  }
+}
+
+/// A [StorageService] whose 1st call to [saveSessions] throws before doing
+/// any real write — simulating a process crash that happens before
+/// [StorageService.enableEncryption]'s final re-encrypt write ever starts,
+/// even though the `encryption_meta.json` write immediately before it has
+/// already committed.
+class _FlakyEnableSessionsStorageService extends StorageService {
+  _FlakyEnableSessionsStorageService.withBasePath(super.basePath,
+      {super.cryptoService})
+      : super.withBasePath();
+
+  int _saveSessionsCalls = 0;
+
+  @override
+  Future<void> saveSessions(List<SessionModel> sessions) async {
+    _saveSessionsCalls++;
+    if (_saveSessionsCalls == 1) {
+      throw const FileSystemException(
+          'simulated crash before re-encrypt write');
+    }
+    await super.saveSessions(sessions);
+  }
+}
+
 /// A [SecureKeyCache] that records every call and fails the test if [read]
 /// is invoked when [allowRead] is false — used to assert that a cache read
 /// is skipped entirely (e.g. when encryption was never enabled), not just
@@ -2583,6 +2621,183 @@ void main() {
 
     test('is idempotent when file does not exist', () async {
       await expectLater(service.clearInProgressSession(), completes);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // disableEncryption
+  // -------------------------------------------------------------------------
+
+  group('disableEncryption', () {
+    test('throws StateError when encryption is not enabled', () async {
+      await expectLater(
+        service.disableEncryption(),
+        throwsA(isA<StateError>()),
+      );
+    });
+
+    test('throws StorageLockedException when this instance is locked',
+        () async {
+      final setupService = StorageService.withBasePath(tempDir.path,
+          cryptoService: _testCryptoService());
+      await setupService.enableEncryption(
+          password: 'correct horse battery staple');
+
+      final freshService = StorageService.withBasePath(tempDir.path,
+          cryptoService: _testCryptoService());
+
+      await expectLater(
+        freshService.disableEncryption(),
+        throwsA(isA<StorageLockedException>()),
+      );
+      expect(await freshService.isEncryptionEnabled, true);
+    });
+
+    test(
+        'decrypts sessions.json back to plaintext, deletes metadata, and '
+        'clears the master key', () async {
+      final cache = InMemoryKeyCache();
+      final encService = StorageService.withBasePath(tempDir.path,
+          cryptoService: _testCryptoService(), secureKeyCache: cache);
+      await encService.enableEncryption(
+          password: 'correct horse battery staple');
+      final sessions = [
+        _makeSession(id: 's1', notes: 'peaceful sit', tags: ['calm']),
+        _makeSession(id: 's2', duration: 900),
+      ];
+      await encService.saveSessions(sessions);
+
+      await encService.disableEncryption();
+
+      final path = '${tempDir.path}/sessions.json';
+      final raw = await File(path).readAsString();
+      expect(raw, contains('peaceful sit'));
+      expect(jsonDecode(raw), isNot(containsPair('encrypted', true)));
+
+      expect(await File('${tempDir.path}/encryption_meta.json').exists(),
+          false);
+      expect(await encService.isEncryptionEnabled, false);
+      expect(encService.isUnlocked, false);
+      expect(await cache.read(), isNull);
+
+      final restored = await encService.loadSessions();
+      expect(restored.map((s) => s.id).toList(), ['s1', 's2']);
+      expect(restored.first.notes, 'peaceful sit');
+      expect(restored.first.tags, ['calm']);
+    });
+
+    test('a fresh instance reads the decrypted sessions without unlocking',
+        () async {
+      final encService = StorageService.withBasePath(tempDir.path,
+          cryptoService: _testCryptoService());
+      await encService.enableEncryption(
+          password: 'correct horse battery staple');
+      await encService.saveSessions([_makeSession(notes: 'peaceful sit')]);
+
+      await encService.disableEncryption();
+
+      final freshService = StorageService.withBasePath(tempDir.path,
+          cryptoService: _testCryptoService());
+      expect(await freshService.isEncryptionEnabled, false);
+      final restored = await freshService.loadSessions();
+      expect(restored.single.notes, 'peaceful sit');
+    });
+
+    test(
+        'still disables encryption even if clearing the cached master key '
+        'fails', () async {
+      final encService = StorageService.withBasePath(tempDir.path,
+          cryptoService: _testCryptoService(),
+          secureKeyCache: _ThrowingClearKeyCache());
+      await encService.enableEncryption(
+          password: 'correct horse battery staple');
+      await encService.saveSessions([_makeSession(notes: 'peaceful sit')]);
+
+      // The device is already fully decrypted on disk by this point, so a
+      // keystore failure clearing the now-orphaned cached key must not be
+      // reported as disableEncryption() having failed.
+      await expectLater(encService.disableEncryption(), completes);
+
+      expect(await encService.isEncryptionEnabled, false);
+      final restored = await encService.loadSessions();
+      expect(restored.single.notes, 'peaceful sit');
+    });
+
+    test(
+        'interrupted between the plaintext write and metadata delete leaves '
+        'sessions intact and still unlockable with the original password',
+        () async {
+      const password = 'correct horse battery staple';
+      final flakyService = _FlakyDeleteMetadataStorageService.withBasePath(
+          tempDir.path,
+          cryptoService: _testCryptoService());
+      await flakyService.enableEncryption(password: password);
+      final sessions = [_makeSession(notes: 'peaceful sit')];
+      await flakyService.saveSessions(sessions);
+
+      await expectLater(
+        flakyService.disableEncryption(),
+        throwsA(isA<FileSystemException>()),
+      );
+
+      // The plaintext write committed before the simulated crash.
+      final path = '${tempDir.path}/sessions.json';
+      final raw = await File(path).readAsString();
+      expect(raw, contains('peaceful sit'));
+      expect(jsonDecode(raw), isNot(containsPair('encrypted', true)));
+
+      // Metadata was never removed, so a fresh instance still reports
+      // encryption enabled and the original password still unlocks it —
+      // nothing was lost, even though the toggle didn't fully complete.
+      final freshService = StorageService.withBasePath(tempDir.path,
+          cryptoService: _testCryptoService());
+      expect(await freshService.isEncryptionEnabled, true);
+      expect(await freshService.unlockWithPassword(password), true);
+      final restored = await freshService.loadSessions();
+      expect(restored.single.notes, 'peaceful sit');
+
+      // Retrying disableEncryption() on this now-unlocked instance completes
+      // cleanly the second time.
+      await freshService.disableEncryption();
+      expect(await freshService.isEncryptionEnabled, false);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // enableEncryption interrupted
+  // -------------------------------------------------------------------------
+
+  group('enableEncryption interrupted', () {
+    test(
+        'crash before the re-encrypt write leaves the original plaintext '
+        'sessions.json untouched and still readable after unlocking',
+        () async {
+      const password = 'correct horse battery staple';
+      final path = '${tempDir.path}/sessions.json';
+      final plainService = StorageService.withBasePath(tempDir.path,
+          cryptoService: _testCryptoService());
+      await plainService.saveSessions([_makeSession(notes: 'peaceful sit')]);
+      final beforeAttempt = await File(path).readAsString();
+
+      final flakyService = _FlakyEnableSessionsStorageService.withBasePath(
+          tempDir.path,
+          cryptoService: _testCryptoService());
+
+      await expectLater(
+        flakyService.enableEncryption(password: password),
+        throwsA(isA<FileSystemException>()),
+      );
+
+      // Metadata committed (it's written before the flaky saveSessions
+      // call), but sessions.json is untouched by the interrupted write.
+      expect(await File(path).readAsString(), beforeAttempt);
+
+      final freshService = StorageService.withBasePath(tempDir.path,
+          cryptoService: _testCryptoService());
+      expect(await freshService.isEncryptionEnabled, true);
+      expect(await freshService.unlockWithPassword(password), true);
+      final restored = await freshService.loadSessions();
+      expect(restored.single.notes, 'peaceful sit');
     });
   });
 }

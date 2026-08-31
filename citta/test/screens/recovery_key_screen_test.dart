@@ -81,6 +81,36 @@ Widget _wrap(AppState appState, Widget child) =>
       ),
     );
 
+// Wraps [child] behind a placeholder home route, with a button that pushes
+// it via Navigator — needed to test back-navigation, since [_wrap] makes
+// the screen the app's only route (nothing to pop to, so no back button
+// would ever appear regardless of the screen's own behavior).
+Widget _wrapPushed(AppState appState, Widget child) =>
+    ChangeNotifierProvider<AppState>.value(
+      value: appState,
+      child: MaterialApp(
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: ElevatedButton(
+                key: const Key('openRecoveryKeyScreen'),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => child),
+                ),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
 final _recoveryKeyText = find.byKey(const Key('recoveryKeyText'));
 final _copyButton = find.byKey(const Key('recoveryKeyCopyButton'));
 final _shareButton = find.byKey(const Key('recoveryKeyShareButton'));
@@ -164,6 +194,36 @@ void main() {
       // Merely showing the key must not commit it — only an explicit
       // acknowledgment + Continue may.
       expect(await _hasCommittedRecoveryKey(tester, tmpDir.path), isFalse);
+    });
+
+    // Regression test (codex review, issue #54): encryption is already
+    // committed by the time this screen shows (enableEncryption() ran
+    // before it was pushed), so backing out of it — unlike backing out of
+    // the password-entry step before that — doesn't "cancel" anything; it
+    // just strands the installation with no recovery key and no way to set
+    // one up later. This screen must be un-skippable, the same way
+    // UnlockScreen has no skip/back affordance.
+    testWidgets('has no back button and cannot be popped before Continue is '
+        'tapped', (tester) async {
+      await tester.runAsync(() async {
+        await tester.pumpWidget(
+            _wrapPushed(appState, const RecoveryKeyScreen()));
+        await tester.tap(find.byKey(const Key('openRecoveryKeyScreen')));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+        await Future<void>.delayed(const Duration(seconds: 1));
+      });
+      await tester.pump();
+
+      expect(find.byType(RecoveryKeyScreen), findsOneWidget);
+      expect(find.byType(BackButton), findsNothing);
+
+      // Simulates the Android hardware/gesture back button (this is the
+      // exact call WidgetsApp.didPopRoute() makes in response to it).
+      await tester.binding.handlePopRoute();
+      await tester.pump();
+
+      expect(find.byType(RecoveryKeyScreen), findsOneWidget);
     });
 
     testWidgets('Continue is disabled until the acknowledgment checkbox is '
