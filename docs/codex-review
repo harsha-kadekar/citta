@@ -573,6 +573,37 @@ cancellation and duplicate/stale-navigation requirements.
 
 ---
 
+## Review: issue #54 — Settings encryption toggle
+
+## Findings
+
+1. Medium: a user can leave the recovery-key step after enabling encryption and is then left with no recovery key and no way to create one later. [RecoveryKeyScreen](/home/harsha/workspace/Citta/citta/lib/screens/recovery_key_screen.dart:82) retains its normal AppBar back affordance; pressing it returns to [EnableEncryptionScreen](/home/harsha/workspace/Citta/citta/lib/screens/enable_encryption_screen.dart:28), whose own AppBar can then return to Settings. Encryption has already been committed before that route is shown ([encryption_opt_in.dart](/home/harsha/workspace/Citta/citta/lib/widgets/encryption_opt_in.dart:77)), while the recovery wrap is only saved on Continue ([recovery_key_screen.dart](/home/harsha/workspace/Citta/citta/lib/screens/recovery_key_screen.dart:66)). Once back in Settings, [EncryptionSection](/home/harsha/workspace/Citta/citta/lib/screens/settings/encryption_section.dart:36) offers only disable for an enabled installation, so it cannot reopen recovery-key setup. This contradicts the recovery screen's own expectation that an abandoned setup can be visited later, and leaves password loss unrecoverable. Either prevent exiting the recovery-key flow until it is committed, or expose a resume/retry recovery-key setup action whenever encryption is enabled but metadata has no recovery wrap. Add a widget test that backs out after the password submission and proves the recovery-key flow is reachable again (or that navigation is blocked).
+
+## Verification
+
+- Reviewed issue `#54` through `gh api repos/harsha-kadekar/citta/issues/54`.
+- Inspected the local change set in:
+  - `citta/lib/services/storage_service.dart`
+  - `citta/lib/screens/settings/data_section.dart`
+  - `citta/lib/screens/settings/encryption_section.dart`
+  - `citta/lib/screens/enable_encryption_screen.dart`
+  - `citta/test/services/storage_service_test.dart`
+  - `citta/test/screens/settings/encryption_section_test.dart`
+- Reviewed the existing shared setup/recovery components in:
+  - `citta/lib/widgets/encryption_opt_in.dart`
+  - `citta/lib/screens/recovery_key_screen.dart`
+- Ran `flutter test test/services/storage_service_test.dart test/screens/settings/encryption_section_test.dart`.
+  - Result: passes (150 tests).
+- Ran `flutter analyze lib/services/storage_service.dart lib/screens/enable_encryption_screen.dart lib/screens/settings/encryption_section.dart test/services/storage_service_test.dart test/screens/settings/encryption_section_test.dart`.
+  - Result: passes.
+
+## Summary
+
+The encryption/disable mechanics and their focused tests are otherwise in good shape, including the simulated interrupted disable. Address the recovery-key escape path above before considering issue `#54` complete.
+
+
+---
+
 ## Follow-up review: issue #50 — legacy verifier migration
 
 ## Findings
@@ -1198,5 +1229,35 @@ remain non-destructive and keep the application gated.
   - Result: 169 tests passed.
 - Ran `flutter analyze`.
   - Result: passes with no issues.
+- Ran `git diff --check`.
+  - Result: passes.
+
+
+---
+
+## Follow-up review: issue #54 — recovery-key completion guard
+
+The prior finding is resolved. `RecoveryKeyScreen` now uses a non-poppable
+route and hides its AppBar back affordance while the recovery key has not been
+committed. The Continue path remains intact: after committing the recovery
+wrap, the existing callback dismisses the recovery and enable-encryption
+routes, returning the user to Settings. This prevents an enabled installation
+from being abandoned without a recovery key.
+
+No actionable findings in the current revision.
+
+## Verification
+
+- Re-inspected the Settings enable/disable flow, recovery-key screen, storage
+  behavior, and their updated tests.
+- Ran `flutter test test/screens/settings/encryption_section_test.dart
+  test/screens/recovery_key_screen_test.dart`.
+  - Result: passes (12 tests).
+- Ran `flutter analyze lib/screens/recovery_key_screen.dart
+  lib/screens/enable_encryption_screen.dart
+  lib/screens/settings/encryption_section.dart
+  test/screens/recovery_key_screen_test.dart
+  test/screens/settings/encryption_section_test.dart`.
+  - Result: passes.
 - Ran `git diff --check`.
   - Result: passes.
