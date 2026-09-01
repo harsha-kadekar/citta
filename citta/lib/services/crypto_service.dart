@@ -138,6 +138,18 @@ class CryptoService {
     return SecretKey(rawBytes);
   }
 
+  /// Normalizes [input] as a recovery-key candidate (trimmed, uppercased)
+  /// to match the all-uppercase alphabet [generateRecoveryKey] produces, so
+  /// a hand-transcribed key still unlocks even if the user typed it in
+  /// lowercase or with stray whitespace. Shared by every caller that tries
+  /// a single input as a password first, then as a recovery key second —
+  /// `AppState.unlockWithPasswordOrRecoveryKey` (this device's own unlock)
+  /// and `StorageService._tryUnwrapExportMasterKey` (an encrypted export's
+  /// bundled metadata) — so the normalization rule can't drift between
+  /// them.
+  static String normalizeRecoveryKeyInput(String input) =>
+      input.trim().toUpperCase();
+
   /// A non-secret digest of [key]'s raw bytes, suitable for storing
   /// alongside [key]'s wrapped form (e.g. in encryption metadata) so a
   /// later candidate key — such as one restored from a device cache — can

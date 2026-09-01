@@ -676,6 +676,66 @@ abstract class AppLocalizations {
   /// **'Export failed: {error}'**
   String settingsExportFailed(String error);
 
+  /// No description provided for @settingsExportChooseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Export Data'**
+  String get settingsExportChooseTitle;
+
+  /// No description provided for @settingsExportChooseMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'Export as plain JSON, or encrypted?'**
+  String get settingsExportChooseMsg;
+
+  /// No description provided for @settingsExportChoosePlain.
+  ///
+  /// In en, this message translates to:
+  /// **'Plain JSON'**
+  String get settingsExportChoosePlain;
+
+  /// No description provided for @settingsExportChooseEncrypted.
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypted'**
+  String get settingsExportChooseEncrypted;
+
+  /// No description provided for @settingsImportEncryptedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypted Export'**
+  String get settingsImportEncryptedTitle;
+
+  /// No description provided for @settingsImportEncryptedSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the password or recovery key used to encrypt this export.'**
+  String get settingsImportEncryptedSubtitle;
+
+  /// No description provided for @settingsImportEncryptedInputLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Password or recovery key'**
+  String get settingsImportEncryptedInputLabel;
+
+  /// No description provided for @settingsImportEncryptedSubmitButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock'**
+  String get settingsImportEncryptedSubmitButton;
+
+  /// No description provided for @settingsImportEncryptedErrorEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the password or recovery key'**
+  String get settingsImportEncryptedErrorEmpty;
+
+  /// No description provided for @settingsImportEncryptedErrorWrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Incorrect password or recovery key. Please try again.'**
+  String get settingsImportEncryptedErrorWrong;
+
   /// No description provided for @notesTitle.
   ///
   /// In en, this message translates to:

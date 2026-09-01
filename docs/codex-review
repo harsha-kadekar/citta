@@ -1300,3 +1300,245 @@ existing recovery key still unlocks after the change.
   test/screens/settings/encryption_section_test.dart`.
   - Result: passes with no issues.
 - Ran `git diff --check`.
+
+
+---
+
+## Review: issue #56 — encrypted export/import
+
+## Findings
+
+### P1 — An encrypted-looking import can force unbounded Argon2 work before authentication
+
+`decryptExportContent()` deserializes the `encryptionMeta` supplied by the
+selected file and passes its `memoryKiB`, `iterations`, and `parallelism`
+straight into `CryptoService` ([storage_service.dart](/home/harsha/workspace/Citta/citta/lib/services/storage_service.dart):1048).
+It then derives the password key before it can authenticate either wrapped
+master key ([storage_service.dart](/home/harsha/workspace/Citta/citta/lib/services/storage_service.dart):1055).
+Consequently, a file containing only `encrypted: true` plus otherwise
+well-formed metadata can set, for example, `memoryKiB` to several gigabytes
+or an extreme iteration count. When the user presses Unlock, Argon2 attempts
+that allocation/work using any entered secret; the broad `catch` only handles
+ordinary thrown errors after the expensive operation and cannot prevent an
+OOM, process termination, or prolonged UI hang. This turns opening a shared
+import file into a reliable denial of service, despite the intended
+"fail cleanly" behavior for bad encrypted imports.
+
+Validate the bundled KDF metadata against a bounded compatibility policy
+before constructing/using `CryptoService` (positive values, known algorithm
+and version, and explicit reasonable maxima; ideally accept the app's
+supported export parameters). Reject out-of-policy bundles as a normal
+decryption failure. Add tests that tamper `memoryKiB` and `iterations` to
+oversized values and verify decryption returns `null` without beginning the
+KDF.
+
+## Verification
+
+- Reviewed issue #56 and the current export/import UI, envelope parsing,
+  metadata handling, crypto flow, localization changes, and tests.
+- Ran `flutter test test/services/storage_service_test.dart`.
+  - Result: 163 tests passed.
+- Ran `flutter analyze lib/providers/app_state.dart
+  lib/screens/settings/data_section.dart lib/services/crypto_service.dart
+  lib/services/storage_service.dart test/services/storage_service_test.dart`.
+  - Result: passes with no issues.
+- Ran `git diff --check` before the documentation edit.
+  - Result: passes.
+
+---
+
+## Review: issue #56 — response to P1 finding (unbounded Argon2 work from untrusted KDF params)
+
+## Findings
+
+Fixed. `_tryUnwrapExportMasterKey()` in
+[storage_service.dart](/home/harsha/workspace/Citta/citta/lib/services/storage_service.dart):1071
+now checks a new `_isWithinImportKdfPolicy()`
+([storage_service.dart](/home/harsha/workspace/Citta/citta/lib/services/storage_service.dart):1121
+— bounding `memoryKiB` (≤ 256 MiB), `iterations` (≤ 16), and `parallelism`
+(≤ 8), on top of Argon2's own `memory >= 8 * parallelism` floor — before
+constructing a `CryptoService` or deriving anything. An out-of-policy
+`encryptionMeta.kdf` block from an imported file is now rejected as an
+ordinary decryption failure (`decryptExportContent()` returns `null`), the
+same as a wrong password, instead of being handed to Argon2 first.
+
+The bounds sit well above this app's own defaults (19456 KiB, 2 iterations,
+parallelism 1) so a future, stronger default still imports cleanly, but are
+capped far below anything that could exhaust device memory or hang the UI
+for an unreasonable time.
+
+## Verification
+
+- Added `test/services/storage_service_test.dart` cases tampering
+  `encryptionMeta.kdf.memoryKiB`, `.iterations`, and `.parallelism` on a
+  real encrypted export to out-of-policy values and asserting
+  `decryptExportContent()` returns `null` — using the *correct* password
+  each time, so a `null` result can only mean policy rejection, not a
+  wrong-password failure — plus a boundary case confirming an untouched,
+  in-policy bundle still decrypts and imports.
+- Verified the fix actually closes the hole rather than just changing a
+  return value: temporarily commented out just the policy-check line
+  (kept the test) and re-ran the tampered-`iterations` test
+  (`iterations: 10000000` at minimal memory — cheap on memory but drives
+  real, unbounded Argon2 CPU work). It hung well past 60 seconds;
+  `Future.timeout()` did not save it, since the Argon2 computation runs
+  synchronously in the calling isolate for these tiny-memory parameters
+  and never yields back to the event loop for the timeout's own timer to
+  fire — itself confirming the finding's DoS claim is real, not
+  theoretical. Killed the hung process, restored the fix, and confirmed
+  the same test then passes in well under a second.
+- Did not repeat the revert-and-run step for the tampered-`memoryKiB` case
+  (10 GiB): doing that against the unfixed code risks a real
+  out-of-memory condition on the machine running the tests, not just a
+  slow test. The `iterations` case above already demonstrates the
+  underlying vulnerability class live, and all three parameters
+  (`memoryKiB`, `iterations`, `parallelism`) are rejected by the same
+  single early-return check, strictly before any `CryptoService` is
+  constructed — confirmed by code inspection.
+- Ran `flutter analyze`.
+  - Result: no issues.
+- Ran `flutter test`.
+  - Result: 676 tests passed (up from 672 before this fix).
+
+---
+
+## Follow-up review: issue #56 — KDF-policy fix
+
+## Findings
+
+### P1 — The new policy still permits an import-controlled KDF DoS on mobile devices
+
+The early policy check is in the right place, but its maximum accepted work is
+not actually safe for untrusted input. `_isWithinImportKdfPolicy()` accepts
+`memoryKiB: 262144` (256 MiB) and `iterations: 16`
+([storage_service.dart](/home/harsha/workspace/Citta/citta/lib/services/storage_service.dart):1121), and
+`_tryUnwrapExportMasterKey()` immediately runs that Argon2 computation on the
+calling/UI isolate before it can authenticate the export
+([storage_service.dart](/home/harsha/workspace/Citta/citta/lib/services/storage_service.dart):1073).
+Thus a crafted file at the *allowed* boundary can allocate 256 MiB and perform
+16 full passes over it. That remains enough to OOM memory-constrained phones
+or make the app unresponsive for a prolonged period; `catch` and
+`Future.timeout` cannot interrupt the synchronous KDF once started. The P1
+has changed from unbounded to a still device-exhausting attacker-selected
+workload, rather than failing cleanly.
+
+For version-1 Citta exports, accept the exact KDF parameters that this app
+emits (or a small, measured compatibility allowlist tied to an authenticated
+format/KDF version), rather than a broad upper range. If higher-cost future
+exports must be supported, move KDF work off the UI isolate and define limits
+from the minimum supported device budget. Add a regression test at the actual
+maximum accepted values; the current test labelled “at the accepted policy
+boundary” leaves the KDF untouched and therefore only tests the 8 KiB,
+one-iteration test fixture.
+
+## Verification
+
+- Re-reviewed the KDF-policy implementation and the new regression tests.
+- Ran `flutter test test/services/storage_service_test.dart`.
+  - Result: 167 tests passed.
+- Ran `flutter analyze lib/services/storage_service.dart
+  test/services/storage_service_test.dart`.
+  - Result: passes with no issues.
+- Ran `git diff --check`.
+  - Result: passes.
+
+---
+
+## Review: issue #56 — response to follow-up P1 finding (KDF-policy DoS ceiling)
+
+## Findings
+
+Fixed. `_isWithinImportKdfPolicy()`
+([storage_service.dart](/home/harsha/workspace/Citta/citta/lib/services/storage_service.dart):1104)
+no longer accepts a range (previously up to 256 MiB / 16 iterations / 8-way
+parallelism). It now requires an *exact* match between the imported bundle's
+`encryptionMeta.kdf` and this `StorageService` instance's own configured
+`_cryptoService` (`argon2MemoryKiB`/`argon2Iterations`/`argon2Parallelism`).
+Anything else — including a value comfortably inside the old range, such as
+this app's own real default (19456 KiB) presented to a device whose fixture
+uses different params — is rejected before `_tryUnwrapExportMasterKey()`
+constructs a `CryptoService` or calls Argon2 at all.
+
+This closes the remaining gap the follow-up review identified: under the old
+range, an attacker could still pick the maximum allowed cost every time,
+which stayed enough to exhaust memory or freeze the UI on a constrained
+device (Argon2 runs synchronously on the calling isolate; neither `catch`
+nor `Future.timeout` can interrupt it once started). Under exact match, an
+import can never cost more than this app already pays on every normal
+`unlockWithPassword` — no attacker-controlled cost is possible at all,
+independent of how "reasonable" it looks.
+
+As the finding also noted, there has only ever been one Argon2 default in
+this codebase's history, so an exact match is a real constraint today, not
+a no-op. If `CryptoService`'s constructor defaults ever change,
+`_isWithinImportKdfPolicy()`'s doc comment flags that this single-tuple
+check needs to become a small allowlist of every historically-shipped
+tuple — the "measured compatibility allowlist" alternative the finding
+offered — so an export from an older app version can still import
+elsewhere. That's out of scope today: no such second tuple exists yet.
+
+Moving KDF work off the UI isolate (the finding's other suggested
+alternative) was not needed: exact-match already means the *cost itself*
+can never exceed what this app already treats as normal, so there's no
+remaining unbounded-work case for isolate migration to protect against.
+
+## Verification
+
+- Replaced the three "rejects far-beyond-policy" regression tests' framing
+  (still valid — a wildly out-of-range value remains rejected, now via
+  exact-match instead of a range check) and rewrote the test the finding
+  called out by name (`"still accepts KDF params at the accepted policy
+  boundary"`, which left the KDF untouched and therefore only exercised the
+  8 KiB/1-iteration test fixture) into an acceptance test that deliberately
+  uses this app's real (non-test-speed) `CryptoService()` Argon2id defaults
+  — the one tuple the exact-match policy actually allows — round-tripping
+  through `exportEncryptedData()`/`decryptExportContent()`/
+  `validateImportData()`.
+- Added a new regression test for the specific gap the finding described:
+  an embedded `memoryKiB` of 19456 (this app's own real default —
+  "reasonable" by any generous range, and well under the old 256 MiB cap)
+  but different from the *test fixture's* configured 8 KiB. A bare
+  `isNull` assertion can't distinguish "rejected by policy" from "Argon2
+  ran and happened to derive the wrong key," since both return null — so
+  the test wraps the call in a 100ms timeout instead. Measured a real
+  Argon2id run at 19456 KiB/1 iteration on this hardware at ~217ms via a
+  standalone script, giving comfortable margin either direction.
+- Verified this new test actually catches the bug: temporarily replaced
+  `_isWithinImportKdfPolicy()`'s body with `return true;` (kept the test),
+  re-ran it, and confirmed it failed with `TimeoutException after
+  0:00:00.100000` — i.e. the unfixed code really does run a real,
+  measurably-slow Argon2 pass for an in-range-but-mismatched value.
+  Restored the fix and confirmed the same test then passes.
+- Ran `flutter analyze`.
+  - Result: no issues.
+- Ran `flutter test`.
+  - Result: 677 tests passed (net +1 from the prior round: 2 tests added,
+    1 weak test replaced).
+
+
+---
+
+## Follow-up review: issue #56 — exact-match KDF policy
+
+## Findings
+
+No actionable findings in this revision.
+
+The policy now rejects every imported KDF tuple except the receiving
+`StorageService` instance's configured tuple before constructing Argon2. An
+encrypted bundle can therefore impose no greater KDF cost than the app already
+uses for its normal unlock flow. The regression coverage verifies rejection of
+both extreme and merely mismatched parameters, while exercising a successful
+round trip with the production KDF defaults.
+
+## Verification
+
+- Re-reviewed the KDF-policy implementation, compatibility behavior, and
+  updated storage tests.
+- Ran `flutter test test/services/storage_service_test.dart`.
+  - Result: 168 tests passed.
+- Ran `flutter analyze lib/services/storage_service.dart
+  test/services/storage_service_test.dart`.
+  - Result: passes with no issues.
+- Ran `git diff --check`.
+  - Result: passes.

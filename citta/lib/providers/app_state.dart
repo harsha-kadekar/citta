@@ -4,6 +4,7 @@ import '../models/session_model.dart';
 import '../models/timer_mode.dart';
 import '../models/app_language.dart';
 import '../services/storage_service.dart';
+import '../services/crypto_service.dart';
 import '../services/quote_service.dart';
 import '../services/audio_service.dart';
 import '../services/stats_service.dart';
@@ -116,7 +117,9 @@ class AppState extends ChangeNotifier {
   /// input turned out to be a password, a recovery key, or neither.
   Future<bool> unlockWithPasswordOrRecoveryKey(String input) async {
     if (await unlockWithPassword(input)) return true;
-    return unlockWithRecoveryKey(input.trim().toUpperCase());
+    return unlockWithRecoveryKey(
+      CryptoService.normalizeRecoveryKeyInput(input),
+    );
   }
 
   Future<bool> _unlock(Future<bool> Function() attempt) async {

@@ -900,6 +900,13 @@ class StorageService {
   /// Import schema versions this build knows how to read.
   static const Set<int> supportedImportVersions = {1};
 
+  /// Format version of the encrypted export envelope produced by
+  /// [exportEncryptedData] — distinct from the inner payload's own
+  /// `version` (see [supportedImportVersions]), which describes the
+  /// plain-export schema it decrypts to.
+  static const int _encryptedExportVersion = 1;
+  static const _encryptedExportMarkerKey = 'encrypted';
+
   Future<String> exportAllData() async {
     final config = await loadConfig();
     final sessions = await loadSessions();
@@ -914,6 +921,213 @@ class StorageService {
     };
 
     return const JsonEncoder.withIndent('  ').convert(exportData);
+  }
+
+  /// Like [exportAllData], but wraps the same payload in an encrypted
+  /// envelope: the plain export JSON is encrypted under this instance's
+  /// in-memory master key, and this device's own `encryption_meta.json`
+  /// (salt, wrapped keys, KDF params, verifier) is bundled alongside the
+  /// ciphertext so the export is self-contained — a recipient elsewhere
+  /// only needs the password or recovery key, not this device, to unwrap
+  /// it (see [decryptExportContent]).
+  ///
+  /// Throws [StateError] if encryption isn't enabled on this device.
+  /// Throws [StorageLockedException] if this instance hasn't been unlocked.
+  ///
+  /// Runs under the same lock as [runExclusive] so it can never interleave
+  /// with a concurrent [disableEncryption] — without this, a disable could
+  /// delete `encryption_meta.json` between this method's enabled check and
+  /// its metadata read, leaving nothing to bundle into the export.
+  Future<String> exportEncryptedData() {
+    return _writeLock.run(() async {
+      final metadata = await _readEncryptionMetadata();
+      if (metadata == null) {
+        throw StateError('encryption is not enabled');
+      }
+      final masterKey = _masterKey;
+      if (masterKey == null) {
+        throw const StorageLockedException(
+          'cannot export encrypted data before unlocking',
+        );
+      }
+
+      final plainContent = await exportAllData();
+      final payload = await _cryptoService.encrypt(
+        plaintext: utf8.encode(plainContent),
+        key: masterKey,
+      );
+
+      final envelope = {
+        _encryptedExportMarkerKey: true,
+        'version': _encryptedExportVersion,
+        'exportDate': DateTime.now().toUtc().toIso8601String(),
+        'encryptionMeta': metadata.toJson(),
+        'payload': payload.toJson(),
+      };
+      return const JsonEncoder.withIndent('  ').convert(envelope);
+    });
+  }
+
+  /// Returns true if [content] decodes as an encrypted export bundle
+  /// produced by [exportEncryptedData], rather than a plain export payload
+  /// (see [exportAllData]). Used by import flows to decide whether to
+  /// prompt for a password/recovery key before validating the payload.
+  bool isEncryptedExport(String content) {
+    final json = _decodeJsonObject(content);
+    return json != null && json[_encryptedExportMarkerKey] == true;
+  }
+
+  /// Attempts to decrypt an encrypted export bundle (see
+  /// [exportEncryptedData]) using [secret] as either the password or
+  /// recovery key recorded in the bundle's own embedded encryption
+  /// metadata — entirely independent of this device's own encryption
+  /// state or master key, so this works even when called on a fresh
+  /// install with encryption never enabled locally. Tries [secret] as a
+  /// password first, then — only if that fails — normalized (trimmed,
+  /// uppercased) as a recovery key, mirroring
+  /// `AppState.unlockWithPasswordOrRecoveryKey`.
+  ///
+  /// Returns the decrypted plain-export JSON (ready for
+  /// [validateImportData]/[importData]) on success, or null — without
+  /// writing anything to disk — if [content] isn't a valid encrypted
+  /// export bundle or [secret] doesn't unwrap either wrapped key.
+  Future<String?> decryptExportContent(String content, String secret) async {
+    final json = _decodeJsonObject(content);
+    if (json == null || json[_encryptedExportMarkerKey] != true) return null;
+
+    final metaJson = json['encryptionMeta'];
+    final payloadJson = json['payload'];
+    if (metaJson is! Map<String, dynamic> ||
+        payloadJson is! Map<String, dynamic>) {
+      return null;
+    }
+
+    final EncryptionMetadata metadata;
+    final EncryptedPayload payload;
+    try {
+      metadata = EncryptionMetadata.fromJson(metaJson);
+      payload = EncryptedPayload.fromJson(payloadJson);
+    } catch (_) {
+      return null;
+    }
+
+    final masterKey = await _tryUnwrapExportMasterKey(metadata, secret);
+    if (masterKey == null) return null;
+
+    try {
+      final plaintext =
+          await _cryptoService.decrypt(payload: payload, key: masterKey);
+      return utf8.decode(plaintext);
+    } on CryptoAuthenticationException {
+      return null;
+    }
+  }
+
+  /// Tries [secret] as the password, then as the recovery key, against
+  /// [metadata]'s own wrapped keys — shared by [decryptExportContent].
+  /// Unlike [_unwrapAndUnlock], this never touches this instance's
+  /// in-memory master key or secure-storage cache: the unwrapped key is
+  /// used transiently to decrypt one export payload, not to unlock this
+  /// device.
+  ///
+  /// [metadata]'s KDF parameters come straight from an externally-supplied
+  /// file — unlike this device's own `encryption_meta.json`, they've never
+  /// been validated. Two distinct hazards follow from that, handled
+  /// separately:
+  ///  - An invalid value (e.g. `parallelism: 0`) throws an [ArgumentError]
+  ///    (release builds) or fails an `assert` (debug/test) from deep inside
+  ///    the `cryptography` package the moment it's used to derive a key —
+  ///    guarded by the broad `catch` below.
+  ///  - A *valid but attacker-chosen* value (e.g. `memoryKiB` set to
+  ///    whatever the largest value some policy would allow) is individually
+  ///    fine but would still force real, expensive Argon2 work — a
+  ///    denial-of-service on whoever opens the file, and one `catch` or
+  ///    `Future.timeout` cannot interrupt, since Argon2 runs synchronously
+  ///    on the calling isolate — before either wrapped key can even be
+  ///    tried. [_isWithinImportKdfPolicy] rejects anything other than an
+  ///    *exact* match to this instance's own configured KDF cost up front,
+  ///    before any [CryptoService] is constructed, so the only cost an
+  ///    import can ever trigger is the same cost this app already pays on
+  ///    every normal [unlockWithPassword] — never a larger, attacker-picked
+  ///    one.
+  /// Either way, the failure is treated the same as a wrong secret: a
+  /// corrupted/hand-edited/malicious export file must never crash the
+  /// caller or force extra work, only fail to decrypt.
+  Future<SecretKey?> _tryUnwrapExportMasterKey(
+    EncryptionMetadata metadata,
+    String secret,
+  ) async {
+    if (!_isWithinImportKdfPolicy(metadata)) return null;
+    try {
+      final kdf = CryptoService(
+        argon2MemoryKiB: metadata.kdfMemoryKiB,
+        argon2Iterations: metadata.kdfIterations,
+        argon2Parallelism: metadata.kdfParallelism,
+      );
+
+      try {
+        final passwordKey = await kdf.deriveKeyFromPassword(
+          password: secret,
+          salt: metadata.salt,
+        );
+        return await _cryptoService.unwrapKey(
+          wrapped: metadata.wrappedMasterKeyPassword,
+          wrappingKey: passwordKey,
+        );
+      } on CryptoAuthenticationException {
+        // Fall through to a recovery-key attempt below.
+      }
+
+      final wrappedRecovery = metadata.wrappedMasterKeyRecovery;
+      final recoverySalt = metadata.recoverySalt;
+      if (wrappedRecovery == null || recoverySalt == null) return null;
+
+      final recoveryKey = await kdf.deriveKeyFromPassword(
+        password: CryptoService.normalizeRecoveryKeyInput(secret),
+        salt: recoverySalt,
+      );
+      return await _cryptoService.unwrapKey(
+        wrapped: wrappedRecovery,
+        wrappingKey: recoveryKey,
+      );
+    } catch (_) {
+      // Covers a wrong recovery key (CryptoAuthenticationException) as well
+      // as invalid KDF parameters from the export file itself
+      // (ArgumentError in release builds, a failed assert in debug/test) —
+      // both are treated identically: fail to decrypt, don't crash.
+      return null;
+    }
+  }
+
+  /// True if [metadata]'s KDF cost parameters *exactly* match this
+  /// instance's own configured [_cryptoService] — the only Argon2 cost this
+  /// app will actually run for an externally-supplied encrypted export's
+  /// `encryptionMeta.kdf` block. Checked by [_tryUnwrapExportMasterKey]
+  /// *before* constructing a [CryptoService] or deriving anything, so an
+  /// out-of-policy bundle is rejected as an ordinary decryption failure
+  /// instead of being allowed to run Argon2 with an attacker-chosen cost
+  /// first.
+  ///
+  /// A broad *range* (e.g. "up to 256 MiB, up to 16 iterations") still lets
+  /// an attacker pick the maximum allowed cost every time — enough to
+  /// exhaust memory or freeze the UI on a constrained device, since Argon2
+  /// runs synchronously on the calling isolate and neither `catch` nor
+  /// `Future.timeout` can interrupt it once started. Requiring an *exact*
+  /// match instead means an import can never cost more than this app
+  /// already pays on every normal [unlockWithPassword] — no new attack
+  /// surface, regardless of what an attacker puts in the file.
+  ///
+  /// This does mean an export produced under a *different* KDF cost (e.g.
+  /// after a future change to [CryptoService]'s constructor defaults) would
+  /// stop importing on a device running that newer default. There has only
+  /// ever been one default in this codebase's history (see
+  /// [_unwrapAndUnlock]'s doc comment); if that ever changes, this needs to
+  /// become a small allowlist of every historically-shipped tuple rather
+  /// than a single exact match.
+  bool _isWithinImportKdfPolicy(EncryptionMetadata metadata) {
+    return metadata.kdfMemoryKiB == _cryptoService.argon2MemoryKiB &&
+        metadata.kdfIterations == _cryptoService.argon2Iterations &&
+        metadata.kdfParallelism == _cryptoService.argon2Parallelism;
   }
 
   /// Parses `version` from decoded JSON, accepting both an int (`1`) and a
@@ -1203,12 +1417,18 @@ class StorageService {
     return true;
   }
 
-  /// Returns the path to the export file written to a temp directory.
-  Future<String> writeExportFile() async {
-    final content = await exportAllData();
+  /// Returns the path to the export file written to a temp directory. Set
+  /// [encrypted] to write the encrypted envelope from [exportEncryptedData]
+  /// instead of the plain payload from [exportAllData] (default,
+  /// unchanged).
+  Future<String> writeExportFile({bool encrypted = false}) async {
+    final content =
+        encrypted ? await exportEncryptedData() : await exportAllData();
     final now = DateTime.now();
+    final datePart =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     final fileName =
-        'citta_export_${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}.json';
+        'citta_export_$datePart${encrypted ? '_encrypted' : ''}.json';
     final dir = await getTemporaryDirectory();
     final file = File('${dir.path}/$fileName');
     await file.writeAsString(content);
