@@ -297,6 +297,36 @@
     }
   },
 
+  "settingsExportChooseTitle": "Export Data",
+  "@settingsExportChooseTitle": {},
+
+  "settingsExportChooseMsg": "Export as plain JSON, or encrypted?",
+  "@settingsExportChooseMsg": {},
+
+  "settingsExportChoosePlain": "Plain JSON",
+  "@settingsExportChoosePlain": {},
+
+  "settingsExportChooseEncrypted": "Encrypted",
+  "@settingsExportChooseEncrypted": {},
+
+  "settingsImportEncryptedTitle": "Encrypted Export",
+  "@settingsImportEncryptedTitle": {},
+
+  "settingsImportEncryptedSubtitle": "Enter the password or recovery key used to encrypt this export.",
+  "@settingsImportEncryptedSubtitle": {},
+
+  "settingsImportEncryptedInputLabel": "Password or recovery key",
+  "@settingsImportEncryptedInputLabel": {},
+
+  "settingsImportEncryptedSubmitButton": "Unlock",
+  "@settingsImportEncryptedSubmitButton": {},
+
+  "settingsImportEncryptedErrorEmpty": "Enter the password or recovery key",
+  "@settingsImportEncryptedErrorEmpty": {},
+
+  "settingsImportEncryptedErrorWrong": "Incorrect password or recovery key. Please try again.",
+  "@settingsImportEncryptedErrorWrong": {},
+
   "notesTitle": "Session Notes",
   "@notesTitle": {},
 

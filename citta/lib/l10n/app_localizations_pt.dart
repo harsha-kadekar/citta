@@ -297,6 +297,40 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get settingsExportChooseTitle => 'Export Data';
+
+  @override
+  String get settingsExportChooseMsg =>
+      'Export as plain JSON, or encrypted?';
+
+  @override
+  String get settingsExportChoosePlain => 'Plain JSON';
+
+  @override
+  String get settingsExportChooseEncrypted => 'Encrypted';
+
+  @override
+  String get settingsImportEncryptedTitle => 'Encrypted Export';
+
+  @override
+  String get settingsImportEncryptedSubtitle =>
+      'Enter the password or recovery key used to encrypt this export.';
+
+  @override
+  String get settingsImportEncryptedInputLabel => 'Password or recovery key';
+
+  @override
+  String get settingsImportEncryptedSubmitButton => 'Unlock';
+
+  @override
+  String get settingsImportEncryptedErrorEmpty =>
+      'Enter the password or recovery key';
+
+  @override
+  String get settingsImportEncryptedErrorWrong =>
+      'Incorrect password or recovery key. Please try again.';
+
+  @override
   String get notesTitle => 'Notas da sessão';
 
   @override

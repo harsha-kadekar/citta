@@ -29,12 +29,17 @@ CryptoService _testCryptoService() => CryptoService(
 // ---------------------------------------------------------------------------
 
 class _FakePathProviderPlatform extends PathProviderPlatform {
-  _FakePathProviderPlatform(this._resolve);
+  _FakePathProviderPlatform(this._resolve, {Future<String> Function()? resolveTemp})
+      : _resolveTemp = resolveTemp;
 
   final Future<String> Function() _resolve;
+  final Future<String> Function()? _resolveTemp;
 
   @override
   Future<String?> getApplicationDocumentsPath() => _resolve();
+
+  @override
+  Future<String?> getTemporaryPath() => (_resolveTemp ?? _resolve)();
 }
 
 /// A [StorageService] whose 2nd call to [saveConfig] fails, used to force a
@@ -2481,6 +2486,380 @@ void main() {
         expect(config.timerMode, TimerMode.stopwatch);
       } finally {
         await importDir.delete(recursive: true);
+      }
+    });
+  });
+
+  group('exportEncryptedData', () {
+    test('throws StateError when encryption is not enabled', () async {
+      expect(() => service.exportEncryptedData(), throwsStateError);
+    });
+
+    test('throws StorageLockedException when encryption is enabled but not '
+        'unlocked', () async {
+      final setupService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await setupService.enableEncryption(password: 'correct horse battery staple');
+
+      final lockedService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      expect(
+        () => lockedService.exportEncryptedData(),
+        throwsA(isA<StorageLockedException>()),
+      );
+    });
+
+    test('produces content that isEncryptedExport recognizes and that does '
+        'not contain plaintext session notes', () async {
+      final encService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await encService.enableEncryption(password: 'correct horse battery staple');
+      await encService.saveSessions([_makeSession(notes: 'peaceful sit')]);
+
+      final exported = await encService.exportEncryptedData();
+
+      expect(encService.isEncryptedExport(exported), true);
+      expect(exported, isNot(contains('peaceful sit')));
+    });
+
+    test('serializes with a concurrent runExclusive call instead of racing '
+        'it, so a concurrent disableEncryption can never observe (or leave '
+        'this call to observe) a half-torn-down encryption_meta.json',
+        () async {
+      final order = <int>[];
+      final encService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await encService.enableEncryption(password: 'correct horse battery staple');
+
+      final first =
+          encService.exportEncryptedData().then((_) => order.add(1));
+      final second = encService.runExclusive(() async {
+        order.add(2);
+      });
+
+      await Future.wait([first, second]);
+
+      expect(order, [1, 2],
+          reason: 'exportEncryptedData must take the same write lock as '
+              'runExclusive (and therefore as disableEncryption), or a '
+              'concurrent disable could delete encryption_meta.json between '
+              'this call\'s enabled-check and its metadata read');
+    });
+  });
+
+  group('isEncryptedExport', () {
+    test('returns false for a plain exportAllData payload', () async {
+      final exported = await service.exportAllData();
+      expect(service.isEncryptedExport(exported), false);
+    });
+
+    test('returns false for malformed content', () async {
+      expect(service.isEncryptedExport('not json'), false);
+      expect(service.isEncryptedExport('{}'), false);
+    });
+  });
+
+  group('decryptExportContent', () {
+    test('round-trips: encrypted export decrypted with the correct password '
+        'imports cleanly into a fresh, unencrypted install', () async {
+      final encService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await encService.enableEncryption(password: 'correct horse battery staple');
+      await encService.saveSessions([
+        _makeSession(id: 's1', notes: 'peaceful sit', tags: ['calm']),
+        _makeSession(id: 's2', duration: 900),
+      ]);
+      await encService.saveUserQuotes([_makeQuote(id: 'q1')]);
+      await encService.saveConfig(ConfigModel(timerMode: TimerMode.stopwatch));
+
+      final exported = await encService.exportEncryptedData();
+
+      final decrypted = await encService.decryptExportContent(
+        exported,
+        'correct horse battery staple',
+      );
+      expect(decrypted, isNotNull);
+
+      final parsed = await encService.validateImportData(decrypted!);
+      expect(parsed, isNotNull);
+
+      final freshDir = await Directory.systemTemp.createTemp('citta_import_test_');
+      try {
+        final freshService = StorageService.withBasePath(freshDir.path);
+        await freshService.importData(parsed!, replaceAll: true);
+
+        final sessions = await freshService.loadSessions();
+        expect(sessions.length, 2);
+        expect(sessions.map((s) => s.id).toSet(), {'s1', 's2'});
+
+        final quotes = await freshService.loadUserQuotes();
+        expect(quotes.length, 1);
+        expect(quotes.first.id, 'q1');
+
+        final config = await freshService.loadConfig();
+        expect(config.timerMode, TimerMode.stopwatch);
+      } finally {
+        await freshDir.delete(recursive: true);
+      }
+    });
+
+    test('round-trips using the recovery key instead of the password',
+        () async {
+      final encService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await encService.enableEncryption(password: 'correct horse battery staple');
+      final pending = await encService.prepareRecoveryKey();
+      await encService.commitRecoveryKey(pending);
+      await encService.saveSessions([_makeSession(id: 's1', notes: 'peaceful sit')]);
+
+      final exported = await encService.exportEncryptedData();
+
+      final decrypted =
+          await encService.decryptExportContent(exported, pending.recoveryKey);
+      expect(decrypted, isNotNull);
+
+      final parsed = await encService.validateImportData(decrypted!);
+      expect(parsed, isNotNull);
+      expect((parsed!['sessions'] as List).length, 1);
+    });
+
+    test('returns null and leaves nothing importable for a wrong password',
+        () async {
+      final encService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await encService.enableEncryption(password: 'correct horse battery staple');
+      await encService.saveSessions([_makeSession(notes: 'peaceful sit')]);
+
+      final exported = await encService.exportEncryptedData();
+
+      final decrypted =
+          await encService.decryptExportContent(exported, 'wrong password');
+      expect(decrypted, isNull);
+    });
+
+    test('returns null for a wrong recovery key', () async {
+      final encService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await encService.enableEncryption(password: 'correct horse battery staple');
+      await encService.commitRecoveryKey(await encService.prepareRecoveryKey());
+      await encService.saveSessions([_makeSession(notes: 'peaceful sit')]);
+
+      final exported = await encService.exportEncryptedData();
+
+      final decrypted = await encService.decryptExportContent(
+        exported,
+        'WRNG-WRNG-WRNG-WRNG-WRNG-WRNG-WRNG-WRNG',
+      );
+      expect(decrypted, isNull);
+    });
+
+    test('returns null for malformed/non-encrypted content', () async {
+      final plain = await service.exportAllData();
+      expect(await service.decryptExportContent(plain, 'anything'), isNull);
+      expect(await service.decryptExportContent('not json', 'anything'), isNull);
+    });
+
+    test('returns null instead of throwing for a hand-edited/corrupted '
+        'export whose embedded KDF parameters are invalid', () async {
+      final encService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await encService.enableEncryption(password: 'correct horse battery staple');
+      await encService.saveSessions([_makeSession(notes: 'peaceful sit')]);
+
+      final exported = await encService.exportEncryptedData();
+      final json = jsonDecode(exported) as Map<String, dynamic>;
+      final kdf = (json['encryptionMeta'] as Map<String, dynamic>)['kdf']
+          as Map<String, dynamic>;
+      kdf['parallelism'] = 0;
+      final tampered = const JsonEncoder().convert(json);
+
+      final decrypted = await encService.decryptExportContent(
+        tampered,
+        'correct horse battery staple',
+      );
+      expect(decrypted, isNull);
+    });
+
+    /// Applies [tamper] to a fresh encrypted export's `encryptionMeta.kdf`
+    /// block and attempts to decrypt it with the *correct* password — so a
+    /// null result can only mean the tampered KDF params were rejected by
+    /// policy, not that the password was wrong.
+    Future<String?> decryptWithTamperedKdf(
+      StorageService encService,
+      String exported,
+      void Function(Map<String, dynamic> kdf) tamper,
+    ) {
+      final json = jsonDecode(exported) as Map<String, dynamic>;
+      final kdf = (json['encryptionMeta'] as Map<String, dynamic>)['kdf']
+          as Map<String, dynamic>;
+      tamper(kdf);
+      final tampered = const JsonEncoder().convert(json);
+      return encService.decryptExportContent(
+        tampered,
+        'correct horse battery staple',
+      );
+    }
+
+    test('rejects — quickly, without attempting Argon2 — an embedded '
+        'memoryKiB far beyond this device\'s own KDF cost, so a bloated '
+        'bundle can never force a multi-gigabyte allocation before a '
+        'secret is even checked', () async {
+      final encService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await encService.enableEncryption(password: 'correct horse battery staple');
+      await encService.saveSessions([_makeSession(notes: 'peaceful sit')]);
+      final exported = await encService.exportEncryptedData();
+
+      final decrypted = await decryptWithTamperedKdf(
+        encService,
+        exported,
+        (kdf) => kdf['memoryKiB'] = 10 * 1024 * 1024, // 10 GiB
+      ).timeout(const Duration(milliseconds: 500));
+
+      expect(decrypted, isNull);
+    });
+
+    test('rejects an embedded iterations count far beyond this device\'s '
+        'own KDF cost, so a bloated bundle can never force unbounded CPU '
+        'work before a secret is even checked', () async {
+      final encService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await encService.enableEncryption(password: 'correct horse battery staple');
+      await encService.saveSessions([_makeSession(notes: 'peaceful sit')]);
+      final exported = await encService.exportEncryptedData();
+
+      final decrypted = await decryptWithTamperedKdf(
+        encService,
+        exported,
+        (kdf) => kdf['iterations'] = 10000000,
+      ).timeout(const Duration(milliseconds: 500));
+
+      expect(decrypted, isNull);
+    });
+
+    test('rejects an embedded parallelism far beyond this device\'s own '
+        'KDF cost', () async {
+      final encService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await encService.enableEncryption(password: 'correct horse battery staple');
+      await encService.saveSessions([_makeSession(notes: 'peaceful sit')]);
+      final exported = await encService.exportEncryptedData();
+
+      final decrypted = await decryptWithTamperedKdf(
+        encService,
+        exported,
+        (kdf) {
+          kdf['parallelism'] = 1000;
+          kdf['memoryKiB'] = 8000; // satisfy Argon2's own memory >= 8*parallelism
+        },
+      ).timeout(const Duration(milliseconds: 500));
+
+      expect(decrypted, isNull);
+    });
+
+    test('rejects — quickly, without attempting Argon2 — a memoryKiB that '
+        'is nowhere near "unbounded" (this app\'s own real production '
+        'default) but merely does not match this device\'s own configured '
+        'KDF cost, proving the policy is an exact match rather than a '
+        'loose upper bound an attacker could still spend up to', () async {
+      final encService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await encService.enableEncryption(password: 'correct horse battery staple');
+      await encService.saveSessions([_makeSession(notes: 'peaceful sit')]);
+      final exported = await encService.exportEncryptedData();
+
+      // 19456 KiB is this app's real Argon2id default (see CryptoService's
+      // constructor) — comfortably "reasonable" by any generous range-based
+      // cap, but not this test fixture's actual 8 KiB. A real Argon2 run at
+      // that size measurably takes over 100ms on this class of hardware
+      // (~217ms observed), so a tight timeout distinguishes "rejected
+      // before Argon2 ran" from "Argon2 ran and happened to derive the
+      // wrong key" — a distinction a bare `isNull` assertion can't make,
+      // since either reason returns null.
+      final decrypted = await decryptWithTamperedKdf(
+        encService,
+        exported,
+        (kdf) => kdf['memoryKiB'] = 19456,
+      ).timeout(const Duration(milliseconds: 100));
+
+      expect(decrypted, isNull);
+    });
+
+    test('accepts KDF params that exactly match this device\'s own '
+        'configured cost, using this app\'s real (non-test-speed) Argon2id '
+        'defaults — the actual maximum (and only) tuple the exact-match '
+        'policy allows', () async {
+      // Deliberately not _testCryptoService(): this exercises the real
+      // production Argon2id cost (19456 KiB, 2 iterations, parallelism 1),
+      // not the fast test fixture, so this test specifically proves the
+      // policy accepts the one tuple it's meant to allow — not just
+      // whatever cheap params other tests happen to configure.
+      final encService = StorageService.withBasePath(tempDir.path);
+      await encService.enableEncryption(password: 'correct horse battery staple');
+      await encService.saveSessions([_makeSession(id: 's1', notes: 'peaceful sit')]);
+      final exported = await encService.exportEncryptedData();
+
+      final decrypted =
+          await encService.decryptExportContent(exported, 'correct horse battery staple');
+
+      expect(decrypted, isNotNull);
+      final parsed = await encService.validateImportData(decrypted!);
+      expect(parsed, isNotNull);
+    });
+  });
+
+  group('writeExportFile', () {
+    late Directory exportTempDir;
+    late PathProviderPlatform originalPlatform;
+
+    setUp(() async {
+      exportTempDir = await Directory.systemTemp.createTemp('citta_export_test_');
+      originalPlatform = PathProviderPlatform.instance;
+      PathProviderPlatform.instance =
+          _FakePathProviderPlatform(() async => exportTempDir.path);
+    });
+
+    tearDown(() async {
+      PathProviderPlatform.instance = originalPlatform;
+      if (await exportTempDir.exists()) {
+        await exportTempDir.delete(recursive: true);
+      }
+    });
+
+    test('defaults to the plain export path unchanged', () async {
+      final path = await service.writeExportFile();
+      final content = await File(path).readAsString();
+      expect(service.isEncryptedExport(content), false);
+      final json = jsonDecode(content) as Map<String, dynamic>;
+      expect(json['version'], 1);
+    });
+
+    test('encrypted: true writes a file that round-trips through '
+        'decryptExportContent and importData', () async {
+      final encService =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await encService.enableEncryption(password: 'correct horse battery staple');
+      await encService.saveSessions([_makeSession(id: 's1', notes: 'peaceful sit')]);
+
+      final path = await encService.writeExportFile(encrypted: true);
+      final content = await File(path).readAsString();
+      expect(encService.isEncryptedExport(content), true);
+
+      final decrypted = await encService.decryptExportContent(
+        content,
+        'correct horse battery staple',
+      );
+      final parsed = await encService.validateImportData(decrypted!);
+      expect(parsed, isNotNull);
+
+      final freshDir = await Directory.systemTemp.createTemp('citta_import_test_');
+      try {
+        final freshService = StorageService.withBasePath(freshDir.path);
+        await freshService.importData(parsed!, replaceAll: true);
+        final sessions = await freshService.loadSessions();
+        expect(sessions.single.id, 's1');
+      } finally {
+        await freshDir.delete(recursive: true);
       }
     });
   });
