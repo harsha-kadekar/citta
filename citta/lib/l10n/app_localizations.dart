@@ -244,6 +244,30 @@ abstract class AppLocalizations {
   /// **'Enter your name'**
   String get welcomeNameHint;
 
+  /// No description provided for @firstTimeSetupSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Let\'s set a few things up before you begin.'**
+  String get firstTimeSetupSubtitle;
+
+  /// No description provided for @firstTimeSetupThemeSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose your theme'**
+  String get firstTimeSetupThemeSectionTitle;
+
+  /// No description provided for @firstTimeSetupEncryptionAlreadyEnabledNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Encryption is already enabled for your reflections.'**
+  String get firstTimeSetupEncryptionAlreadyEnabledNotice;
+
+  /// No description provided for @firstTimeSetupContinueButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Get Started'**
+  String get firstTimeSetupContinueButton;
+
   /// No description provided for @homeBegin.
   ///
   /// In en, this message translates to:

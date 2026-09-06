@@ -28,6 +28,7 @@ class ConfigModel {
   static const AppThemeMode defaultThemeMode = AppThemeMode.system;
   static const AppLanguage defaultLanguage = AppLanguage.system;
   static const bool defaultHasCompletedLanguageSelection = false;
+  static const bool defaultHasCompletedFirstTimeSetup = false;
   static const List<String> defaultTags = ['calm', 'restless', 'deep', 'distracted'];
   static const List<String> defaultQuoteSources = [
     'subhashita',
@@ -56,6 +57,11 @@ class ConfigModel {
   // for the first-launch language picker (issue #57) — `language ==
   // AppLanguage.system` alone can't tell those apart.
   final bool hasCompletedLanguageSelection;
+  // Guards the combined first-time setup screen (name, theme, encryption
+  // opt-in — issue #59), shown once after the language picker. Kept
+  // separate from userName being non-null so leaving the name field blank
+  // still counts as completing setup rather than being asked again forever.
+  final bool hasCompletedFirstTimeSetup;
 
   // Wraps caller-supplied lists as unmodifiable so external mutations cannot
   // corrupt stored state. Equality (see ==/hashCode below) compares tags and
@@ -75,6 +81,7 @@ class ConfigModel {
     this.themeMode = defaultThemeMode,
     this.language = defaultLanguage,
     this.hasCompletedLanguageSelection = defaultHasCompletedLanguageSelection,
+    this.hasCompletedFirstTimeSetup = defaultHasCompletedFirstTimeSetup,
     List<String>? tags,
     List<String>? quoteSources,
   })  : tags = List.unmodifiable(tags ?? defaultTags),
@@ -119,6 +126,12 @@ class ConfigModel {
       // again to every existing user on their first launch after upgrade.
       hasCompletedLanguageSelection:
           json['hasCompletedLanguageSelection'] as bool? ?? true,
+      // Same absent-means-already-onboarded reasoning as
+      // hasCompletedLanguageSelection above (see its comment) — applies here
+      // too since this field, like that one, postdates config.json for any
+      // real pre-existing install.
+      hasCompletedFirstTimeSetup:
+          json['hasCompletedFirstTimeSetup'] as bool? ?? true,
       tags: (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList(),
       quoteSources: (json['quoteSources'] as List<dynamic>?)?.map((e) => e as String).toList(),
     );
@@ -139,6 +152,7 @@ class ConfigModel {
       'themeMode': themeMode.toStorageString(),
       'language': language.toStorageString(),
       'hasCompletedLanguageSelection': hasCompletedLanguageSelection,
+      'hasCompletedFirstTimeSetup': hasCompletedFirstTimeSetup,
       'tags': tags,
       'quoteSources': quoteSources,
     };
@@ -161,6 +175,7 @@ class ConfigModel {
     AppThemeMode? themeMode,
     AppLanguage? language,
     bool? hasCompletedLanguageSelection,
+    bool? hasCompletedFirstTimeSetup,
     List<String>? tags,
     List<String>? quoteSources,
   }) {
@@ -193,6 +208,8 @@ class ConfigModel {
       language: language ?? this.language,
       hasCompletedLanguageSelection:
           hasCompletedLanguageSelection ?? this.hasCompletedLanguageSelection,
+      hasCompletedFirstTimeSetup:
+          hasCompletedFirstTimeSetup ?? this.hasCompletedFirstTimeSetup,
       tags: tags ?? this.tags,
       quoteSources: quoteSources ?? this.quoteSources,
     );
@@ -216,6 +233,7 @@ class ConfigModel {
           themeMode == other.themeMode &&
           language == other.language &&
           hasCompletedLanguageSelection == other.hasCompletedLanguageSelection &&
+          hasCompletedFirstTimeSetup == other.hasCompletedFirstTimeSetup &&
           listEquals(tags, other.tags) &&
           listEquals(quoteSources, other.quoteSources);
 
@@ -234,6 +252,7 @@ class ConfigModel {
         themeMode,
         language,
         hasCompletedLanguageSelection,
+        hasCompletedFirstTimeSetup,
         Object.hashAll(tags),
         Object.hashAll(quoteSources),
       );

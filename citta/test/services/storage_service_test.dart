@@ -953,6 +953,47 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
+  // hasRecoveryKey (issue #59)
+  // -------------------------------------------------------------------------
+
+  group('hasRecoveryKey', () {
+    test('is false when encryption has never been enabled', () async {
+      final service =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+
+      expect(await service.hasRecoveryKey, isFalse);
+    });
+
+    test('is false once encryption is enabled but no recovery key has been '
+        'committed yet', () async {
+      final service =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await service.enableEncryption(password: 'correct horse battery staple');
+
+      expect(await service.hasRecoveryKey, isFalse);
+    });
+
+    test('stays false while a candidate has been prepared but not committed',
+        () async {
+      final service =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await service.enableEncryption(password: 'correct horse battery staple');
+      await service.prepareRecoveryKey();
+
+      expect(await service.hasRecoveryKey, isFalse);
+    });
+
+    test('is true once a recovery key has been committed', () async {
+      final service =
+          StorageService.withBasePath(tempDir.path, cryptoService: _testCryptoService());
+      await service.enableEncryption(password: 'correct horse battery staple');
+      await service.commitRecoveryKey(await service.prepareRecoveryKey());
+
+      expect(await service.hasRecoveryKey, isTrue);
+    });
+  });
+
+  // -------------------------------------------------------------------------
   // unlockWithRecoveryKey (issue #53)
   // -------------------------------------------------------------------------
 
