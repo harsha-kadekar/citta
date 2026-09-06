@@ -32,14 +32,14 @@ void main() {
           equals(AppThemeMode.system));
     });
 
-    test('null falls back to AppThemeMode.dark by default', () {
+    test('null falls back to AppThemeMode.system by default', () {
       expect(AppThemeModeStorage.fromStorageString(null),
-          equals(AppThemeMode.dark));
+          equals(AppThemeMode.system));
     });
 
-    test('unrecognized value falls back to AppThemeMode.dark by default', () {
+    test('unrecognized value falls back to AppThemeMode.system by default', () {
       expect(AppThemeModeStorage.fromStorageString('sepia'),
-          equals(AppThemeMode.dark));
+          equals(AppThemeMode.system));
     });
   });
 

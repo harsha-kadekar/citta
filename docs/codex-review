@@ -1587,3 +1587,48 @@ when this Codex round reviewed the diff.
   - Result: 687 tests passed.
 - Ran `flutter analyze`.
   - Result: no issues.
+
+---
+
+## Review: issue #58 — Change default theme mode to System
+
+## Findings
+
+No actionable findings from this Codex round.
+
+`codex review --uncommitted --title "issue #58: change default theme mode to
+System"` was run against the full uncommitted change set: `ConfigModel.
+defaultThemeMode` flipping from `AppThemeMode.dark` to `AppThemeMode.system`
+in `lib/models/config_model.dart`, the matching fallback-default fix in
+`AppThemeModeStorage.fromStorageString` (`lib/models/app_theme_mode.dart`),
+and the corresponding test updates in `test/models/config_model_test.dart`
+and `test/models/app_theme_mode_test.dart`. Codex traced the change through
+`ConfigModel`'s constructor default and `fromJson` deserialization fallback,
+inspected `StorageService.loadConfig`/`exportAllData`/restore call sites to
+confirm the new default only affects fresh-config construction (not
+already-persisted `themeMode` values), ran the full Flutter test suite
+itself, and concluded: "The default theme mode change is consistently
+applied to construction, deserialization fallback, and tests."
+
+Note for context: an internal `/code-review` pass earlier in this session
+had already caught and fixed one consistency gap in this same diff before
+this Codex round ran — `AppThemeModeStorage.fromStorageString`'s own
+fallback default was still hardcoded to `AppThemeMode.dark`, inconsistent
+with the sibling `TimerModeStorage`/`AppLanguageStorage` fallback defaults,
+which each mirror their `ConfigModel` default. That fix (fallback default
+changed to `AppThemeMode.system`, with regression tests updated and
+verified to fail against the pre-fix code) was already in place when this
+Codex round reviewed the diff.
+
+## Verification
+
+- Ran `codex review --uncommitted --title "issue #58: change default theme
+  mode to System"` against the working tree.
+  - Reviewed files: `citta/lib/models/config_model.dart`,
+    `citta/lib/models/app_theme_mode.dart`, and the matching test files
+    under `citta/test/models/`.
+  - Result: no discrete correctness issues identified.
+- Ran `flutter test`.
+  - Result: 687 tests passed.
+- Ran `flutter analyze`.
+  - Result: no issues.

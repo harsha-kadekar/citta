@@ -313,8 +313,8 @@ void main() {
       expect(ConfigModel().timerMode, equals(TimerMode.countdown));
     });
 
-    test('default themeMode is AppThemeMode.dark', () {
-      expect(ConfigModel().themeMode, equals(AppThemeMode.dark));
+    test('default themeMode is AppThemeMode.system', () {
+      expect(ConfigModel().themeMode, equals(AppThemeMode.system));
     });
 
     test('default language is AppLanguage.system', () {
@@ -437,14 +437,14 @@ void main() {
         'language': 'xx',
       });
       expect(config.timerMode, equals(TimerMode.countdown));
-      expect(config.themeMode, equals(AppThemeMode.dark));
+      expect(config.themeMode, equals(AppThemeMode.system));
       expect(config.language, equals(AppLanguage.system));
     });
 
     test('missing keys fall back to documented defaults', () {
       final config = ConfigModel.fromJson(<String, dynamic>{});
       expect(config.timerMode, equals(TimerMode.countdown));
-      expect(config.themeMode, equals(AppThemeMode.dark));
+      expect(config.themeMode, equals(AppThemeMode.system));
       expect(config.language, equals(AppLanguage.system));
       expect(config.bellStart, equals(ConfigModel.defaultBellStart));
     });
