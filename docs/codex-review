@@ -1542,3 +1542,48 @@ round trip with the production KDF defaults.
   - Result: passes with no issues.
 - Ran `git diff --check`.
   - Result: passes.
+
+---
+
+## Review: issue #57 — Add first-launch language picker (defaulting to System Default)
+
+## Findings
+
+No actionable findings from this Codex round.
+
+`codex review --uncommitted --title "issue #57: first-launch language
+picker"` was run against the full uncommitted change set: the new
+`ConfigModel.hasCompletedLanguageSelection` field (and its migration-aware
+`fromJson` default), `ConfigController.setLanguage` now marking selection
+completed, the `LanguagePickerOptions`/`LanguageSelectionScreen` extraction
+out of `appearance_section.dart`'s inline dialog, `AppRoot`'s startup-order
+gating, and the corresponding test updates. It reported: "No discrete
+correctness issues were identified in the reviewed changes."
+
+Note for context: an internal `/code-review` pass earlier in this session
+had already caught and fixed one migration bug in this same diff before
+this Codex round ran — `ConfigModel.fromJson` originally defaulted the new
+field to `false` whenever it was absent from JSON, which could not
+distinguish a brand-new install from an existing user's config that simply
+predates the field, and would have re-shown the picker to every
+already-onboarded user on their first launch after upgrading. That fix
+(defaulting to `true` when the key is absent, since a decoded config.json
+only exists for a config that predates the field) was already in place
+when this Codex round reviewed the diff.
+
+## Verification
+
+- Ran `codex review --uncommitted --title "issue #57: first-launch
+  language picker"` against the working tree.
+  - Reviewed files: `citta/lib/models/config_model.dart`,
+    `citta/lib/providers/config_controller.dart`,
+    `citta/lib/screens/app_root.dart`,
+    `citta/lib/screens/settings/appearance_section.dart`,
+    `citta/lib/screens/language_selection_screen.dart`,
+    `citta/lib/screens/settings/language_picker.dart`, and the matching
+    test files under `citta/test/`.
+  - Result: no discrete correctness issues identified.
+- Ran `flutter test`.
+  - Result: 687 tests passed.
+- Ran `flutter analyze`.
+  - Result: no issues.

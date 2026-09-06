@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:citta/l10n/app_localizations.dart';
 import '../../providers/app_state.dart';
-import '../../theme/app_theme.dart';
 import '../../models/app_theme_mode.dart';
 import '../../models/app_language.dart';
+import 'language_picker.dart';
 import 'settings_widgets.dart';
 
 String languageDisplayName(AppLanguage language, AppLocalizations l10n) {
@@ -88,38 +88,12 @@ class AppearanceSection extends StatelessWidget {
       builder: (context) => SimpleDialog(
         title: Text(l10n.settingsLanguage),
         children: [
-          for (final language in AppLanguage.values)
-            SimpleDialogOption(
-              onPressed: () {
-                appState.setLanguage(language);
-                Navigator.pop(context);
-              },
-              child: ListTile(
-                leading: Icon(
-                    language == AppLanguage.system
-                        ? Icons.language
-                        : Icons.translate,
-                    color: appState.config.language == language
-                        ? AppColors.primary
-                        : null),
-                title: Text(language == AppLanguage.system
-                    ? l10n.settingsLanguageSystem
-                    : language.nativeName),
-                // Matches the picker's historical subtitle rule, which is
-                // narrower than isLatinScript (only these three codes
-                // suppress the English-name subtitle here).
-                subtitle: {
-                  AppLanguage.system,
-                  AppLanguage.english,
-                  AppLanguage.french,
-                  AppLanguage.german,
-                }.contains(language)
-                    ? null
-                    : Text(language.englishName,
-                        style: const TextStyle(
-                            fontSize: 12, color: AppColors.textHint)),
-              ),
-            ),
+          LanguagePickerOptions(
+            onSelected: (language) {
+              appState.setLanguage(language);
+              Navigator.pop(context);
+            },
+          ),
         ],
       ),
     );

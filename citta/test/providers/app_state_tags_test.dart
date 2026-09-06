@@ -175,6 +175,11 @@ void main() {
     setUp(() async {
       tmpDir = Directory.systemTemp.createTempSync('citta_mutate_config_test_');
       appState = await _makeAndInit(tmpDir.path);
+      // setLanguage now also sets hasCompletedLanguageSelection, so seed it
+      // as already-true here — these tests are about the no-op fast path
+      // for *language*, not about first-launch completion tracking.
+      await appState.updateConfig(
+          appState.config.copyWith(hasCompletedLanguageSelection: true));
     });
 
     tearDown(() => tmpDir.deleteSync(recursive: true));

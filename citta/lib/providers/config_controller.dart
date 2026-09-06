@@ -73,8 +73,12 @@ class ConfigController {
     return true;
   }
 
-  Future<bool> setLanguage(AppLanguage language) =>
-      mutateConfig((current) => current.copyWith(language: language));
+  Future<bool> setLanguage(AppLanguage language) => mutateConfig(
+        (current) => current.copyWith(
+          language: language,
+          hasCompletedLanguageSelection: true,
+        ),
+      );
 
   Future<bool> addTag(String tag) => mutateConfig((current) {
         if (current.tags.contains(tag)) return current;
