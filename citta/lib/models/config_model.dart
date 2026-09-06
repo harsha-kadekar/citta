@@ -27,6 +27,7 @@ class ConfigModel {
   static const bool defaultCalendarViewEnabled = false;
   static const AppThemeMode defaultThemeMode = AppThemeMode.dark;
   static const AppLanguage defaultLanguage = AppLanguage.system;
+  static const bool defaultHasCompletedLanguageSelection = false;
   static const List<String> defaultTags = ['calm', 'restless', 'deep', 'distracted'];
   static const List<String> defaultQuoteSources = [
     'subhashita',
@@ -51,6 +52,10 @@ class ConfigModel {
   final String? userName;
   final AppThemeMode themeMode;
   final AppLanguage language;
+  // Distinguishes "never asked" from "user explicitly chose System Default"
+  // for the first-launch language picker (issue #57) — `language ==
+  // AppLanguage.system` alone can't tell those apart.
+  final bool hasCompletedLanguageSelection;
 
   // Wraps caller-supplied lists as unmodifiable so external mutations cannot
   // corrupt stored state. Equality (see ==/hashCode below) compares tags and
@@ -69,6 +74,7 @@ class ConfigModel {
     this.userName,
     this.themeMode = defaultThemeMode,
     this.language = defaultLanguage,
+    this.hasCompletedLanguageSelection = defaultHasCompletedLanguageSelection,
     List<String>? tags,
     List<String>? quoteSources,
   })  : tags = List.unmodifiable(tags ?? defaultTags),
@@ -104,6 +110,15 @@ class ConfigModel {
           fallback: defaultThemeMode),
       language: AppLanguageStorage.fromStorageString(json['language'] as String?,
           fallback: defaultLanguage),
+      // Absent (not merely false) means this JSON was decoded from a real
+      // config.json/import predating this field — a genuinely fresh
+      // install never reaches fromJson (see StorageService.loadConfig,
+      // which returns a bare ConfigModel() when no file exists yet), so an
+      // absent key here always means an already-onboarded user, not a new
+      // one. Defaulting it to false here would show the language picker
+      // again to every existing user on their first launch after upgrade.
+      hasCompletedLanguageSelection:
+          json['hasCompletedLanguageSelection'] as bool? ?? true,
       tags: (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList(),
       quoteSources: (json['quoteSources'] as List<dynamic>?)?.map((e) => e as String).toList(),
     );
@@ -123,6 +138,7 @@ class ConfigModel {
       'userName': userName,
       'themeMode': themeMode.toStorageString(),
       'language': language.toStorageString(),
+      'hasCompletedLanguageSelection': hasCompletedLanguageSelection,
       'tags': tags,
       'quoteSources': quoteSources,
     };
@@ -144,6 +160,7 @@ class ConfigModel {
     Object? userName = _unset,
     AppThemeMode? themeMode,
     AppLanguage? language,
+    bool? hasCompletedLanguageSelection,
     List<String>? tags,
     List<String>? quoteSources,
   }) {
@@ -174,6 +191,8 @@ class ConfigModel {
           : userName as String?,
       themeMode: themeMode ?? this.themeMode,
       language: language ?? this.language,
+      hasCompletedLanguageSelection:
+          hasCompletedLanguageSelection ?? this.hasCompletedLanguageSelection,
       tags: tags ?? this.tags,
       quoteSources: quoteSources ?? this.quoteSources,
     );
@@ -196,6 +215,7 @@ class ConfigModel {
           userName == other.userName &&
           themeMode == other.themeMode &&
           language == other.language &&
+          hasCompletedLanguageSelection == other.hasCompletedLanguageSelection &&
           listEquals(tags, other.tags) &&
           listEquals(quoteSources, other.quoteSources);
 
@@ -213,6 +233,7 @@ class ConfigModel {
         userName,
         themeMode,
         language,
+        hasCompletedLanguageSelection,
         Object.hashAll(tags),
         Object.hashAll(quoteSources),
       );

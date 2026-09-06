@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:citta/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
+import 'language_selection_screen.dart';
 import 'splash_screen.dart';
 import 'main_shell.dart';
 import 'unlock_screen.dart';
 
 /// Root screen shown once [AppState] has been provided. Owns the app's
 /// startup sequence: a loading spinner while [AppState] bootstraps, a
-/// one-time first-launch name prompt, the splash screen, and finally the
-/// main app shell.
+/// one-time first-launch language picker, a one-time first-launch name
+/// prompt, the splash screen, and finally the main app shell.
 class AppRoot extends StatefulWidget {
   const AppRoot({super.key});
 
@@ -48,6 +49,7 @@ class _AppRootState extends State<AppRoot> {
   void _maybeTriggerNamePrompt() {
     if (_namePromptTriggered) return;
     if (_appState.isLoading) return;
+    if (!_appState.config.hasCompletedLanguageSelection) return;
     if (_appState.needsUnlock) return;
     if (_appState.config.userName != null) return;
 
@@ -68,6 +70,10 @@ class _AppRootState extends State<AppRoot> {
           child: CircularProgressIndicator(),
         ),
       );
+    }
+
+    if (!appState.config.hasCompletedLanguageSelection) {
+      return const LanguageSelectionScreen();
     }
 
     if (appState.needsUnlock) {

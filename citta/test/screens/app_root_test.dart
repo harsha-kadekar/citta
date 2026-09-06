@@ -7,10 +7,13 @@ import 'package:just_audio/just_audio.dart';
 import 'package:provider/provider.dart';
 
 import 'package:citta/l10n/app_localizations.dart';
+import 'package:citta/models/app_language.dart';
 import 'package:citta/models/config_model.dart';
 import 'package:citta/providers/app_state.dart';
 import 'package:citta/screens/app_root.dart';
+import 'package:citta/screens/language_selection_screen.dart';
 import 'package:citta/screens/main_shell.dart';
+import 'package:citta/screens/splash_screen.dart';
 import 'package:citta/screens/unlock_screen.dart';
 import 'package:citta/services/audio_service.dart';
 import 'package:citta/services/crypto_service.dart';
@@ -107,10 +110,88 @@ void main() {
     expect(find.byType(AlertDialog), findsNothing);
   });
 
+  group('first-launch language picker (issue #57)', () {
+    testWidgets(
+        'fresh install shows the language picker before any other first-run UI',
+        (tester) async {
+      final appState = await tester.runAsync(() => _makeAndInit(tmpDir.path));
+
+      await tester.pumpWidget(_testApp(appState!));
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byType(LanguageSelectionScreen), findsOneWidget);
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(find.byType(SplashScreen), findsNothing);
+    });
+
+    testWidgets('selecting a language persists it and marks selection completed',
+        (tester) async {
+      final appState = await tester.runAsync(() => _makeAndInit(tmpDir.path));
+
+      await tester.pumpWidget(_testApp(appState!));
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byType(LanguageSelectionScreen), findsOneWidget);
+
+      await tester.runAsync(() async {
+        await tester.tap(find.text('हिंदी'));
+        while (!appState.config.hasCompletedLanguageSelection) {
+          await Future.delayed(const Duration(milliseconds: 5));
+        }
+      });
+      await tester.pump();
+
+      expect(appState.config.language, AppLanguage.hindi);
+      expect(appState.config.hasCompletedLanguageSelection, isTrue);
+      expect(find.byType(LanguageSelectionScreen), findsNothing);
+    });
+
+    testWidgets(
+        'explicitly picking System Default also marks selection completed',
+        (tester) async {
+      final appState = await tester.runAsync(() => _makeAndInit(tmpDir.path));
+
+      await tester.pumpWidget(_testApp(appState!));
+      await tester.pump();
+      await tester.pump();
+
+      await tester.runAsync(() async {
+        await tester.tap(find.text('System Default'));
+        while (!appState.config.hasCompletedLanguageSelection) {
+          await Future.delayed(const Duration(milliseconds: 5));
+        }
+      });
+      await tester.pump();
+
+      expect(appState.config.language, AppLanguage.system);
+      expect(appState.config.hasCompletedLanguageSelection, isTrue);
+      expect(find.byType(LanguageSelectionScreen), findsNothing);
+    });
+
+    testWidgets('does not reappear on a subsequent launch after completion',
+        (tester) async {
+      final appState = await tester.runAsync(() => _makeAndInit(
+            tmpDir.path,
+            initialConfig: ConfigModel(hasCompletedLanguageSelection: true),
+          ));
+
+      await tester.pumpWidget(_testApp(appState!));
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byType(LanguageSelectionScreen), findsNothing);
+    });
+  });
+
   testWidgets(
       'first launch with no saved name shows the splash screen and prompts for a name',
       (tester) async {
-    final appState = await tester.runAsync(() => _makeAndInit(tmpDir.path));
+    final appState = await tester.runAsync(() => _makeAndInit(
+          tmpDir.path,
+          initialConfig: ConfigModel(hasCompletedLanguageSelection: true),
+        ));
 
     await tester.pumpWidget(_testApp(appState!));
     await tester.pump(); // let AppState finish notifying "loaded"
@@ -125,7 +206,10 @@ void main() {
       (tester) async {
     final appState = await tester.runAsync(() => _makeAndInit(
           tmpDir.path,
-          initialConfig: ConfigModel(userName: 'Asha'),
+          initialConfig: ConfigModel(
+            userName: 'Asha',
+            hasCompletedLanguageSelection: true,
+          ),
         ));
 
     await tester.pumpWidget(_testApp(appState!));
@@ -138,7 +222,10 @@ void main() {
 
   testWidgets('submitting a name in the prompt persists it and the prompt does not return',
       (tester) async {
-    final appState = await tester.runAsync(() => _makeAndInit(tmpDir.path));
+    final appState = await tester.runAsync(() => _makeAndInit(
+          tmpDir.path,
+          initialConfig: ConfigModel(hasCompletedLanguageSelection: true),
+        ));
 
     await tester.pumpWidget(_testApp(appState!));
     await tester.pump();
@@ -170,7 +257,10 @@ void main() {
 
   testWidgets('skipping the prompt leaves the name unset and does not ask again',
       (tester) async {
-    final appState = await tester.runAsync(() => _makeAndInit(tmpDir.path));
+    final appState = await tester.runAsync(() => _makeAndInit(
+          tmpDir.path,
+          initialConfig: ConfigModel(hasCompletedLanguageSelection: true),
+        ));
 
     await tester.pumpWidget(_testApp(appState!));
     await tester.pump();
@@ -193,7 +283,10 @@ void main() {
       (tester) async {
     final appState = await tester.runAsync(() => _makeAndInit(
           tmpDir.path,
-          initialConfig: ConfigModel(userName: 'Asha'),
+          initialConfig: ConfigModel(
+            userName: 'Asha',
+            hasCompletedLanguageSelection: true,
+          ),
         ));
 
     await tester.pumpWidget(_testApp(appState!));
@@ -229,7 +322,10 @@ void main() {
         cryptoService: testCryptoService(),
       );
       await setupStorage.enableEncryption(password: 'correct horse battery staple');
-      await setupStorage.saveConfig(ConfigModel(userName: 'Asha'));
+      await setupStorage.saveConfig(ConfigModel(
+        userName: 'Asha',
+        hasCompletedLanguageSelection: true,
+      ));
 
       final freshStorage = StorageService.withBasePath(
         basePath,

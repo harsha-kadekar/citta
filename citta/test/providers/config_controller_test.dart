@@ -88,6 +88,15 @@ void main() {
       expect((await storage.loadConfig()).language, AppLanguage.hindi);
     });
 
+    test('setLanguage marks hasCompletedLanguageSelection, even for System Default',
+        () async {
+      final changed = await controller.setLanguage(AppLanguage.system);
+
+      expect(changed, isTrue);
+      expect(controller.config.hasCompletedLanguageSelection, isTrue);
+      expect((await storage.loadConfig()).hasCompletedLanguageSelection, isTrue);
+    });
+
     test('addTag adds a new tag and is a no-op if already present', () async {
       controller.seed(ConfigModel(tags: const ['calm']));
 

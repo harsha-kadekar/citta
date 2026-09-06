@@ -217,8 +217,18 @@ void main() {
       expect(a == b, isFalse);
     });
 
+    test('configs differing only in hasCompletedLanguageSelection are not ==', () {
+      final a = ConfigModel(hasCompletedLanguageSelection: false);
+      final b = ConfigModel(hasCompletedLanguageSelection: true);
+      expect(a == b, isFalse);
+    });
+
     test('ConfigModel.fromJson with no tags key produces a config == to the default', () {
-      final config = ConfigModel.fromJson(<String, dynamic>{});
+      // hasCompletedLanguageSelection is seeded explicitly here because an
+      // absent key means something different for that field specifically
+      // (see the fromJson tests below) — this test is about tags.
+      final config = ConfigModel.fromJson(
+          <String, dynamic>{'hasCompletedLanguageSelection': false});
       expect(config == ConfigModel(), isTrue,
           reason: 'value equality, not reference reuse, is what keeps repeated '
               'loadConfig() calls from looking like a change');
@@ -310,6 +320,10 @@ void main() {
     test('default language is AppLanguage.system', () {
       expect(ConfigModel().language, equals(AppLanguage.system));
     });
+
+    test('default hasCompletedLanguageSelection is false', () {
+      expect(ConfigModel().hasCompletedLanguageSelection, isFalse);
+    });
   });
 
   group('ConfigModel enum fields — JSON round trip', () {
@@ -335,6 +349,30 @@ void main() {
         final restored = ConfigModel.fromJson(config.toJson());
         expect(restored.language, equals(lang));
       }
+    });
+
+    test('hasCompletedLanguageSelection toJson/fromJson round-trips (true)', () {
+      final config = ConfigModel(hasCompletedLanguageSelection: true);
+      final restored = ConfigModel.fromJson(config.toJson());
+      expect(restored.hasCompletedLanguageSelection, isTrue);
+    });
+
+    test('hasCompletedLanguageSelection toJson/fromJson round-trips (explicit false)',
+        () {
+      final config = ConfigModel(hasCompletedLanguageSelection: false);
+      final restored = ConfigModel.fromJson(config.toJson());
+      expect(restored.hasCompletedLanguageSelection, isFalse,
+          reason: 'an explicit false in the JSON must not be coerced to '
+              'true just because it is falsy');
+    });
+
+    test(
+        'fromJson defaults hasCompletedLanguageSelection to true when the key '
+        'is absent, since a decoded config.json only exists for a config '
+        'that predates this field (a true fresh install never reaches '
+        'fromJson — see StorageService.loadConfig)', () {
+      final config = ConfigModel.fromJson(<String, dynamic>{});
+      expect(config.hasCompletedLanguageSelection, isTrue);
     });
 
     test('bellStart/bellEnd/bellInterval round-trip for bundled and custom sources',
