@@ -9,7 +9,7 @@ extension AppThemeModeStorage on AppThemeMode {
 
   static AppThemeMode fromStorageString(
     String? value, {
-    AppThemeMode fallback = AppThemeMode.dark,
+    AppThemeMode fallback = AppThemeMode.system,
   }) {
     return switch (value) {
       'dark' => AppThemeMode.dark,

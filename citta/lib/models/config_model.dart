@@ -25,7 +25,7 @@ class ConfigModel {
   static const int defaultIntervalDuration = 300;
   static const bool defaultIntervalEnabled = false;
   static const bool defaultCalendarViewEnabled = false;
-  static const AppThemeMode defaultThemeMode = AppThemeMode.dark;
+  static const AppThemeMode defaultThemeMode = AppThemeMode.system;
   static const AppLanguage defaultLanguage = AppLanguage.system;
   static const bool defaultHasCompletedLanguageSelection = false;
   static const List<String> defaultTags = ['calm', 'restless', 'deep', 'distracted'];
