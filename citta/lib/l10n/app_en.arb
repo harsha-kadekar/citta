@@ -53,6 +53,18 @@
   "welcomeNameHint": "Enter your name",
   "@welcomeNameHint": {},
 
+  "firstTimeSetupSubtitle": "Let's set a few things up before you begin.",
+  "@firstTimeSetupSubtitle": {},
+
+  "firstTimeSetupThemeSectionTitle": "Choose your theme",
+  "@firstTimeSetupThemeSectionTitle": {},
+
+  "firstTimeSetupEncryptionAlreadyEnabledNotice": "Encryption is already enabled for your reflections.",
+  "@firstTimeSetupEncryptionAlreadyEnabledNotice": {},
+
+  "firstTimeSetupContinueButton": "Get Started",
+  "@firstTimeSetupContinueButton": {},
+
   "homeBegin": "Begin",
   "@homeBegin": {},
 

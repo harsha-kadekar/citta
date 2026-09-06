@@ -176,6 +176,18 @@ class StorageService {
   Future<bool> get isEncryptionEnabled async =>
       File(await _encryptionMetaPath).exists();
 
+  /// Whether a recovery key has already been committed via
+  /// [commitRecoveryKey] — false both when encryption isn't enabled at all
+  /// and when it's enabled but setup hasn't reached that step yet (a
+  /// candidate may have been prepared via [prepareRecoveryKey] without being
+  /// committed). Lets a resumed first-time-setup flow (issue #59) tell
+  /// whether it still needs to show the recovery-key screen without ever
+  /// risking generating a second one for a key that's already been shown.
+  Future<bool> get hasRecoveryKey async {
+    final metadata = await _readEncryptionMetadata();
+    return metadata?.wrappedMasterKeyRecovery != null;
+  }
+
   /// Whether this instance currently holds the unwrapped master key in
   /// memory, i.e. [saveSessions] will write ciphertext and [loadSessions]
   /// can read it back.

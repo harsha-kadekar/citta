@@ -223,12 +223,21 @@ void main() {
       expect(a == b, isFalse);
     });
 
+    test('configs differing only in hasCompletedFirstTimeSetup are not ==', () {
+      final a = ConfigModel(hasCompletedFirstTimeSetup: false);
+      final b = ConfigModel(hasCompletedFirstTimeSetup: true);
+      expect(a == b, isFalse);
+    });
+
     test('ConfigModel.fromJson with no tags key produces a config == to the default', () {
-      // hasCompletedLanguageSelection is seeded explicitly here because an
-      // absent key means something different for that field specifically
-      // (see the fromJson tests below) — this test is about tags.
-      final config = ConfigModel.fromJson(
-          <String, dynamic>{'hasCompletedLanguageSelection': false});
+      // hasCompletedLanguageSelection and hasCompletedFirstTimeSetup are
+      // seeded explicitly here because an absent key means something
+      // different for those fields specifically (see the fromJson tests
+      // below) — this test is about tags.
+      final config = ConfigModel.fromJson(<String, dynamic>{
+        'hasCompletedLanguageSelection': false,
+        'hasCompletedFirstTimeSetup': false,
+      });
       expect(config == ConfigModel(), isTrue,
           reason: 'value equality, not reference reuse, is what keeps repeated '
               'loadConfig() calls from looking like a change');
@@ -324,6 +333,10 @@ void main() {
     test('default hasCompletedLanguageSelection is false', () {
       expect(ConfigModel().hasCompletedLanguageSelection, isFalse);
     });
+
+    test('default hasCompletedFirstTimeSetup is false', () {
+      expect(ConfigModel().hasCompletedFirstTimeSetup, isFalse);
+    });
   });
 
   group('ConfigModel enum fields — JSON round trip', () {
@@ -373,6 +386,30 @@ void main() {
         'fromJson — see StorageService.loadConfig)', () {
       final config = ConfigModel.fromJson(<String, dynamic>{});
       expect(config.hasCompletedLanguageSelection, isTrue);
+    });
+
+    test('hasCompletedFirstTimeSetup toJson/fromJson round-trips (true)', () {
+      final config = ConfigModel(hasCompletedFirstTimeSetup: true);
+      final restored = ConfigModel.fromJson(config.toJson());
+      expect(restored.hasCompletedFirstTimeSetup, isTrue);
+    });
+
+    test('hasCompletedFirstTimeSetup toJson/fromJson round-trips (explicit false)',
+        () {
+      final config = ConfigModel(hasCompletedFirstTimeSetup: false);
+      final restored = ConfigModel.fromJson(config.toJson());
+      expect(restored.hasCompletedFirstTimeSetup, isFalse,
+          reason: 'an explicit false in the JSON must not be coerced to '
+              'true just because it is falsy');
+    });
+
+    test(
+        'fromJson defaults hasCompletedFirstTimeSetup to true when the key '
+        'is absent, since a decoded config.json only exists for a config '
+        'that predates this field (a true fresh install never reaches '
+        'fromJson — see StorageService.loadConfig)', () {
+      final config = ConfigModel.fromJson(<String, dynamic>{});
+      expect(config.hasCompletedFirstTimeSetup, isTrue);
     });
 
     test('bellStart/bellEnd/bellInterval round-trip for bundled and custom sources',

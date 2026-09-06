@@ -1632,3 +1632,71 @@ Codex round reviewed the diff.
   - Result: 687 tests passed.
 - Ran `flutter analyze`.
   - Result: no issues.
+
+---
+
+## Review: issue #59 — Combined first-time setup screen
+
+## Findings
+
+- [P2] Localize the new first-time setup strings — `citta/lib/l10n/app_localizations_de.dart:62-63` (and the equivalent getters in every other non-English generated locale file)
+  Codex flagged that `firstTimeSetupSubtitle`, `firstTimeSetupThemeSectionTitle`, `firstTimeSetupEncryptionAlreadyEnabledNotice`, and `firstTimeSetupContinueButton` were added only to `app_en.arb`, so every non-English locale's generated `AppLocalizations*` class falls back to the English template text for these four keys.
+
+  **Disposition: no code change.** This matches this repo's established, deliberate convention rather than a gap introduced by this change — every prior first-run/encryption feature (issues #51 `EncryptionOptIn`, #52 recovery-key screen, #55 change-password flow, #56 encrypted export/import, #57 language picker) added new strings only to `app_en.arb` and left the other 26 locale files to inherit the English fallback from the generator, to be translated in a separate batch pass later. Confirmed by inspecting `app_localizations_de.dart` for keys added by those earlier issues (e.g. `recoveryKeyScreenTitle` from #52, `settingsChangePasswordTitle` from #55) — both are still literal English text in the German file today, with no separate follow-up translation commit in git history. Since this diff follows the same pattern as every predecessor, and hand-writing 26 locales' worth of translations myself would mean inventing unreviewed translations rather than sourcing real ones, no action was taken; flagging it here in case a future batch-translation pass should include these keys.
+
+## Verification
+
+- Ran `codex review --uncommitted --title "issue #59: combined first-time setup screen"` against the full uncommitted change set (`ConfigModel.hasCompletedFirstTimeSetup`, `StorageService.hasRecoveryKey`, the new `FirstTimeSetupScreen`, the simplified `AppRoot`, and the matching test files under `citta/test/`).
+  - Result: one P2 finding (localization gap), addressed above as a documented non-issue matching existing convention; no correctness issues identified.
+- Confirmed the localization convention by checking `citta/lib/l10n/app_localizations_de.dart` for `recoveryKeyScreenTitle` (issue #52) and `settingsChangePasswordTitle` (issue #55) — both remain untranslated English text, consistent with every prior feature.
+- Ran `flutter test`.
+  - Result: 698 tests passed.
+- Ran `flutter analyze`.
+  - Result: no issues.
+
+---
+
+## Review: issue #59 — validation of the localization disposition
+
+Ran a follow-up `codex exec` pass (not a diff review) specifically asking Codex to independently verify the factual claim behind the "no code change" disposition above, and to say whether it agreed the P2 finding needed no further action.
+
+## Findings
+
+Codex confirmed the facts, with one correction, and disagreed with treating the finding as fully closed:
+
+- Issues #51, #52, #55, and #56 each changed only `app_en.arb` among the `.arb` inputs, with the generator updating all locale `.dart` files from that single source — as claimed.
+- **Correction**: issue #57 did not add new strings at all (it reused existing keys), so it is not actually an example of this pattern; the accurate precedent set is #51/#52/#55/#56, not #57.
+- `app_localizations_de.dart` still returns literal English today for `recoveryKeyScreenTitle` (#52) and `settingsChangePasswordTitle` (#55), confirming no batch translation has ever landed for prior features either.
+- Codex's verdict: it agrees the fallback behavior is established repository practice and not a regression unique to #59, but does **not** agree this makes the P2 non-actionable — the untranslated UI is a real, standing localization gap regardless of precedent, and it recommends the four new strings be included in a genuine, reviewed translation batch (or explicitly tracked as localization debt) rather than closed with no follow-up.
+
+**Revised disposition:** no code change in this diff (inventing translations without a real source remains inappropriate), but this is downgraded from "non-issue" to acknowledged, tracked localization debt — the four `firstTimeSetup*` strings (and the same pre-existing gap for `recoveryKeyScreenTitle`, `settingsChangePasswordTitle`, and every other post-#51 addition) should be included the next time this project runs an actual translation pass.
+
+**Tracked as [issue #90](https://github.com/harsha-kadekar/citta/issues/90)** — "Translate accumulated English-only UI strings into all supported locales." Covers all 58 keys `flutter gen-l10n` currently reports as untranslated per locale (spanning issues #51–#59), not just the four added by #59.
+
+## Verification
+
+- Ran `codex exec -s danger-full-access` with a prompt asking Codex to check git history for issues #51/#52/#55/#56/#57 and the current content of `app_localizations_de.dart`, and to give a clear verdict on the claim and disposition.
+  - Result: claim confirmed accurate (modulo the #57 correction above); disposition revised per Codex's pushback rather than accepted as-is.
+
+---
+
+## Review: issue #59 — final closure check
+
+Ran a second follow-up `codex exec` pass after filing issue #90 and cross-referencing it above, asking Codex to confirm issue #90's scope actually covers the gap it identified, re-review the full uncommitted diff for any other dangling findings, and give a final ship/no-ship verdict.
+
+## Findings
+
+No open findings. Codex confirmed:
+
+- Issue #90 explicitly covers all 58 currently-untranslated keys across issues #51–#59 (including all four new `firstTimeSetup*` strings) in all 26 non-English locales, with acceptance criteria requiring genuine reviewed translations and zero `flutter gen-l10n` untranslated messages — i.e. it accurately covers the gap raised in the earlier review round.
+- A fresh full review of the uncommitted diff against `HEAD` surfaced no additional correctness, migration, flow, encryption, or test-coverage findings.
+- Verdict: **"issue #59 is ready to ship as-is. No findings are left dangling."** The localization gap is real but now properly dispositioned as a tracked issue rather than silently accepted.
+
+## Verification
+
+- Ran `codex exec -s danger-full-access` with a prompt asking Codex to fetch issue #90, re-review the current uncommitted diff, and give a final verdict.
+  - Result: no dangling findings; ready to ship, per Codex.
+- Ran `flutter test` (via Codex's own verification pass).
+  - Result: 698 tests passed.
+- Ran `flutter analyze` (via Codex's own verification pass).
+  - Result: no issues.

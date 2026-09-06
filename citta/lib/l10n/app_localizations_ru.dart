@@ -59,6 +59,20 @@ class AppLocalizationsRu extends AppLocalizations {
   String get welcomeNameHint => 'Введите ваше имя';
 
   @override
+  String get firstTimeSetupSubtitle =>
+      'Let\'s set a few things up before you begin.';
+
+  @override
+  String get firstTimeSetupThemeSectionTitle => 'Choose your theme';
+
+  @override
+  String get firstTimeSetupEncryptionAlreadyEnabledNotice =>
+      'Encryption is already enabled for your reflections.';
+
+  @override
+  String get firstTimeSetupContinueButton => 'Get Started';
+
+  @override
   String get homeBegin => 'Начать';
 
   @override
@@ -300,8 +314,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get settingsExportChooseTitle => 'Export Data';
 
   @override
-  String get settingsExportChooseMsg =>
-      'Export as plain JSON, or encrypted?';
+  String get settingsExportChooseMsg => 'Export as plain JSON, or encrypted?';
 
   @override
   String get settingsExportChoosePlain => 'Plain JSON';
