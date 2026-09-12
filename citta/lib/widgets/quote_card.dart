@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/quote_model.dart';
-import '../theme/app_theme.dart';
+import '../theme/adaptive_colors.dart';
 
 class QuoteCard extends StatelessWidget {
   final QuoteModel quote;
@@ -9,17 +9,20 @@ class QuoteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final adaptiveColors = context.adaptiveColors;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: AppColors.cardShadow,
+            color: adaptiveColors.cardShadow,
             blurRadius: 8,
-            offset: Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -29,10 +32,10 @@ class QuoteCard extends StatelessWidget {
           // Original text
           Text(
             quote.originalText,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               height: 1.7,
-              color: AppColors.textPrimary,
+              color: adaptiveColors.textPrimary,
             ),
             textAlign: TextAlign.center,
           ),
@@ -41,16 +44,16 @@ class QuoteCard extends StatelessWidget {
           Container(
             width: 30,
             height: 1,
-            color: AppColors.divider,
+            color: Theme.of(context).dividerColor,
           ),
           const SizedBox(height: 12),
           // Translation
           Text(
             quote.translation,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               height: 1.6,
-              color: AppColors.textSecondary,
+              color: adaptiveColors.textSecondary,
               fontStyle: FontStyle.italic,
             ),
             textAlign: TextAlign.center,
@@ -59,9 +62,9 @@ class QuoteCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               '— ${quote.reference}',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
-                color: AppColors.textHint,
+                color: adaptiveColors.textHint,
                 letterSpacing: 0.5,
               ),
               textAlign: TextAlign.center,

@@ -1779,3 +1779,120 @@ instead of staying pinned to light-theme literals. `appearance_section.dart`, `p
 - Ran `flutter analyze`.
   - Result: no issues.
 ---
+
+## Review: issue #63 — Migrate remaining shared widgets to Theme.of(context)
+
+## Scope
+
+Review of the current local changes for GitHub issue `#63`: `Migrate remaining shared widgets
+(and any leftover call sites) from hardcoded AppColors/DarkAppColors to Theme.of(context)`.
+
+Issue requirement reviewed against:
+
+- `lib/widgets/quote_card.dart` and any other widgets not already covered by #13–#15
+- Replace each direct `AppColors.*`/`DarkAppColors.*` reference with the equivalent
+  `Theme.of(context).colorScheme.*`/`.textTheme.*` reference
+- A repo-wide grep for `AppColors\.|DarkAppColors\.` returns matches only inside `app_theme.dart`
+
+## Findings
+
+`quote_card.dart` (`AppColors.surface`→`colorScheme.surface`, `AppColors.cardShadow`→
+`adaptiveColors.cardShadow`, `AppColors.textPrimary`/`textSecondary`/`textHint`→the matching
+`adaptiveColors.*` field) and `session_complete_screen.dart` (`AppColors.success`→
+`colorScheme.primary`, identical color values in both themes so no visual change;
+`AppColors.textSecondary`→`adaptiveColors.textSecondary`) were migrated. `lib/theme/adaptive_colors.dart`
+still referenced `AppColors`/`DarkAppColors` directly, which the issue's literal grep AC would have
+still caught; per explicit user sign-off (`AskUserQuestion`), its `AdaptiveColors` class and
+`BuildContext` extension were folded into `app_theme.dart` itself, and `adaptive_colors.dart` reduced
+to `export 'app_theme.dart';` so every existing import kept working unchanged — a zero-risk mechanical
+move, no color values changed.
+
+A `/code-review` pass (run first, sequentially) caught a real regression introduced by this diff:
+`quote_card.dart`'s divider line was migrated to `Theme.of(context).dividerColor`, but `AppTheme`
+never sets `ColorScheme.outline`/`onBackground`, so Material 3's fallback chain resolves
+`dividerColor` to opaque black in light theme and white in dark theme — not the intended beige/gray
+`AppColors.divider`/`DarkAppColors.divider`. Verified empirically with a scratch widget test
+(confirmed `dividerColor` == black/white while `dividerTheme.color` correctly equalled
+`AppColors.divider`/`DarkAppColors.divider` in both themes). The same `/code-review` pass also
+flagged `AppColors.success`/`DarkAppColors.success` as dead code once the check-icon color moved to
+`colorScheme.primary` — removed both constants (confirmed no remaining references).
+
+A third `/code-review` finding suggested replacing `quote_card.dart`'s hand-rolled
+`Container`/`BoxDecoration` with the shared `Card` widget, since `AppTheme`'s `cardTheme` already
+carries equivalent `color`/`shadowColor`/shape values. Deferred: `Card`'s Material elevation-based
+shadow renders differently from the widget's existing custom `BoxShadow` (blur 8, offset (0, 2)), so
+swapping would risk a visible shadow-rendering change beyond this issue's dark-mode-correctness scope;
+flagging it here rather than silently applying a visual change the issue didn't ask for.
+
+The user flagged that `timer_display.dart`, `recovery_key_screen.dart`, and
+`session_detail_screen.dart` had the identical `Theme.of(context).dividerColor` bug (predating this
+diff), and asked why they weren't included — agreed to fold the fix into this branch. First attempt
+used `Theme.of(context).dividerTheme.color` directly at each of the 4 call sites, which broke 8
+existing tests that pump these widgets under a bare `MaterialApp()` with no explicit `AppTheme`
+(`dividerTheme.color` is `null` under the Material default, and `Border.all`/`CircularProgressIndicator`
+don't accept a null color the way `Container.color` does) — fixed by falling back to
+`Theme.of(context).dividerColor` when `dividerTheme.color` is null, mirroring Flutter's own `Divider`
+widget resolution order. A follow-up `/code-review` pass flagged that fallback expression as
+copy-pasted identically across all 4 files instead of centralized. First fix for that attempt added a
+`divider` field to `AdaptiveColors`, backed directly by `AppColors.divider`/`DarkAppColors.divider` —
+but the next `/code-review` pass identified the actual root cause: `AppTheme` sets
+`DividerThemeData.color` (used only by the `Divider` widget) but never sets `ThemeData.dividerColor`
+itself, so *any* code reaching for the more idiomatic `Theme.of(context).dividerColor` — including
+third-party widgets, demonstrated concretely by `flutter_markdown_plus`'s
+`MarkdownStyleSheet.fromTheme`, which derives its table-border and horizontal-rule colors from exactly
+that property — would silently get the same black/white bug outside the 4 patched call sites. Fixed at
+the actual source instead: added `dividerColor: AppColors.divider`/`DarkAppColors.divider` directly to
+`ThemeData()` in `AppTheme.lightTheme`/`darkTheme`, reverted the 4 call sites back to plain
+`Theme.of(context).dividerColor` (now correct), and removed the now-unnecessary `AdaptiveColors.divider`
+field again.
+
+## Verification
+
+- Ran `/code-review` first (sequentially, before codex), three times as the diff grew (after the
+  initial `quote_card.dart` fix, after extending to the other 3 files, and after the final root-cause
+  fix): divider-color regression, dead `success` constants, `Card`-widget simplification (deferred),
+  duplicated-fallback-expression centralization, and — on the third pass — that the centralization fix
+  still left the `ThemeData.dividerColor` root cause unset (demonstrated via `flutter_markdown_plus`'s
+  `MarkdownStyleSheet.fromTheme` reading it directly for table/hr colors). All but the deferred `Card`
+  suggestion fixed, each verified with regression tests (revert/restore checks confirming the new tests
+  fail for the stated reason and pass once restored) — including a widget test that renders a markdown
+  horizontal rule (`'---'`) in session notes and asserts its color, to pin down the third-party-widget
+  scenario directly rather than only the app's own call sites.
+- Ran `codex review --uncommitted --title "issue #63: ..."` twice against the uncommitted diff as it
+  grew (once after the 4-file `AdaptiveColors.divider` fix, once after the final root-cause fix).
+  - Both results: "No actionable findings identified."
+- Ran `flutter test`.
+  - Result: all 739 tests passed (20 new regression tests: light/dark-mode color assertions for
+    `QuoteCard`'s surface/shadow/text/divider colors, `SessionCompleteScreen`'s check-icon/duration text
+    colors, `TimerDisplay`'s countdown-ring color, `RecoveryKeyScreen`'s key-box border color,
+    `SessionDetailScreen`'s notes-box border and markdown-horizontal-rule colors, and
+    `AppTheme.lightTheme`/`darkTheme.dividerColor` directly).
+- Ran `flutter analyze`.
+  - Result: no issues.
+- Repo-wide grep for `AppColors\.|DarkAppColors\.`: matches only inside `app_theme.dart` — AC met.
+
+A fourth `/code-review` pass, run after the root-cause fix and the doc correction above, flagged the
+new top-level `dividerColor: AppColors.divider`/`DarkAppColors.divider` as duplicating the pre-existing
+`dividerTheme: DividerThemeData(color: AppColors.divider, ...)`, reasoning that Flutter's `Divider`
+widget already falls back to `Theme.of(context).dividerColor` when `dividerTheme.color` is null, so the
+explicit `dividerTheme.color` override was redundant. Investigated rather than applied: this app sets
+`useMaterial3: true`, and under Material 3 `Divider`'s null-color fallback chain is
+`dividerTheme?.color ?? colorScheme.outlineVariant` — it never consults `ThemeData.dividerColor` at all
+(confirmed in `flutter/packages/flutter/lib/src/material/divider.dart`: `_DividerDefaultsM2.color` reads
+`theme.dividerColor`, but `_DividerDefaultsM3.color` reads `colorScheme.outlineVariant` instead, and
+`Divider` picks the M2/M3 defaults class based on `useMaterial3`). Verified empirically with a scratch
+widget test: under `AppTheme.lightTheme`, `colorScheme.outlineVariant` resolves to opaque black (never
+set, same class of gap as the original bug) while `DividerTheme.of(context).color` correctly equals
+`AppColors.divider`. Removing `dividerTheme.color` as "redundant" would have broken every real
+`Divider()` widget in the app (e.g. the seven in `settings_screen.dart`) under dark mode — reproducing
+the exact bug this issue set out to fix. Kept both: `dividerTheme.color` serves the `Divider`/
+`VerticalDivider` widgets, `ThemeData.dividerColor` serves everything else that reads
+`Theme.of(context).dividerColor` directly; both are sourced from the same `AppColors.divider`/
+`DarkAppColors.divider` constant already, so there is exactly one true source of truth, just referenced
+from two `ThemeData` properties that Flutter does not itself keep in sync — consistent with this file's
+existing style of repeating the same `AppColors.*` constant across multiple `ThemeData` sub-properties
+(e.g. `AppColors.textPrimary` appears 6+ times across `textTheme` alone).
+
+Re-ran `flutter test`/`flutter analyze` after this investigation (no code changed): 739 tests passed,
+no analyzer issues.
+---

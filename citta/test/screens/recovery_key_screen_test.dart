@@ -15,6 +15,7 @@ import 'package:citta/services/audio_service.dart';
 import 'package:citta/services/quote_service.dart';
 import 'package:citta/services/stats_service.dart';
 import 'package:citta/services/storage_service.dart';
+import 'package:citta/theme/app_theme.dart';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -67,10 +68,11 @@ class _NoopAudioSession implements AudioSessionBase {
       const Stream.empty();
 }
 
-Widget _wrap(AppState appState, Widget child) =>
+Widget _wrap(AppState appState, Widget child, {ThemeData? theme}) =>
     ChangeNotifierProvider<AppState>.value(
       value: appState,
       child: MaterialApp(
+        theme: theme,
         localizationsDelegates: const [
           AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,
@@ -330,6 +332,33 @@ void main() {
       await tester.pump();
 
       expect(shared, key);
+    });
+
+    testWidgets('recovery key box border uses the light theme divider color',
+        (tester) async {
+      await _pumpAndSettle(
+        tester,
+        _wrap(appState, const RecoveryKeyScreen(), theme: AppTheme.lightTheme),
+      );
+
+      final decoration =
+          tester.widget<Container>(_recoveryKeyText).decoration as BoxDecoration;
+      expect(decoration.border!.top.color, AppColors.divider);
+    });
+
+    testWidgets('recovery key box border adapts to the dark theme divider '
+        'color', (tester) async {
+      await _pumpAndSettle(
+        tester,
+        _wrap(appState, const RecoveryKeyScreen(), theme: AppTheme.darkTheme),
+      );
+
+      final decoration =
+          tester.widget<Container>(_recoveryKeyText).decoration as BoxDecoration;
+      expect(decoration.border!.top.color, DarkAppColors.divider);
+      expect(decoration.border!.top.color, isNot(AppColors.divider),
+          reason: 'the recovery key box border must not stay pinned to the '
+              'light-theme literal under dark theme');
     });
   });
 }
