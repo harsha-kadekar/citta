@@ -10,6 +10,7 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:provider/provider.dart';
 
 import 'package:citta/l10n/app_localizations.dart';
+import 'package:citta/models/app_language.dart';
 import 'package:citta/models/config_model.dart';
 import 'package:citta/models/timer_mode.dart';
 import 'package:citta/models/app_theme_mode.dart';
@@ -17,6 +18,7 @@ import 'package:citta/models/audio_source.dart';
 import 'package:citta/providers/app_state.dart';
 import 'package:citta/screens/settings/profile_section.dart';
 import 'package:citta/screens/settings/appearance_section.dart';
+import 'package:citta/screens/settings/language_picker.dart';
 import 'package:citta/screens/settings/timer_section.dart';
 import 'package:citta/screens/settings/bells_section.dart';
 import 'package:citta/screens/settings/bg_music_section.dart';
@@ -27,6 +29,7 @@ import 'package:citta/services/audio_service.dart';
 import 'package:citta/services/quote_service.dart';
 import 'package:citta/services/stats_service.dart';
 import 'package:citta/services/storage_service.dart';
+import 'package:citta/theme/app_theme.dart';
 
 // ---------------------------------------------------------------------------
 // Test doubles
@@ -106,6 +109,26 @@ Widget _wrap(AppState appState, Widget child) =>
     ChangeNotifierProvider<AppState>.value(
       value: appState,
       child: MaterialApp(
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(body: ListView(children: [child])),
+      ),
+    );
+
+// Wraps with the app's real light/dark themes (unlike `_wrap`, which relies
+// on Flutter's default MaterialApp theme) so tests can assert on the actual
+// resolved AppColors/DarkAppColors value behind Theme.of(context).
+Widget _themedWrap(AppState appState, Widget child, {required bool dark}) =>
+    ChangeNotifierProvider<AppState>.value(
+      value: appState,
+      child: MaterialApp(
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: dark ? ThemeMode.dark : ThemeMode.light,
         localizationsDelegates: const [
           AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,
@@ -474,6 +497,259 @@ void main() {
       });
       await tester.pump();
       expect(appState.config.backgroundMusic, isNull);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Theme.of(context) migration (issue #62)
+  // ---------------------------------------------------------------------------
+
+  group('SettingsTile — default trailing chevron color', () {
+    late Directory tmpDir;
+    late AppState appState;
+
+    setUp(() async {
+      tmpDir = Directory.systemTemp.createTempSync('citta_settings_test_');
+      appState = await _makeAndInit(tmpDir.path);
+    });
+    tearDown(() => tmpDir.deleteSync(recursive: true));
+
+    const tile = SettingsTile(title: 'Foo', subtitle: 'Bar');
+
+    testWidgets('uses the light theme hint color in light mode',
+        (tester) async {
+      await tester.pumpWidget(_themedWrap(appState, tile, dark: false));
+      await tester.pump();
+      final icon = tester.widget<Icon>(find.byIcon(Icons.chevron_right));
+      expect(icon.color, AppColors.textHint,
+          reason:
+              'default chevron must come from context.adaptiveColors.textHint, not a stray hardcoded literal');
+    });
+
+    testWidgets('adapts to the dark theme hint color in dark mode',
+        (tester) async {
+      await tester.pumpWidget(_themedWrap(appState, tile, dark: true));
+      await tester.pump();
+      final icon = tester.widget<Icon>(find.byIcon(Icons.chevron_right));
+      expect(icon.color, DarkAppColors.textHint);
+      expect(icon.color, isNot(AppColors.textHint),
+          reason: 'must not stay pinned to the light-theme literal under dark theme');
+    });
+  });
+
+  group('SectionHeader — title color', () {
+    late Directory tmpDir;
+    late AppState appState;
+
+    setUp(() async {
+      tmpDir = Directory.systemTemp.createTempSync('citta_settings_test_');
+      appState = await _makeAndInit(tmpDir.path);
+    });
+    tearDown(() => tmpDir.deleteSync(recursive: true));
+
+    const header = SectionHeader(title: 'foo');
+
+    testWidgets('uses the light theme hint color in light mode',
+        (tester) async {
+      await tester.pumpWidget(_themedWrap(appState, header, dark: false));
+      await tester.pump();
+      final text = tester.widget<Text>(find.text('FOO'));
+      expect(text.style?.color, AppColors.textHint);
+    });
+
+    testWidgets('adapts to the dark theme hint color in dark mode',
+        (tester) async {
+      await tester.pumpWidget(_themedWrap(appState, header, dark: true));
+      await tester.pump();
+      final text = tester.widget<Text>(find.text('FOO'));
+      expect(text.style?.color, DarkAppColors.textHint);
+      expect(text.style?.color, isNot(AppColors.textHint));
+    });
+  });
+
+  group('BgMusicSection — remove-music icon color', () {
+    late Directory tmpDir;
+    late AppState appState;
+
+    setUp(() async {
+      tmpDir = Directory.systemTemp.createTempSync('citta_settings_test_');
+      appState = await _makeAndInit(tmpDir.path,
+          initialConfig: ConfigModel(
+              backgroundMusic: const AudioSource.custom('/legacy/music.mp3')));
+    });
+    tearDown(() => tmpDir.deleteSync(recursive: true));
+
+    testWidgets('uses the light theme error color in light mode',
+        (tester) async {
+      await tester.pumpWidget(
+          _themedWrap(appState, const BgMusicSection(), dark: false));
+      await tester.pump();
+      final icon = tester.widget<Icon>(find.byIcon(Icons.clear));
+      expect(icon.color, AppColors.error,
+          reason: 'must come from colorScheme.error, not a stray hardcoded literal');
+    });
+
+    testWidgets('adapts to the dark theme error color in dark mode',
+        (tester) async {
+      await tester.pumpWidget(
+          _themedWrap(appState, const BgMusicSection(), dark: true));
+      await tester.pump();
+      final icon = tester.widget<Icon>(find.byIcon(Icons.clear));
+      expect(icon.color, DarkAppColors.error);
+      expect(icon.color, isNot(AppColors.error));
+    });
+  });
+
+  group('BellsSection — selected picker option color', () {
+    late Directory tmpDir;
+    late AppState appState;
+
+    setUp(() async {
+      tmpDir = Directory.systemTemp.createTempSync('citta_settings_test_');
+      appState = await _makeAndInit(tmpDir.path,
+          initialConfig: ConfigModel(bellStart: AudioSource.none));
+    });
+    tearDown(() => tmpDir.deleteSync(recursive: true));
+
+    Future<void> openStartBellPicker(WidgetTester tester) async {
+      await tester
+          .pumpWidget(_themedWrap(appState, const BellsSection(), dark: false));
+      await tester.pump();
+      await tester.tap(find.byType(ListTile).first);
+      await tester.pump();
+    }
+
+    testWidgets('selected "None" option uses the light theme primary color',
+        (tester) async {
+      await openStartBellPicker(tester);
+      final text = tester.widget<Text>(
+          find.descendant(of: find.byType(SimpleDialog), matching: find.text('None')));
+      expect(text.style?.color, AppColors.primary);
+    });
+
+    testWidgets('selected "None" option adapts to the dark theme primary color',
+        (tester) async {
+      await tester
+          .pumpWidget(_themedWrap(appState, const BellsSection(), dark: true));
+      await tester.pump();
+      await tester.tap(find.byType(ListTile).first);
+      await tester.pump();
+      final text = tester.widget<Text>(
+          find.descendant(of: find.byType(SimpleDialog), matching: find.text('None')));
+      expect(text.style?.color, DarkAppColors.primary);
+      expect(text.style?.color, isNot(AppColors.primary));
+    });
+  });
+
+  group('TimerSection — selected picker option icon color', () {
+    late Directory tmpDir;
+    late AppState appState;
+
+    setUp(() async {
+      tmpDir = Directory.systemTemp.createTempSync('citta_settings_test_');
+      appState = await _makeAndInit(tmpDir.path,
+          initialConfig: ConfigModel(timerMode: TimerMode.countdown));
+    });
+    tearDown(() => tmpDir.deleteSync(recursive: true));
+
+    testWidgets('selected mode icon uses the light theme primary color',
+        (tester) async {
+      await tester
+          .pumpWidget(_themedWrap(appState, const TimerSection(), dark: false));
+      await tester.pump();
+      await tester.tap(find.byType(ListTile).first);
+      await tester.pump();
+      final icon = tester.widget<Icon>(find.byIcon(Icons.timer));
+      expect(icon.color, AppColors.primary);
+    });
+
+    testWidgets('selected mode icon adapts to the dark theme primary color',
+        (tester) async {
+      await tester
+          .pumpWidget(_themedWrap(appState, const TimerSection(), dark: true));
+      await tester.pump();
+      await tester.tap(find.byType(ListTile).first);
+      await tester.pump();
+      final icon = tester.widget<Icon>(find.byIcon(Icons.timer));
+      expect(icon.color, DarkAppColors.primary);
+      expect(icon.color, isNot(AppColors.primary));
+    });
+  });
+
+  group('TagsSection — chip delete icon color', () {
+    late Directory tmpDir;
+    late AppState appState;
+
+    setUp(() async {
+      tmpDir = Directory.systemTemp.createTempSync('citta_settings_test_');
+      appState = await _makeAndInit(tmpDir.path,
+          initialConfig: ConfigModel(tags: ['calm']));
+    });
+    tearDown(() => tmpDir.deleteSync(recursive: true));
+
+    testWidgets('uses the light theme hint color in light mode',
+        (tester) async {
+      await tester
+          .pumpWidget(_themedWrap(appState, const TagsSection(), dark: false));
+      await tester.pump();
+      final chip = tester.widget<Chip>(find.widgetWithText(Chip, 'calm'));
+      expect(chip.deleteIconColor, AppColors.textHint);
+    });
+
+    testWidgets('adapts to the dark theme hint color in dark mode',
+        (tester) async {
+      await tester
+          .pumpWidget(_themedWrap(appState, const TagsSection(), dark: true));
+      await tester.pump();
+      final chip = tester.widget<Chip>(find.widgetWithText(Chip, 'calm'));
+      expect(chip.deleteIconColor, DarkAppColors.textHint);
+      expect(chip.deleteIconColor, isNot(AppColors.textHint));
+    });
+  });
+
+  group('LanguagePickerOptions — selected icon and subtitle color', () {
+    late Directory tmpDir;
+    late AppState appState;
+
+    setUp(() async {
+      tmpDir = Directory.systemTemp.createTempSync('citta_settings_test_');
+      appState = await _makeAndInit(tmpDir.path,
+          initialConfig: ConfigModel(language: AppLanguage.hindi));
+    });
+    tearDown(() => tmpDir.deleteSync(recursive: true));
+
+    Widget picker() => LanguagePickerOptions(onSelected: (_) {});
+
+    testWidgets(
+        'selected language icon and non-Latin subtitle use light theme colors',
+        (tester) async {
+      await tester.pumpWidget(_themedWrap(appState, picker(), dark: false));
+      await tester.pump();
+
+      final icon = tester.widget<Icon>(find.descendant(
+          of: find.widgetWithText(ListTile, 'हिंदी'),
+          matching: find.byType(Icon)));
+      expect(icon.color, AppColors.primary);
+
+      final subtitle = tester.widget<Text>(find.text('Hindi'));
+      expect(subtitle.style?.color, AppColors.textHint);
+    });
+
+    testWidgets(
+        'selected language icon and non-Latin subtitle adapt to dark theme colors',
+        (tester) async {
+      await tester.pumpWidget(_themedWrap(appState, picker(), dark: true));
+      await tester.pump();
+
+      final icon = tester.widget<Icon>(find.descendant(
+          of: find.widgetWithText(ListTile, 'हिंदी'),
+          matching: find.byType(Icon)));
+      expect(icon.color, DarkAppColors.primary);
+      expect(icon.color, isNot(AppColors.primary));
+
+      final subtitle = tester.widget<Text>(find.text('Hindi'));
+      expect(subtitle.style?.color, DarkAppColors.textHint);
+      expect(subtitle.style?.color, isNot(AppColors.textHint));
     });
   });
 }

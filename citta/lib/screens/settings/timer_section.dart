@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:citta/l10n/app_localizations.dart';
 import '../../providers/app_state.dart';
-import '../../theme/app_theme.dart';
 import '../../models/timer_mode.dart';
 import 'settings_widgets.dart';
 
@@ -51,7 +50,7 @@ class TimerSection extends StatelessWidget {
             child: ListTile(
               leading: Icon(Icons.timer,
                   color: appState.config.timerMode == TimerMode.countdown
-                      ? AppColors.primary
+                      ? Theme.of(context).colorScheme.primary
                       : null),
               title: Text(l10n.settingsCountdown),
               subtitle: Text(l10n.settingsCountdownDesc),
@@ -66,7 +65,7 @@ class TimerSection extends StatelessWidget {
             child: ListTile(
               leading: Icon(Icons.timer_off,
                   color: appState.config.timerMode == TimerMode.stopwatch
-                      ? AppColors.primary
+                      ? Theme.of(context).colorScheme.primary
                       : null),
               title: Text(l10n.settingsStopwatch),
               subtitle: Text(l10n.settingsStopwatchDesc),
@@ -98,7 +97,7 @@ class TimerSection extends StatelessWidget {
                           ? FontWeight.w600
                           : FontWeight.w400,
                       color: appState.config.countdownDuration == mins * 60
-                          ? AppColors.primary
+                          ? Theme.of(context).colorScheme.primary
                           : null,
                     ),
                   ),

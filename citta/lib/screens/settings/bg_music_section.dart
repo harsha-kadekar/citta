@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:citta/l10n/app_localizations.dart';
 import '../../providers/app_state.dart';
-import '../../theme/app_theme.dart';
 import 'audio_picker.dart';
 import 'settings_widgets.dart';
 
@@ -26,7 +25,8 @@ class BgMusicSection extends StatelessWidget {
         ),
         if (config.backgroundMusic != null)
           ListTile(
-            leading: const Icon(Icons.clear, color: AppColors.error),
+            leading:
+                Icon(Icons.clear, color: Theme.of(context).colorScheme.error),
             title: Text(l10n.settingsRemoveMusic),
             onTap: () {
               appState.mutateConfig(
