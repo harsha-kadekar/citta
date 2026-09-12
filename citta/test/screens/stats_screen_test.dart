@@ -89,6 +89,20 @@ Widget _testApp(AppState appState) => ChangeNotifierProvider<AppState>.value(
       ),
     );
 
+Widget _lightTestApp(AppState appState) => ChangeNotifierProvider<AppState>.value(
+      value: appState,
+      child: MaterialApp(
+        theme: AppTheme.lightTheme,
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: const StatsScreen(),
+      ),
+    );
+
 Widget _darkTestApp(AppState appState) => ChangeNotifierProvider<AppState>.value(
       value: appState,
       child: MaterialApp(
@@ -235,6 +249,47 @@ void main() {
       expect(lightSurfaceCards, findsNothing,
           reason:
               'stat cards must adapt to the dark theme instead of hardcoding light AppColors');
+    });
+  });
+
+  group('StatsScreen — streak icon color', () {
+    late Directory tmpDir;
+    late AppState appState;
+
+    setUp(() async {
+      tmpDir = Directory.systemTemp.createTempSync('citta_stats_streak_test_');
+      appState = await _makeAndInit(tmpDir.path);
+    });
+
+    tearDown(() => tmpDir.deleteSync(recursive: true));
+
+    testWidgets('8. current streak icon uses the theme tertiary color in light mode',
+        (tester) async {
+      await tester.pumpWidget(_lightTestApp(appState));
+      await tester.pump();
+
+      final icon =
+          tester.widget<Icon>(find.byIcon(Icons.local_fire_department));
+
+      expect(icon.color, AppColors.tertiary,
+          reason:
+              'the current-streak icon must come from colorScheme.tertiary, not a stray hardcoded literal');
+    });
+
+    testWidgets('9. current streak icon uses the dark theme tertiary color under dark theme',
+        (tester) async {
+      await tester.pumpWidget(_darkTestApp(appState));
+      await tester.pump();
+
+      final icon =
+          tester.widget<Icon>(find.byIcon(Icons.local_fire_department));
+
+      expect(icon.color, DarkAppColors.tertiary,
+          reason:
+              'the current-streak icon must adapt to dark mode via colorScheme.tertiary');
+      expect(icon.color, isNot(AppColors.tertiary),
+          reason:
+              'the current-streak icon must not stay pinned to the light-theme literal under dark theme');
     });
   });
 }

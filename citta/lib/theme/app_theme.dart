@@ -9,6 +9,8 @@ class AppColors {
   static const Color secondary = Color(0xFFC4956A); // Warm terracotta
   static const Color secondaryLight = Color(0xFFDEB896);
   static const Color accent = Color(0xFF9B8E7E); // Muted brown
+  static const Color tertiary = Color(0xFFE8834A); // Fire orange (streaks)
+  static const Color onTertiary = Colors.white;
   static const Color background = Color(0xFFF7F4F0); // Warm off-white
   static const Color surface = Color(0xFFFFFFFF);
   static const Color surfaceVariant = Color(0xFFF0EBE5);
@@ -28,6 +30,8 @@ class DarkAppColors {
   static const Color secondary = Color(0xFFDEB896); // Lighter terracotta
   static const Color secondaryLight = Color(0xFFC4956A);
   static const Color accent = Color(0xFFB8A898); // Lighter muted brown
+  static const Color tertiary = Color(0xFFEFA880); // Lighter fire orange (streaks)
+  static const Color onTertiary = Colors.black;
   static const Color background = Color(0xFF1A1A1A);
   static const Color surface = Color(0xFF2A2A2A);
   static const Color surfaceVariant = Color(0xFF333333);
@@ -50,6 +54,8 @@ class AppTheme {
         onPrimary: Colors.white,
         secondary: AppColors.secondary,
         onSecondary: Colors.white,
+        tertiary: AppColors.tertiary,
+        onTertiary: AppColors.onTertiary,
         surface: AppColors.surface,
         onSurface: AppColors.textPrimary,
         error: AppColors.error,
@@ -207,6 +213,8 @@ class AppTheme {
         onPrimary: Colors.black,
         secondary: DarkAppColors.secondary,
         onSecondary: Colors.black,
+        tertiary: DarkAppColors.tertiary,
+        onTertiary: DarkAppColors.onTertiary,
         surface: DarkAppColors.surface,
         onSurface: DarkAppColors.textPrimary,
         error: DarkAppColors.error,

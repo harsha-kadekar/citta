@@ -1722,3 +1722,24 @@ No open findings. Codex confirmed:
   - Result: all tests passed (704 baseline + 5 new: 4 theme-migration tests in `test/screens/home_screen_test.dart`/`test/widgets/timer_controls_test.dart`, plus 1 regression test for the codex finding).
 - Ran `flutter analyze`.
   - Result: no issues.
+
+---
+
+## Review: issue #61 — Migrate history/stats/notes screens to Theme.of(context)
+
+## Findings
+
+No actionable findings. Codex reported "No actionable findings identified." against the full uncommitted diff.
+
+Research for this issue found that `history_screen.dart`, `notes_screen.dart`, and `calendar_view.dart` were already fully migrated (they route through `context.adaptiveColors`/`Theme.of(context).colorScheme` from prior work) — the only remaining violation across the four in-scope files was a single stray hardcoded `Color(0xFFE8834A)` (the current-streak fire icon) in `stats_screen.dart`. Fixed by adding an explicit `tertiary`/`onTertiary` pair to `AppColors`/`DarkAppColors` and wiring it into both `ColorScheme.light()`/`ColorScheme.dark()` in `app_theme.dart` (light value unchanged at `0xFFE8834A` so light mode looks identical; dark value lightened to `0xFFEFA880`, matching the existing primary/secondary light→dark lightening pattern), then referencing `colorScheme.tertiary` in `stats_screen.dart`.
+
+## Verification
+
+- Ran `/code-review` first (sequentially, before codex): no findings.
+- Ran `codex review --uncommitted --title "issue #61: migrate stats screen streak icon to colorScheme.tertiary"` against the uncommitted diff (`lib/screens/stats_screen.dart`, `lib/theme/app_theme.dart`, `test/screens/stats_screen_test.dart`).
+  - Result: no actionable findings.
+- Ran `flutter test`.
+  - Result: all 707 tests passed (2 new regression tests added: light-mode and dark-mode assertions on the streak icon's color).
+- Ran `flutter analyze`.
+  - Result: no issues.
+---
