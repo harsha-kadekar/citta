@@ -18,6 +18,7 @@ import 'package:citta/services/audio_service.dart';
 import 'package:citta/services/quote_service.dart';
 import 'package:citta/services/stats_service.dart';
 import 'package:citta/services/storage_service.dart';
+import 'package:citta/theme/app_theme.dart';
 
 // ---------------------------------------------------------------------------
 // Test doubles
@@ -106,16 +107,18 @@ Future<AppState> _makeAndInitWithStorage(StorageService storage) async {
   return appState;
 }
 
-Widget _testApp(AppState appState) => ChangeNotifierProvider<AppState>.value(
+Widget _testApp(AppState appState, {ThemeData? theme}) =>
+    ChangeNotifierProvider<AppState>.value(
       value: appState,
-      child: const MaterialApp(
-        localizationsDelegates: [
+      child: MaterialApp(
+        theme: theme,
+        localizationsDelegates: const [
           AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
         ],
         supportedLocales: AppLocalizations.supportedLocales,
-        home: HomeScreen(),
+        home: const HomeScreen(),
       ),
     );
 
@@ -672,6 +675,68 @@ void main() {
         expect(secondMarker!['id'], isNot(firstSessionId),
             reason: 'a failing clear must not permanently disable future '
                 'marker checkpoints');
+      },
+    );
+  });
+
+  group('HomeScreen — dark mode (issue #60)', () {
+    late Directory tmpDir;
+    late AppState appState;
+
+    setUp(() async {
+      tmpDir = Directory.systemTemp.createTempSync('citta_home_dark_test_');
+      appState = await _makeAndInit(tmpDir.path);
+    });
+
+    tearDown(() => tmpDir.deleteSync(recursive: true));
+
+    testWidgets(
+      '12. idle-state start button never hardcodes light-theme AppColors.primary '
+      'under the dark theme',
+      (tester) async {
+        await tester.pumpWidget(_testApp(appState, theme: AppTheme.darkTheme));
+        await tester.pump();
+
+        final lightPrimaryCircles = find.byWidgetPredicate((widget) =>
+            widget is Container &&
+            (widget.decoration as BoxDecoration?)?.shape == BoxShape.circle &&
+            (widget.decoration as BoxDecoration?)?.color == AppColors.primary);
+
+        expect(lightPrimaryCircles, findsNothing,
+            reason: 'start button must adapt to the dark theme instead of '
+                'hardcoding light-theme AppColors.primary');
+      },
+    );
+
+    testWidgets(
+      '13. config-summary tune icon/label adapt to DarkAppColors.textSecondary '
+      'under the dark theme',
+      (tester) async {
+        await tester.pumpWidget(_testApp(appState, theme: AppTheme.darkTheme));
+        await tester.pump();
+
+        final tuneIcon = tester.widget<Icon>(find.byIcon(Icons.tune));
+        expect(tuneIcon.color, isNot(AppColors.textSecondary),
+            reason: 'tune icon must not hardcode light-theme '
+                'AppColors.textSecondary');
+        expect(tuneIcon.color, DarkAppColors.textSecondary);
+      },
+    );
+
+    testWidgets(
+      '14. start button label uses colorScheme.onPrimary so it stays readable '
+      'against the dark-theme primary background (codex review, issue #60)',
+      (tester) async {
+        await tester.pumpWidget(_testApp(appState, theme: AppTheme.darkTheme));
+        await tester.pump();
+
+        final beginText = tester.widget<Text>(find.text('Begin'));
+        expect(beginText.style?.color, isNot(Colors.white),
+            reason: 'label must not hardcode white — under the dark theme '
+                'the button background is the lighter DarkAppColors.primary, '
+                'so white text loses contrast');
+        expect(beginText.style?.color, Colors.black,
+            reason: "must follow the dark theme's colorScheme.onPrimary");
       },
     );
   });

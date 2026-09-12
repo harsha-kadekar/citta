@@ -1700,3 +1700,25 @@ No open findings. Codex confirmed:
   - Result: 698 tests passed.
 - Ran `flutter analyze` (via Codex's own verification pass).
   - Result: no issues.
+
+---
+
+## Review: issue #60 — Migrate home/timer screens and widgets to Theme.of(context)
+
+## Findings
+
+- [P2] Use the theme's `onPrimary` color for the "Begin" label — `citta/lib/screens/home_screen.dart:388` (pre-fix location)
+  Codex flagged that after switching the start-button background from the literal light-mode `AppColors.primary` to `Theme.of(context).colorScheme.primary`, the button's "Begin" label stayed hardcoded to `Colors.white`. Under the dark theme, `colorScheme.primary` resolves to the lighter `DarkAppColors.primary` (`0xFF8AAF7E`), so white-on-light-green loses contrast — unlike the dark scheme's configured `onPrimary` (black), which pairs correctly.
+
+  **Fix applied:** the label now uses `Theme.of(context).colorScheme.onPrimary` instead of a hardcoded `Colors.white`. In the light theme `onPrimary` is `Colors.white` (no visual change), and in the dark theme it resolves to `Colors.black`, matching the dark `ColorScheme`'s configured contrast pairing.
+
+  **Regression test added:** `test/screens/home_screen_test.dart` — "14. start button label uses colorScheme.onPrimary so it stays readable against the dark-theme primary background (codex review, issue #60)". Verified this test fails against the pre-fix code (asserting the label was literal `Colors.white` under the dark theme) and passes once the fix landed.
+
+## Verification
+
+- Ran `codex review --uncommitted -c sandbox_mode="danger-full-access" --title "issue #60: Migrate home/timer screens and widgets to Theme.of(context)"` against the full uncommitted change set (`lib/screens/home_screen.dart`, `lib/widgets/timer_controls.dart`, and the new/updated test files). The default `workspace-write` sandbox mode failed in this environment (bubblewrap could not create user namespaces), so the review was re-run with `sandbox_mode="danger-full-access"`.
+  - Result: one P2 finding (start-button label contrast in dark mode), fixed and regression-tested as described above.
+- Ran `flutter test`.
+  - Result: all tests passed (704 baseline + 5 new: 4 theme-migration tests in `test/screens/home_screen_test.dart`/`test/widgets/timer_controls_test.dart`, plus 1 regression test for the codex finding).
+- Ran `flutter analyze`.
+  - Result: no issues.

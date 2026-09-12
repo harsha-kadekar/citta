@@ -8,7 +8,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import '../providers/app_state.dart';
 import '../services/timer_service.dart';
 import '../models/session_model.dart';
-import '../theme/app_theme.dart';
+import '../theme/adaptive_colors.dart';
 import '../widgets/quote_card.dart';
 import '../widgets/timer_display.dart';
 import '../widgets/timer_controls.dart';
@@ -282,6 +282,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         context.select<AppState, int>((s) => s.config.countdownDuration);
     final isSessionActive = _timerService.state == TimerState.running ||
         _timerService.state == TimerState.paused;
+    final textSecondary = context.adaptiveColors.textSecondary;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
@@ -347,20 +349,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             setState(() => _showPreSessionConfig = false),
                       )
                     else ...[
-                      _buildStartButton(l10n),
+                      _buildStartButton(colorScheme, l10n),
                       const SizedBox(height: 16),
                       TextButton.icon(
                         onPressed: () =>
                             setState(() => _showPreSessionConfig = true),
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.tune,
                           size: 14,
-                          color: AppColors.textSecondary,
+                          color: textSecondary,
                         ),
                         label: Text(
                           _getConfigSummary(timerMode, countdownDuration, l10n),
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
+                          style: TextStyle(
+                            color: textSecondary,
                             fontSize: 13,
                           ),
                         ),
@@ -377,7 +379,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildStartButton(AppLocalizations l10n) {
+  Widget _buildStartButton(ColorScheme colorScheme, AppLocalizations l10n) {
     return GestureDetector(
       onTap: _startSession,
       child: Container(
@@ -385,10 +387,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         height: 160,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: AppColors.primary,
+          color: colorScheme.primary,
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.3),
+              color: colorScheme.primary.withValues(alpha: 0.3),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -397,8 +399,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         child: Center(
           child: Text(
             l10n.homeBegin,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: colorScheme.onPrimary,
               fontSize: 22,
               fontWeight: FontWeight.w500,
               letterSpacing: 2,
