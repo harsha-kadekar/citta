@@ -81,18 +81,24 @@ explicit confirmation ("I AUTHORIZE SKIPPING TESTS") rather than quietly skippin
 - Re-run `flutter-test` and `flutter-analyze` after each meaningful change, not just
   once at the end.
 
-## 7. Work through code-review findings — repeat until clean
+## 7. Code review — run it, don't wait to be asked
 
-A review may arrive several ways: the user runs `/code-review` and asks you to
-check it; asks you to read a review artifact (e.g. `docs/codex-review` or
-`docs/codex-review.md` — check both, since either may be the active one for a
-given repo); or asks you to run the `codex` CLI directly (e.g.
-`codex review --uncommitted --title "issue #<N>: <title>"`, assuming `codex` is
-already authenticated). If asked to log a direct `codex` run into
-`docs/codex-review`, append a new entry in the same format as the existing ones
-— `## Review: issue #<N> — <title>`, then `## Findings`, then `## Verification`,
-separated from the prior entry by a `---` line — rather than pasting the raw CLI
-transcript. For each finding:
+Before reporting the issue done, run a dedicated review pass covering both of the
+following:
+
+**a. `/code-review`** — invoke the `code-review` skill against the current diff and
+work through every finding it reports.
+
+**b. `codex`, if available** — check with `command -v codex`. If present, run
+`codex review --uncommitted --title "issue #<N>: <title>"` (assuming `codex` is
+already authenticated) and document its findings by appending a new entry to
+`docs/codex-review` (create the file if it doesn't exist yet) in the same format as
+any existing entries — `## Review: issue #<N> — <title>`, then `## Findings`, then
+`## Verification`, separated from the prior entry by a `---` line — rather than
+pasting the raw CLI transcript. If `codex` isn't available, say so and skip 7b; don't
+block on it.
+
+Work through findings from *both* sources using the same process:
 
 1. **Understand the exact failure scenario** the finding describes before touching
    code — don't pattern-match on the summary alone.
@@ -109,16 +115,21 @@ transcript. For each finding:
    say so explicitly, do the smallest correct fix, and document the remaining gap
    in your summary rather than silently scoping it down.
 
-If asked to "check for new findings," re-read the review artifact for content added
-*since your last pass* (compare line counts or timestamps) rather than reprocessing
-the whole file — these logs are append-only across rounds. Repeat step 7 until a
-fresh review pass reports no findings, then stop; don't go looking for more once the
-review is clean.
+**If `/code-review` and `codex` disagree on how to fix the same underlying issue**,
+do not pick a side yourself — stop and surface the conflict to the user with
+`AskUserQuestion`, laying out both proposed fixes and their trade-offs, and proceed
+with whichever one they pick.
+
+If asked to "check for new findings" on a later pass, re-read `docs/codex-review` for
+content added *since your last pass* (compare line counts or timestamps) rather than
+reprocessing the whole file — these logs are append-only across rounds. Repeat this
+step until a fresh pass of both `/code-review` and `codex` reports no findings, then
+stop; don't go looking for more once the review is clean.
 
 ## 8. Do not commit or open a PR unless asked
 
-Report what changed and that tests/analyze are clean, then stop. When the user
-explicitly asks to commit and/or open a PR:
+Report what changed and that tests/analyze/review are clean, then stop. When the
+user explicitly asks to commit and/or open a PR:
 - Create a feature branch — never commit or push directly to `master`. Follow this
   repo's existing convention: `<type>/issue-<N>-<slug>` (see `git branch -a` for
   examples), where `<type>` is a Conventional Commits type (`feat`, `fix`, `refactor`,
@@ -126,3 +137,17 @@ explicitly asks to commit and/or open a PR:
 - Stage only the files relevant to this issue by name — never `git add -A`.
 - Commit with a Conventional Commits message and the `Co-Authored-By` trailer.
 - Push and `gh pr create` with a summary and a test plan checklist; return the PR URL.
+
+## 9. Watch PR checks until green
+
+Once a PR exists (from step 8), don't consider the task done at "PR opened" — watch
+its checks through to a result:
+- `gh pr checks <PR-number-or-URL> --watch` to block until all checks report a final
+  status (use the `Monitor` tool or `run_in_background` for this if it runs long;
+  don't sit there re-polling manually).
+- If any check fails, inspect its log (`gh run view <run-id> --log-failed` or the
+  PR's checks output) to find the actual cause, fix it locally, re-run
+  `flutter-test`/`flutter-analyze` as appropriate, commit, and push to the same
+  branch.
+- After pushing a fix, go back to watching — repeat until every check is green.
+- Only report the PR as done once `gh pr checks` shows all checks passing.
