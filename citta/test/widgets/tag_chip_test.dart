@@ -8,7 +8,7 @@ import 'package:citta/theme/app_theme.dart';
 import 'package:citta/widgets/tag_chip.dart';
 
 Widget _app(Widget child) => MaterialApp(
-      theme: AppTheme.lightTheme,
+      theme: AppTheme.lightTheme(),
       home: Scaffold(body: child),
     );
 

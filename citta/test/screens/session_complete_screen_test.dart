@@ -227,7 +227,7 @@ void main() {
     testWidgets('check icon and duration text use light theme colors',
         (tester) async {
       await tester.pumpWidget(
-        _themedTestApp(_fakeAppState(), AppTheme.lightTheme),
+        _themedTestApp(_fakeAppState(), AppTheme.lightTheme()),
       );
 
       final icon =
@@ -244,7 +244,7 @@ void main() {
     testWidgets('check icon and duration text adapt to the dark theme',
         (tester) async {
       await tester.pumpWidget(
-        _themedTestApp(_fakeAppState(), AppTheme.darkTheme),
+        _themedTestApp(_fakeAppState(), AppTheme.darkTheme()),
       );
 
       final icon =

@@ -92,7 +92,7 @@ Widget _testApp(AppState appState) => ChangeNotifierProvider<AppState>.value(
 Widget _lightTestApp(AppState appState) => ChangeNotifierProvider<AppState>.value(
       value: appState,
       child: MaterialApp(
-        theme: AppTheme.lightTheme,
+        theme: AppTheme.lightTheme(),
         localizationsDelegates: const [
           AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,
@@ -106,7 +106,7 @@ Widget _lightTestApp(AppState appState) => ChangeNotifierProvider<AppState>.valu
 Widget _darkTestApp(AppState appState) => ChangeNotifierProvider<AppState>.value(
       value: appState,
       child: MaterialApp(
-        theme: AppTheme.darkTheme,
+        theme: AppTheme.darkTheme(),
         localizationsDelegates: const [
           AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,

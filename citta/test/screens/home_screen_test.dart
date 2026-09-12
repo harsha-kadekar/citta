@@ -694,7 +694,7 @@ void main() {
       '12. idle-state start button never hardcodes light-theme AppColors.primary '
       'under the dark theme',
       (tester) async {
-        await tester.pumpWidget(_testApp(appState, theme: AppTheme.darkTheme));
+        await tester.pumpWidget(_testApp(appState, theme: AppTheme.darkTheme()));
         await tester.pump();
 
         final lightPrimaryCircles = find.byWidgetPredicate((widget) =>
@@ -712,7 +712,7 @@ void main() {
       '13. config-summary tune icon/label adapt to DarkAppColors.textSecondary '
       'under the dark theme',
       (tester) async {
-        await tester.pumpWidget(_testApp(appState, theme: AppTheme.darkTheme));
+        await tester.pumpWidget(_testApp(appState, theme: AppTheme.darkTheme()));
         await tester.pump();
 
         final tuneIcon = tester.widget<Icon>(find.byIcon(Icons.tune));
@@ -727,7 +727,7 @@ void main() {
       '14. start button label uses colorScheme.onPrimary so it stays readable '
       'against the dark-theme primary background (codex review, issue #60)',
       (tester) async {
-        await tester.pumpWidget(_testApp(appState, theme: AppTheme.darkTheme));
+        await tester.pumpWidget(_testApp(appState, theme: AppTheme.darkTheme()));
         await tester.pump();
 
         final beginText = tester.widget<Text>(find.text('Begin'));

@@ -1896,3 +1896,24 @@ existing style of repeating the same `AppColors.*` constant across multiple `The
 Re-ran `flutter test`/`flutter analyze` after this investigation (no code changed): 739 tests passed,
 no analyzer issues.
 ---
+
+## Review: issue #64 — Refactor AppTheme to support multiple named color palettes
+
+## Findings
+
+No actionable defects were identified in the reviewed changes.
+
+## Verification
+
+- Ran `codex review --uncommitted --title "issue #64: Refactor AppTheme to support multiple named
+  color palettes"` against the full working-tree diff (new `lib/theme/app_palette.dart` and
+  `test/theme/app_palette_test.dart`, plus the mechanical `AppTheme.lightTheme`/`darkTheme` getter ->
+  method-call updates across `lib/main.dart` and 12 test files). Result: no actionable defects.
+- This ran after the `/code-review` pass (7a) was already fully resolved: that pass's one finding
+  (`PaletteColors.primaryDark`/`secondaryLight`/`accent` were required constructor fields never read by
+  `toColorScheme`/`AppTheme._themeFor`) was fixed by removing the three dead fields from the class and
+  all 14 palette instances, which also incidentally cleared up a latent inconsistency it had already
+  caused (`_amberDark.primaryDark` was still the old pre-tuning amber primary hex, unnoticed because
+  nothing read it).
+- Re-ran `flutter test` (748 tests) and `flutter analyze` after the codex pass with no further changes:
+  all tests passed, no analyzer issues.
