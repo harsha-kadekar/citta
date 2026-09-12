@@ -57,7 +57,7 @@ class StatsScreen extends StatelessWidget {
                 Expanded(
                   child: _StatCard(
                     icon: Icons.local_fire_department,
-                    iconColor: const Color(0xFFE8834A),
+                    iconColor: colorScheme.tertiary,
                     label: l10n.statsCurrentStreak,
                     value: '${stats.currentStreak}',
                     unit: l10n.statsDays(stats.currentStreak),
