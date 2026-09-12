@@ -4,7 +4,6 @@ import 'package:citta/l10n/app_localizations.dart';
 import '../../providers/app_state.dart';
 import '../../services/audio_service.dart';
 import '../../models/audio_source.dart';
-import '../../theme/app_theme.dart';
 import 'audio_picker.dart';
 import 'settings_widgets.dart';
 
@@ -123,7 +122,9 @@ class BellsSection extends StatelessWidget {
                 fontWeight: currentValue.isNone
                     ? FontWeight.w600
                     : FontWeight.w400,
-                color: currentValue.isNone ? AppColors.primary : null,
+                color: currentValue.isNone
+                    ? Theme.of(context).colorScheme.primary
+                    : null,
               ),
             ),
           ),
@@ -143,7 +144,9 @@ class BellsSection extends StatelessWidget {
                         fontWeight: currentValue == bellId
                             ? FontWeight.w600
                             : FontWeight.w400,
-                        color: currentValue == bellId ? AppColors.primary : null,
+                        color: currentValue == bellId
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
                       ),
                     ),
                   ),
@@ -198,7 +201,7 @@ class BellsSection extends StatelessWidget {
                               ? FontWeight.w600
                               : FontWeight.w400,
                       color: appState.config.intervalDuration == mins * 60
-                          ? AppColors.primary
+                          ? Theme.of(context).colorScheme.primary
                           : null,
                     ),
                   ),
