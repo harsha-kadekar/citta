@@ -1917,3 +1917,29 @@ No actionable defects were identified in the reviewed changes.
   nothing read it).
 - Re-ran `flutter test` (748 tests) and `flutter analyze` after the codex pass with no further changes:
   all tests passed, no analyzer issues.
+
+---
+
+## Review: issue #65 — Add ConfigModel.colorPalette field and persistence
+
+## Findings
+
+No actionable defects were identified in the reviewed changes.
+
+## Verification
+
+- This ran after the `/code-review` pass (7a) was already clean (no findings) — `ConfigModel`'s new
+  `colorPalette` string field was checked against the existing `themeMode`/`language` pattern
+  (constructor default, `fromJson`, `toJson`, `copyWith`, `==`, `hashCode`), a repo-wide grep confirmed
+  no other file references `colorPalette` yet, and `sanitizeForDevice()` correctly leaves it untouched
+  since a palette id isn't device-local.
+- Ran `codex review --uncommitted --title "issue #65: Add ConfigModel.colorPalette field and
+  persistence"` (with `-c sandbox_mode="danger-full-access"`, needed because Codex's own bubblewrap
+  sandbox cannot nest inside this session's sandbox) against the working-tree diff (`config_model.dart`
+  and its test file). Result: "consistently initialized, copied, serialized, deserialized, and included
+  in equality/hash calculations. Targeted tests and static analysis pass" — no actionable defects.
+- Ran `flutter test` (68 tests in `config_model_test.dart`, including 6 new tests for `colorPalette`
+  default/round-trip/equality/`copyWith`) and `flutter analyze`: all passed, no analyzer issues. Full
+  suite (`flutter test`) shows 13 pre-existing failures unrelated to this change (confirmed identical
+  failure set, modulo normal flakiness, on `master` before this change) — all in unrelated widget/timing
+  tests (e.g. `calendar_view_test.dart`, `unlock_screen_test.dart`, `tag_chip_test.dart`).

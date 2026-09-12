@@ -29,6 +29,11 @@ class ConfigModel {
   static const AppLanguage defaultLanguage = AppLanguage.system;
   static const bool defaultHasCompletedLanguageSelection = false;
   static const bool defaultHasCompletedFirstTimeSetup = false;
+  // Matches AppPalette.sage (lib/theme/app_palette.dart), today's original
+  // look. Stored as a plain string id rather than the AppPalette enum so
+  // this model layer doesn't depend on the theme layer; resolving the id to
+  // a palette is the UI's job (see issue #19).
+  static const String defaultColorPalette = 'sage';
   static const List<String> defaultTags = ['calm', 'restless', 'deep', 'distracted'];
   static const List<String> defaultQuoteSources = [
     'subhashita',
@@ -53,6 +58,7 @@ class ConfigModel {
   final String? userName;
   final AppThemeMode themeMode;
   final AppLanguage language;
+  final String colorPalette;
   // Distinguishes "never asked" from "user explicitly chose System Default"
   // for the first-launch language picker (issue #57) — `language ==
   // AppLanguage.system` alone can't tell those apart.
@@ -80,6 +86,7 @@ class ConfigModel {
     this.userName,
     this.themeMode = defaultThemeMode,
     this.language = defaultLanguage,
+    this.colorPalette = defaultColorPalette,
     this.hasCompletedLanguageSelection = defaultHasCompletedLanguageSelection,
     this.hasCompletedFirstTimeSetup = defaultHasCompletedFirstTimeSetup,
     List<String>? tags,
@@ -117,6 +124,7 @@ class ConfigModel {
           fallback: defaultThemeMode),
       language: AppLanguageStorage.fromStorageString(json['language'] as String?,
           fallback: defaultLanguage),
+      colorPalette: json['colorPalette'] as String? ?? defaultColorPalette,
       // Absent (not merely false) means this JSON was decoded from a real
       // config.json/import predating this field — a genuinely fresh
       // install never reaches fromJson (see StorageService.loadConfig,
@@ -151,6 +159,7 @@ class ConfigModel {
       'userName': userName,
       'themeMode': themeMode.toStorageString(),
       'language': language.toStorageString(),
+      'colorPalette': colorPalette,
       'hasCompletedLanguageSelection': hasCompletedLanguageSelection,
       'hasCompletedFirstTimeSetup': hasCompletedFirstTimeSetup,
       'tags': tags,
@@ -174,6 +183,7 @@ class ConfigModel {
     Object? userName = _unset,
     AppThemeMode? themeMode,
     AppLanguage? language,
+    String? colorPalette,
     bool? hasCompletedLanguageSelection,
     bool? hasCompletedFirstTimeSetup,
     List<String>? tags,
@@ -206,6 +216,7 @@ class ConfigModel {
           : userName as String?,
       themeMode: themeMode ?? this.themeMode,
       language: language ?? this.language,
+      colorPalette: colorPalette ?? this.colorPalette,
       hasCompletedLanguageSelection:
           hasCompletedLanguageSelection ?? this.hasCompletedLanguageSelection,
       hasCompletedFirstTimeSetup:
@@ -232,6 +243,7 @@ class ConfigModel {
           userName == other.userName &&
           themeMode == other.themeMode &&
           language == other.language &&
+          colorPalette == other.colorPalette &&
           hasCompletedLanguageSelection == other.hasCompletedLanguageSelection &&
           hasCompletedFirstTimeSetup == other.hasCompletedFirstTimeSetup &&
           listEquals(tags, other.tags) &&
@@ -251,6 +263,7 @@ class ConfigModel {
         userName,
         themeMode,
         language,
+        colorPalette,
         hasCompletedLanguageSelection,
         hasCompletedFirstTimeSetup,
         Object.hashAll(tags),

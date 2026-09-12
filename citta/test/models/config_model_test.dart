@@ -67,6 +67,20 @@ void main() {
     });
   });
 
+  group('ConfigModel.copyWith colorPalette', () {
+    test('copyWith(colorPalette: ...) updates the value', () {
+      final config = ConfigModel(colorPalette: 'sage');
+      final updated = config.copyWith(colorPalette: 'forest');
+      expect(updated.colorPalette, equals('forest'));
+    });
+
+    test('copyWith() without colorPalette preserves existing value', () {
+      final config = ConfigModel(colorPalette: 'clay');
+      final updated = config.copyWith(calendarViewEnabled: true);
+      expect(updated.colorPalette, equals('clay'));
+    });
+  });
+
   group('ConfigModel list immutability', () {
     test('tags list is unmodifiable after construction — add throws', () {
       final config = ConfigModel(tags: ['calm']);
@@ -229,6 +243,12 @@ void main() {
       expect(a == b, isFalse);
     });
 
+    test('configs differing only in colorPalette are not ==', () {
+      final a = ConfigModel(colorPalette: 'sage');
+      final b = ConfigModel(colorPalette: 'ocean');
+      expect(a == b, isFalse);
+    });
+
     test('ConfigModel.fromJson with no tags key produces a config == to the default', () {
       // hasCompletedLanguageSelection and hasCompletedFirstTimeSetup are
       // seeded explicitly here because an absent key means something
@@ -337,6 +357,11 @@ void main() {
     test('default hasCompletedFirstTimeSetup is false', () {
       expect(ConfigModel().hasCompletedFirstTimeSetup, isFalse);
     });
+
+    test('default colorPalette matches today\'s current look ("sage")', () {
+      expect(ConfigModel().colorPalette, equals('sage'));
+      expect(ConfigModel().colorPalette, equals(ConfigModel.defaultColorPalette));
+    });
   });
 
   group('ConfigModel enum fields — JSON round trip', () {
@@ -433,6 +458,17 @@ void main() {
 
       final withoutMusic = ConfigModel();
       expect(ConfigModel.fromJson(withoutMusic.toJson()).backgroundMusic, isNull);
+    });
+
+    test('colorPalette toJson/fromJson round-trips a non-default value', () {
+      final config = ConfigModel(colorPalette: 'ocean');
+      final restored = ConfigModel.fromJson(config.toJson());
+      expect(restored.colorPalette, equals('ocean'));
+    });
+
+    test('fromJson defaults colorPalette when the key is absent', () {
+      final config = ConfigModel.fromJson(<String, dynamic>{});
+      expect(config.colorPalette, equals(ConfigModel.defaultColorPalette));
     });
   });
 
