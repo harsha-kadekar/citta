@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../services/timer_service.dart';
-import '../theme/app_theme.dart';
 
 class TimerControls extends StatelessWidget {
   final TimerService timerService;
@@ -19,6 +18,7 @@ class TimerControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = timerService.state;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -27,7 +27,7 @@ class TimerControls extends StatelessWidget {
           // Pause button
           _CircleButton(
             icon: Icons.pause_rounded,
-            color: AppColors.secondary,
+            color: colorScheme.secondary,
             onTap: onPause,
             size: 56,
           ),
@@ -35,7 +35,7 @@ class TimerControls extends StatelessWidget {
           // Stop button
           _CircleButton(
             icon: Icons.stop_rounded,
-            color: AppColors.error,
+            color: colorScheme.error,
             onTap: onStop,
             size: 56,
           ),
@@ -43,7 +43,7 @@ class TimerControls extends StatelessWidget {
           // Resume button
           _CircleButton(
             icon: Icons.play_arrow_rounded,
-            color: AppColors.primary,
+            color: colorScheme.primary,
             onTap: onResume,
             size: 56,
           ),
@@ -51,7 +51,7 @@ class TimerControls extends StatelessWidget {
           // Stop button
           _CircleButton(
             icon: Icons.stop_rounded,
-            color: AppColors.error,
+            color: colorScheme.error,
             onTap: onStop,
             size: 56,
           ),
