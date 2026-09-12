@@ -74,7 +74,7 @@ void main() {
   testWidgets('notes box border uses the light theme divider color',
       (tester) async {
     await tester.pumpWidget(
-      _app(_sessionWithNotes('some notes'), theme: AppTheme.lightTheme),
+      _app(_sessionWithNotes('some notes'), theme: AppTheme.lightTheme()),
     );
     await tester.pump();
 
@@ -86,7 +86,7 @@ void main() {
   testWidgets('notes box border adapts to the dark theme divider color',
       (tester) async {
     await tester.pumpWidget(
-      _app(_sessionWithNotes('some notes'), theme: AppTheme.darkTheme),
+      _app(_sessionWithNotes('some notes'), theme: AppTheme.darkTheme()),
     );
     await tester.pump();
 
@@ -102,7 +102,7 @@ void main() {
       'a markdown horizontal rule in notes uses the light theme divider '
       'color', (tester) async {
     await tester.pumpWidget(
-      _app(_sessionWithNotes('---'), theme: AppTheme.lightTheme),
+      _app(_sessionWithNotes('---'), theme: AppTheme.lightTheme()),
     );
     await tester.pump();
 
@@ -115,7 +115,7 @@ void main() {
       'a markdown horizontal rule in notes adapts to the dark theme divider '
       'color', (tester) async {
     await tester.pumpWidget(
-      _app(_sessionWithNotes('---'), theme: AppTheme.darkTheme),
+      _app(_sessionWithNotes('---'), theme: AppTheme.darkTheme()),
     );
     await tester.pump();
 

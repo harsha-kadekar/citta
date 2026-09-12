@@ -28,7 +28,7 @@ void main() {
       final timerService = TimerService(ticker: _FakeTicker())..start();
 
       await tester.pumpWidget(_app(
-        AppTheme.lightTheme,
+        AppTheme.lightTheme(),
         TimerControls(
           timerService: timerService,
           onPause: () {},
@@ -49,7 +49,7 @@ void main() {
       final timerService = TimerService(ticker: _FakeTicker())..start();
 
       await tester.pumpWidget(_app(
-        AppTheme.darkTheme,
+        AppTheme.darkTheme(),
         TimerControls(
           timerService: timerService,
           onPause: () {},
@@ -78,7 +78,7 @@ void main() {
         ..pause();
 
       await tester.pumpWidget(_app(
-        AppTheme.lightTheme,
+        AppTheme.lightTheme(),
         TimerControls(
           timerService: timerService,
           onPause: () {},
@@ -102,7 +102,7 @@ void main() {
         ..pause();
 
       await tester.pumpWidget(_app(
-        AppTheme.darkTheme,
+        AppTheme.darkTheme(),
         TimerControls(
           timerService: timerService,
           onPause: () {},

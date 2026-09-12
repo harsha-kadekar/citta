@@ -12,12 +12,12 @@ void main() {
     // opaque black in light theme, white in dark theme — rather than the
     // intended beige/gray divider.
     test('light theme dividerColor is the light divider color', () {
-      expect(AppTheme.lightTheme.dividerColor, AppColors.divider);
+      expect(AppTheme.lightTheme().dividerColor, AppColors.divider);
     });
 
     test('dark theme dividerColor is the dark divider color', () {
-      expect(AppTheme.darkTheme.dividerColor, DarkAppColors.divider);
-      expect(AppTheme.darkTheme.dividerColor, isNot(AppColors.divider));
+      expect(AppTheme.darkTheme().dividerColor, DarkAppColors.divider);
+      expect(AppTheme.darkTheme().dividerColor, isNot(AppColors.divider));
     });
   });
 }

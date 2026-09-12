@@ -38,8 +38,8 @@ class CittaApp extends StatelessWidget {
           return MaterialApp(
             title: 'Citta',
             debugShowCheckedModeBanner: false,
-            theme: AppTheme.lightTheme,
-            darkTheme: AppTheme.darkTheme,
+            theme: AppTheme.lightTheme(),
+            darkTheme: AppTheme.darkTheme(),
             themeMode: AppTheme.themeMode(appState.config.themeMode),
             locale: appState.locale,
             localizationsDelegates: const [

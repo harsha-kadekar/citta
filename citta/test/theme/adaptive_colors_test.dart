@@ -11,7 +11,7 @@ void main() {
       late BuildContext capturedContext;
 
       await tester.pumpWidget(MaterialApp(
-        theme: AppTheme.lightTheme,
+        theme: AppTheme.lightTheme(),
         home: Builder(
           builder: (context) {
             capturedContext = context;
@@ -35,7 +35,7 @@ void main() {
       late BuildContext capturedContext;
 
       await tester.pumpWidget(MaterialApp(
-        theme: AppTheme.darkTheme,
+        theme: AppTheme.darkTheme(),
         home: Builder(
           builder: (context) {
             capturedContext = context;

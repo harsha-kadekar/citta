@@ -22,7 +22,7 @@ void main() {
   group('TimerDisplay — countdown ring color', () {
     testWidgets('background ring uses the light theme divider color',
         (tester) async {
-      await tester.pumpWidget(_app(AppTheme.lightTheme, TimerService()));
+      await tester.pumpWidget(_app(AppTheme.lightTheme(), TimerService()));
 
       final ring =
           tester.widget<CircularProgressIndicator>(find.byType(CircularProgressIndicator));
@@ -31,7 +31,7 @@ void main() {
 
     testWidgets('background ring adapts to the dark theme divider color',
         (tester) async {
-      await tester.pumpWidget(_app(AppTheme.darkTheme, TimerService()));
+      await tester.pumpWidget(_app(AppTheme.darkTheme(), TimerService()));
 
       final ring =
           tester.widget<CircularProgressIndicator>(find.byType(CircularProgressIndicator));

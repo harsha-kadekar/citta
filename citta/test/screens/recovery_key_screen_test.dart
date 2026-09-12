@@ -338,7 +338,7 @@ void main() {
         (tester) async {
       await _pumpAndSettle(
         tester,
-        _wrap(appState, const RecoveryKeyScreen(), theme: AppTheme.lightTheme),
+        _wrap(appState, const RecoveryKeyScreen(), theme: AppTheme.lightTheme()),
       );
 
       final decoration =
@@ -350,7 +350,7 @@ void main() {
         'color', (tester) async {
       await _pumpAndSettle(
         tester,
-        _wrap(appState, const RecoveryKeyScreen(), theme: AppTheme.darkTheme),
+        _wrap(appState, const RecoveryKeyScreen(), theme: AppTheme.darkTheme()),
       );
 
       final decoration =

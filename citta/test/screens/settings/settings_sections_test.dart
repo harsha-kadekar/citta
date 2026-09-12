@@ -126,8 +126,8 @@ Widget _themedWrap(AppState appState, Widget child, {required bool dark}) =>
     ChangeNotifierProvider<AppState>.value(
       value: appState,
       child: MaterialApp(
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
+        theme: AppTheme.lightTheme(),
+        darkTheme: AppTheme.darkTheme(),
         themeMode: dark ? ThemeMode.dark : ThemeMode.light,
         localizationsDelegates: const [
           AppLocalizations.delegate,

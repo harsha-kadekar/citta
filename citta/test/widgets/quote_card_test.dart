@@ -36,7 +36,7 @@ void main() {
   group('QuoteCard — light theme colors', () {
     testWidgets('card surface and shadow use the light theme colors',
         (tester) async {
-      await tester.pumpWidget(_app(AppTheme.lightTheme));
+      await tester.pumpWidget(_app(AppTheme.lightTheme()));
 
       final container = tester.widget<Container>(_cardContainer());
       final decoration = container.decoration as BoxDecoration;
@@ -48,7 +48,7 @@ void main() {
     });
 
     testWidgets('text styles use the light theme colors', (tester) async {
-      await tester.pumpWidget(_app(AppTheme.lightTheme));
+      await tester.pumpWidget(_app(AppTheme.lightTheme()));
 
       final original = tester.widget<Text>(find.text(_quote.originalText));
       expect(original.style?.color, AppColors.textPrimary);
@@ -61,7 +61,7 @@ void main() {
     });
 
     testWidgets('divider uses the light theme divider color', (tester) async {
-      await tester.pumpWidget(_app(AppTheme.lightTheme));
+      await tester.pumpWidget(_app(AppTheme.lightTheme()));
 
       final divider = tester.widget<Container>(_dividerContainer());
       expect(divider.color, AppColors.divider);
@@ -71,7 +71,7 @@ void main() {
   group('QuoteCard — dark theme colors', () {
     testWidgets('card surface and shadow adapt to the dark theme',
         (tester) async {
-      await tester.pumpWidget(_app(AppTheme.darkTheme));
+      await tester.pumpWidget(_app(AppTheme.darkTheme()));
 
       final container = tester.widget<Container>(_cardContainer());
       final decoration = container.decoration as BoxDecoration;
@@ -84,7 +84,7 @@ void main() {
     });
 
     testWidgets('text styles adapt to the dark theme', (tester) async {
-      await tester.pumpWidget(_app(AppTheme.darkTheme));
+      await tester.pumpWidget(_app(AppTheme.darkTheme()));
 
       final original = tester.widget<Text>(find.text(_quote.originalText));
       expect(original.style?.color, DarkAppColors.textPrimary);
@@ -101,7 +101,7 @@ void main() {
 
     testWidgets('divider adapts to the dark theme divider color',
         (tester) async {
-      await tester.pumpWidget(_app(AppTheme.darkTheme));
+      await tester.pumpWidget(_app(AppTheme.darkTheme()));
 
       final divider = tester.widget<Container>(_dividerContainer());
       expect(divider.color, DarkAppColors.divider);
