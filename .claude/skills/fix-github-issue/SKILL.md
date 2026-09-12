@@ -83,22 +83,31 @@ explicit confirmation ("I AUTHORIZE SKIPPING TESTS") rather than quietly skippin
 
 ## 7. Code review — run it, don't wait to be asked
 
-Before reporting the issue done, run a dedicated review pass covering both of the
-following:
+Before reporting the issue done, run a dedicated review pass. **Run `/code-review`
+and `codex` sequentially, never in parallel or overlapping** — finish 7a completely
+(findings fixed, tests/analyze green) before starting 7b. Running them at the same
+time has caused real damage: a `/code-review` finder subagent independently invoked
+`codex` on its own initiative mid-run, collided with a concurrently-running manual
+`codex review`, and the cleanup revert of that subagent's rogue edits clobbered
+legitimate fixes already applied to the working tree. Sequencing removes the window
+for that collision entirely.
 
-**a. `/code-review`** — invoke the `code-review` skill against the current diff and
-work through every finding it reports.
+**7a. `/code-review`** — invoke the `code-review` skill against the current diff and
+work through every finding it reports using the fix/verify process below. Do not
+start 7b until this is fully done: findings fixed, regression tests added and
+verified, full suite + analyze green.
 
-**b. `codex`, if available** — check with `command -v codex`. If present, run
+**7b. `codex`, if available** — check with `command -v codex`. If present, run
 `codex review --uncommitted --title "issue #<N>: <title>"` (assuming `codex` is
 already authenticated) and document its findings by appending a new entry to
 `docs/codex-review` (create the file if it doesn't exist yet) in the same format as
 any existing entries — `## Review: issue #<N> — <title>`, then `## Findings`, then
 `## Verification`, separated from the prior entry by a `---` line — rather than
 pasting the raw CLI transcript. If `codex` isn't available, say so and skip 7b; don't
-block on it.
+block on it. Work through its findings using the same process, again to completion
+before moving on.
 
-Work through findings from *both* sources using the same process:
+Fix/verify process for findings from either source:
 
 1. **Understand the exact failure scenario** the finding describes before touching
    code — don't pattern-match on the summary alone.
@@ -115,15 +124,15 @@ Work through findings from *both* sources using the same process:
    say so explicitly, do the smallest correct fix, and document the remaining gap
    in your summary rather than silently scoping it down.
 
-**If `/code-review` and `codex` disagree on how to fix the same underlying issue**,
-do not pick a side yourself — stop and surface the conflict to the user with
+**If `/code-review` (7a) and `codex` (7b) disagree on how to fix the same underlying
+issue**, do not pick a side yourself — stop and surface the conflict to the user with
 `AskUserQuestion`, laying out both proposed fixes and their trade-offs, and proceed
 with whichever one they pick.
 
 If asked to "check for new findings" on a later pass, re-read `docs/codex-review` for
 content added *since your last pass* (compare line counts or timestamps) rather than
-reprocessing the whole file — these logs are append-only across rounds. Repeat this
-step until a fresh pass of both `/code-review` and `codex` reports no findings, then
+reprocessing the whole file — these logs are append-only across rounds. Repeat 7a
+then 7b, still sequentially, until a fresh pass of both reports no findings, then
 stop; don't go looking for more once the review is clean.
 
 ## 8. Do not commit or open a PR unless asked
