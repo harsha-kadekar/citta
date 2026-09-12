@@ -15,6 +15,8 @@ import 'package:citta/services/audio_service.dart';
 import 'package:citta/services/quote_service.dart';
 import 'package:citta/services/stats_service.dart';
 import 'package:citta/services/storage_service.dart';
+import 'package:citta/theme/app_theme.dart';
+import 'package:citta/utils/formatters.dart';
 
 class _FakeAudioPlayer implements AudioPlayerBase {
   @override
@@ -83,6 +85,21 @@ Widget _testApp(AppState appState, {List<NavigatorObserver> observers = const []
       value: appState,
       child: MaterialApp(
         navigatorObservers: observers,
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: SessionCompleteScreen(session: _session),
+      ),
+    );
+
+Widget _themedTestApp(AppState appState, ThemeData theme) =>
+    ChangeNotifierProvider<AppState>.value(
+      value: appState,
+      child: MaterialApp(
+        theme: theme,
         localizationsDelegates: const [
           AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,
@@ -205,4 +222,44 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  group('SessionCompleteScreen — theme colors', () {
+    testWidgets('check icon and duration text use light theme colors',
+        (tester) async {
+      await tester.pumpWidget(
+        _themedTestApp(_fakeAppState(), AppTheme.lightTheme),
+      );
+
+      final icon =
+          tester.widget<Icon>(find.byIcon(Icons.check_circle_outline));
+      expect(icon.color, AppColors.primary,
+          reason: 'the check icon must come from colorScheme.primary');
+
+      final duration =
+          tester.widget<Text>(find.text(formatDuration(_session.duration)));
+      expect(duration.style?.color, AppColors.textSecondary,
+          reason: 'the duration text must come from adaptiveColors.textSecondary');
+    });
+
+    testWidgets('check icon and duration text adapt to the dark theme',
+        (tester) async {
+      await tester.pumpWidget(
+        _themedTestApp(_fakeAppState(), AppTheme.darkTheme),
+      );
+
+      final icon =
+          tester.widget<Icon>(find.byIcon(Icons.check_circle_outline));
+      expect(icon.color, DarkAppColors.primary);
+      expect(icon.color, isNot(AppColors.primary),
+          reason: 'the check icon must not stay pinned to the light-theme '
+              'literal under dark theme');
+
+      final duration =
+          tester.widget<Text>(find.text(formatDuration(_session.duration)));
+      expect(duration.style?.color, DarkAppColors.textSecondary);
+      expect(duration.style?.color, isNot(AppColors.textSecondary),
+          reason: 'the duration text must not stay pinned to the light-theme '
+              'literal under dark theme');
+    });
+  });
 }

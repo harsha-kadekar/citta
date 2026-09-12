@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:citta/l10n/app_localizations.dart';
 import '../services/timer_service.dart';
 
-
 class TimerDisplay extends StatelessWidget {
   final TimerService timerService;
 

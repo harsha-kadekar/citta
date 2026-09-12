@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:citta/l10n/app_localizations.dart';
 import '../models/session_model.dart';
-import '../theme/app_theme.dart';
+import '../theme/adaptive_colors.dart';
 import '../utils/formatters.dart';
 import 'notes_screen.dart';
 
@@ -61,10 +61,10 @@ class _SessionCompleteScreenState extends State<SessionCompleteScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
+              Icon(
                 Icons.check_circle_outline,
                 size: 80,
-                color: AppColors.success,
+                color: Theme.of(context).colorScheme.primary,
               ),
               const SizedBox(height: 24),
               Text(
@@ -77,7 +77,7 @@ class _SessionCompleteScreenState extends State<SessionCompleteScreen> {
               Text(
                 formatDuration(widget.session.duration),
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: AppColors.textSecondary,
+                      color: context.adaptiveColors.textSecondary,
                     ),
               ),
               const SizedBox(height: 40),

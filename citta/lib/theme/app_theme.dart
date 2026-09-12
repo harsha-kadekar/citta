@@ -19,7 +19,6 @@ class AppColors {
   static const Color textHint = Color(0xFFA0A0A0);
   static const Color divider = Color(0xFFE5E0DA);
   static const Color error = Color(0xFFB85450);
-  static const Color success = Color(0xFF5B7553);
   static const Color cardShadow = Color(0x0F000000);
 }
 
@@ -40,8 +39,53 @@ class DarkAppColors {
   static const Color textHint = Color(0xFF787470);
   static const Color divider = Color(0xFF3D3D3D);
   static const Color error = Color(0xFFCF6B67);
-  static const Color success = Color(0xFF8AAF7E);
   static const Color cardShadow = Color(0x30000000);
+}
+
+/// The subset of [AppColors]/[DarkAppColors] that has no equivalent in
+/// [ColorScheme] and would otherwise need manual brightness branching at
+/// every call site.
+class AdaptiveColors {
+  final Color surfaceVariant;
+  final Color textPrimary;
+  final Color textSecondary;
+  final Color textHint;
+  final Color cardShadow;
+  final Color accent;
+
+  const AdaptiveColors({
+    required this.surfaceVariant,
+    required this.textPrimary,
+    required this.textSecondary,
+    required this.textHint,
+    required this.cardShadow,
+    required this.accent,
+  });
+
+  static const light = AdaptiveColors(
+    surfaceVariant: AppColors.surfaceVariant,
+    textPrimary: AppColors.textPrimary,
+    textSecondary: AppColors.textSecondary,
+    textHint: AppColors.textHint,
+    cardShadow: AppColors.cardShadow,
+    accent: AppColors.accent,
+  );
+
+  static const dark = AdaptiveColors(
+    surfaceVariant: DarkAppColors.surfaceVariant,
+    textPrimary: DarkAppColors.textPrimary,
+    textSecondary: DarkAppColors.textSecondary,
+    textHint: DarkAppColors.textHint,
+    cardShadow: DarkAppColors.cardShadow,
+    accent: DarkAppColors.accent,
+  );
+}
+
+extension AdaptiveColorsExtension on BuildContext {
+  bool get isDarkMode => Theme.of(this).brightness == Brightness.dark;
+
+  AdaptiveColors get adaptiveColors =>
+      isDarkMode ? AdaptiveColors.dark : AdaptiveColors.light;
 }
 
 class AppTheme {
@@ -61,6 +105,7 @@ class AppTheme {
         error: AppColors.error,
         onError: Colors.white,
       ),
+      dividerColor: AppColors.divider,
       scaffoldBackgroundColor: AppColors.background,
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.background,
@@ -220,6 +265,7 @@ class AppTheme {
         error: DarkAppColors.error,
         onError: Colors.black,
       ),
+      dividerColor: DarkAppColors.divider,
       scaffoldBackgroundColor: DarkAppColors.background,
       appBarTheme: const AppBarTheme(
         backgroundColor: DarkAppColors.background,
