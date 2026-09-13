@@ -173,6 +173,9 @@ class AppLocalizationsTe extends AppLocalizations {
   String get settingsLanguage => 'భాష';
 
   @override
+  String get settingsColorPalette => 'Color Palette';
+
+  @override
   String get settingsLanguageSystem => 'సిస్టమ్ డిఫాల్ట్';
 
   @override

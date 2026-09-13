@@ -173,6 +173,9 @@ class AppLocalizationsMr extends AppLocalizations {
   String get settingsLanguage => 'भाषा';
 
   @override
+  String get settingsColorPalette => 'Color Palette';
+
+  @override
   String get settingsLanguageSystem => 'सिस्टम डीफॉल्ट';
 
   @override

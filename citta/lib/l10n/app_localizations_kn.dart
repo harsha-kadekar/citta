@@ -173,6 +173,9 @@ class AppLocalizationsKn extends AppLocalizations {
   String get settingsLanguage => 'ಭಾಷೆ';
 
   @override
+  String get settingsColorPalette => 'Color Palette';
+
+  @override
   String get settingsLanguageSystem => 'ವ್ಯವಸ್ಥೆ ಡಿಫಾಲ್ಟ್';
 
   @override

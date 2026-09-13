@@ -164,6 +164,9 @@
   "settingsLanguage": "Language",
   "@settingsLanguage": {},
 
+  "settingsColorPalette": "Color Palette",
+  "@settingsColorPalette": {},
+
   "settingsLanguageSystem": "System Default",
   "@settingsLanguageSystem": {},
 

@@ -4,6 +4,7 @@ import 'package:citta/l10n/app_localizations.dart';
 import 'package:citta/l10n/fallback_localizations_delegate.dart';
 import 'package:provider/provider.dart';
 import 'theme/app_theme.dart';
+import 'theme/app_palette.dart';
 import 'providers/app_state.dart';
 import 'services/storage_service.dart';
 import 'services/quote_service.dart';
@@ -35,11 +36,13 @@ class CittaApp extends StatelessWidget {
       )..initialize(),
       child: Consumer<AppState>(
         builder: (context, appState, _) {
+          final palette = AppPaletteStorage.fromStorageString(
+              appState.config.colorPalette);
           return MaterialApp(
             title: 'Citta',
             debugShowCheckedModeBanner: false,
-            theme: AppTheme.lightTheme(),
-            darkTheme: AppTheme.darkTheme(),
+            theme: AppTheme.lightTheme(palette),
+            darkTheme: AppTheme.darkTheme(palette),
             themeMode: AppTheme.themeMode(appState.config.themeMode),
             locale: appState.locale,
             localizationsDelegates: const [

@@ -442,6 +442,12 @@ abstract class AppLocalizations {
   /// **'Language'**
   String get settingsLanguage;
 
+  /// No description provided for @settingsColorPalette.
+  ///
+  /// In en, this message translates to:
+  /// **'Color Palette'**
+  String get settingsColorPalette;
+
   /// No description provided for @settingsLanguageSystem.
   ///
   /// In en, this message translates to:

@@ -173,6 +173,9 @@ class AppLocalizationsKok extends AppLocalizations {
   String get settingsLanguage => 'Language';
 
   @override
+  String get settingsColorPalette => 'Color Palette';
+
+  @override
   String get settingsLanguageSystem => 'System Default';
 
   @override

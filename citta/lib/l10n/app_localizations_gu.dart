@@ -173,6 +173,9 @@ class AppLocalizationsGu extends AppLocalizations {
   String get settingsLanguage => 'ભાષા';
 
   @override
+  String get settingsColorPalette => 'Color Palette';
+
+  @override
   String get settingsLanguageSystem => 'સિસ્ટમ ડિફૉલ્ટ';
 
   @override

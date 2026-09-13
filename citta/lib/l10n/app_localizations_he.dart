@@ -174,6 +174,9 @@ class AppLocalizationsHe extends AppLocalizations {
   String get settingsLanguage => 'שפה';
 
   @override
+  String get settingsColorPalette => 'Color Palette';
+
+  @override
   String get settingsLanguageSystem => 'ברירת מחדל של המערכת';
 
   @override

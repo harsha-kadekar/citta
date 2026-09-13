@@ -173,6 +173,9 @@ class AppLocalizationsUr extends AppLocalizations {
   String get settingsLanguage => 'زبان';
 
   @override
+  String get settingsColorPalette => 'Color Palette';
+
+  @override
   String get settingsLanguageSystem => 'سسٹم ڈیفالٹ';
 
   @override
