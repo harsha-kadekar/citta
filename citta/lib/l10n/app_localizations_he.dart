@@ -59,18 +59,17 @@ class AppLocalizationsHe extends AppLocalizations {
   String get welcomeNameHint => 'הזן את שמך';
 
   @override
-  String get firstTimeSetupSubtitle =>
-      'Let\'s set a few things up before you begin.';
+  String get firstTimeSetupSubtitle => 'בואו נגדיר כמה דברים לפני שתתחילו.';
 
   @override
-  String get firstTimeSetupThemeSectionTitle => 'Choose your theme';
+  String get firstTimeSetupThemeSectionTitle => 'בחר את ערכת הנושא שלך';
 
   @override
   String get firstTimeSetupEncryptionAlreadyEnabledNotice =>
-      'Encryption is already enabled for your reflections.';
+      'ההצפנה כבר מופעלת עבור ההרהורים שלך.';
 
   @override
-  String get firstTimeSetupContinueButton => 'Get Started';
+  String get firstTimeSetupContinueButton => 'בואו נתחיל';
 
   @override
   String get homeBegin => 'התחל';
@@ -174,7 +173,7 @@ class AppLocalizationsHe extends AppLocalizations {
   String get settingsLanguage => 'שפה';
 
   @override
-  String get settingsColorPalette => 'Color Palette';
+  String get settingsColorPalette => 'פלטת צבעים';
 
   @override
   String get settingsLanguageSystem => 'ברירת מחדל של המערכת';
@@ -315,37 +314,37 @@ class AppLocalizationsHe extends AppLocalizations {
   }
 
   @override
-  String get settingsExportChooseTitle => 'Export Data';
+  String get settingsExportChooseTitle => 'ייצוא נתונים';
 
   @override
-  String get settingsExportChooseMsg => 'Export as plain JSON, or encrypted?';
+  String get settingsExportChooseMsg => 'לייצא כ-JSON רגיל או מוצפן?';
 
   @override
-  String get settingsExportChoosePlain => 'Plain JSON';
+  String get settingsExportChoosePlain => 'JSON רגיל';
 
   @override
-  String get settingsExportChooseEncrypted => 'Encrypted';
+  String get settingsExportChooseEncrypted => 'מוצפן';
 
   @override
-  String get settingsImportEncryptedTitle => 'Encrypted Export';
+  String get settingsImportEncryptedTitle => 'ייצוא מוצפן';
 
   @override
   String get settingsImportEncryptedSubtitle =>
-      'Enter the password or recovery key used to encrypt this export.';
+      'הזן את הסיסמה או מפתח השחזור ששימש להצפנת ייצוא זה.';
 
   @override
-  String get settingsImportEncryptedInputLabel => 'Password or recovery key';
+  String get settingsImportEncryptedInputLabel => 'סיסמה או מפתח שחזור';
 
   @override
-  String get settingsImportEncryptedSubmitButton => 'Unlock';
+  String get settingsImportEncryptedSubmitButton => 'בטל נעילה';
 
   @override
   String get settingsImportEncryptedErrorEmpty =>
-      'Enter the password or recovery key';
+      'הזן את הסיסמה או מפתח השחזור';
 
   @override
   String get settingsImportEncryptedErrorWrong =>
-      'Incorrect password or recovery key. Please try again.';
+      'סיסמה או מפתח שחזור שגויים. נסה שוב.';
 
   @override
   String get notesTitle => 'הערות מפגש';
@@ -517,152 +516,149 @@ class AppLocalizationsHe extends AppLocalizations {
   String get timerPaused => 'מושהה';
 
   @override
-  String get encryptionToggleTitle => 'Encrypt my reflections';
+  String get encryptionToggleTitle => 'הצפן את ההרהורים שלי';
 
   @override
   String get encryptionToggleSubtitle =>
-      'Protect your sessions on this device with a password';
+      'הגן על המפגשים שלך במכשיר זה באמצעות סיסמה';
 
   @override
-  String get encryptionPasswordLabel => 'Password';
+  String get encryptionPasswordLabel => 'סיסמה';
 
   @override
-  String get encryptionConfirmPasswordLabel => 'Confirm password';
+  String get encryptionConfirmPasswordLabel => 'אישור סיסמה';
 
   @override
-  String get encryptionEnableButton => 'Enable Encryption';
+  String get encryptionEnableButton => 'הפעל הצפנה';
 
   @override
-  String get encryptionErrorEmpty => 'Enter a password';
+  String get encryptionErrorEmpty => 'הזן סיסמה';
 
   @override
   String encryptionErrorTooShort(int minLength) {
-    return 'Password must be at least $minLength characters';
+    return 'הסיסמה חייבת להכיל לפחות $minLength תווים';
   }
 
   @override
-  String get encryptionErrorMismatch => 'Passwords don\'t match';
+  String get encryptionErrorMismatch => 'הסיסמאות אינן תואמות';
 
   @override
-  String get encryptionErrorGeneric =>
-      'Couldn\'t enable encryption. Please try again.';
+  String get encryptionErrorGeneric => 'לא ניתן היה להפעיל הצפנה. נסה שוב.';
 
   @override
-  String get recoveryKeyScreenTitle => 'Save your recovery key';
+  String get recoveryKeyScreenTitle => 'שמור את מפתח השחזור שלך';
 
   @override
   String get recoveryKeyWarning =>
-      'This is the only way to recover your data if you forget your password. If you lose both, your data is permanently unrecoverable.';
+      'זוהי הדרך היחידה לשחזר את הנתונים שלך אם תשכח את הסיסמה. אם תאבד את שניהם, הנתונים שלך יהיו בלתי ניתנים לשחזור לצמיתות.';
 
   @override
-  String get recoveryKeyCopyButton => 'Copy';
+  String get recoveryKeyCopyButton => 'העתק';
 
   @override
-  String get recoveryKeyShareButton => 'Share';
+  String get recoveryKeyShareButton => 'שתף';
 
   @override
-  String get recoveryKeyAckLabel =>
-      'I\'ve saved my recovery key in a safe place';
+  String get recoveryKeyAckLabel => 'שמרתי את מפתח השחזור שלי במקום בטוח';
 
   @override
-  String get recoveryKeyContinueButton => 'Continue';
+  String get recoveryKeyContinueButton => 'המשך';
 
   @override
   String get recoveryKeyErrorGeneric =>
-      'Couldn\'t generate a recovery key. Please try again.';
+      'לא ניתן היה ליצור מפתח שחזור. נסה שוב.';
 
   @override
-  String get unlockTitle => 'Unlock Citta';
+  String get unlockTitle => 'בטל נעילת Citta';
 
   @override
   String get unlockSubtitle =>
-      'Enter your password or recovery key to access your reflections.';
+      'הזן את הסיסמה או מפתח השחזור כדי לגשת להרהורים שלך.';
 
   @override
-  String get unlockInputLabel => 'Password or recovery key';
+  String get unlockInputLabel => 'סיסמה או מפתח שחזור';
 
   @override
-  String get unlockSubmitButton => 'Unlock';
+  String get unlockSubmitButton => 'בטל נעילה';
 
   @override
-  String get unlockErrorEmpty => 'Enter your password or recovery key';
+  String get unlockErrorEmpty => 'הזן את הסיסמה או מפתח השחזור שלך';
 
   @override
-  String get unlockErrorGeneric =>
-      'Incorrect password or recovery key. Please try again.';
+  String get unlockErrorGeneric => 'סיסמה או מפתח שחזור שגויים. נסה שוב.';
 
   @override
   String get unlockErrorCorrupted =>
-      'Your encrypted data couldn\'t be read. It may be damaged.';
+      'לא ניתן היה לקרוא את הנתונים המוצפנים שלך. ייתכן שהם פגומים.';
 
   @override
-  String get settingsEncryptionTitle => 'Encryption';
+  String get settingsEncryptionTitle => 'הצפנה';
 
   @override
   String get settingsEncryptionSubtitleEnabled =>
-      'Your sessions are encrypted on this device';
+      'המפגשים שלך מוצפנים במכשיר זה';
 
   @override
   String get settingsEncryptionSubtitleDisabled =>
-      'Protect your sessions with a password';
+      'הגן על המפגשים שלך באמצעות סיסמה';
 
   @override
-  String get enableEncryptionScreenTitle => 'Enable Encryption';
+  String get enableEncryptionScreenTitle => 'הפעל הצפנה';
 
   @override
-  String get settingsEncryptionDisableConfirmTitle => 'Disable encryption?';
+  String get settingsEncryptionDisableConfirmTitle => 'לבטל את ההצפנה?';
 
   @override
   String get settingsEncryptionDisableConfirmMessage =>
-      'Your sessions will be stored as plain text on this device again.';
+      'המפגשים שלך יישמרו שוב כטקסט רגיל במכשיר זה.';
 
   @override
-  String get settingsEncryptionDisableConfirmButton => 'Disable';
+  String get settingsEncryptionDisableConfirmButton => 'בטל';
 
   @override
   String get settingsEncryptionDisableError =>
-      'Couldn\'t disable encryption. Please try again.';
+      'לא ניתן היה לבטל את ההצפנה. נסה שוב.';
 
   @override
-  String get settingsChangePasswordTitle => 'Change Password';
+  String get settingsChangePasswordTitle => 'שינוי סיסמה';
 
   @override
   String get settingsChangePasswordSubtitle =>
-      'Update the password protecting your sessions';
+      'עדכן את הסיסמה המגנה על המפגשים שלך';
 
   @override
-  String get changePasswordScreenTitle => 'Change Password';
+  String get changePasswordScreenTitle => 'שינוי סיסמה';
 
   @override
-  String get changePasswordCurrentLabel => 'Current password';
+  String get changePasswordCurrentLabel => 'סיסמה נוכחית';
 
   @override
-  String get changePasswordNewLabel => 'New password';
+  String get changePasswordNewLabel => 'סיסמה חדשה';
 
   @override
-  String get changePasswordConfirmLabel => 'Confirm new password';
+  String get changePasswordConfirmLabel => 'אישור סיסמה חדשה';
 
   @override
-  String get changePasswordSubmitButton => 'Change Password';
+  String get changePasswordSubmitButton => 'שנה סיסמה';
 
   @override
-  String get changePasswordErrorEmpty => 'Enter your current and new passwords';
+  String get changePasswordErrorEmpty => 'הזן את הסיסמה הנוכחית והחדשה שלך';
 
   @override
   String changePasswordErrorTooShort(int minLength) {
-    return 'New password must be at least $minLength characters';
+    return 'הסיסמה החדשה חייבת להכיל לפחות $minLength תווים';
   }
 
   @override
-  String get changePasswordErrorMismatch => 'New passwords don\'t match';
+  String get changePasswordErrorMismatch => 'הסיסמאות החדשות אינן תואמות';
 
   @override
-  String get changePasswordErrorWrongCurrent => 'Current password is incorrect';
+  String get changePasswordErrorWrongCurrent => 'הסיסמה הנוכחית שגויה';
 
   @override
   String get changePasswordErrorGeneric =>
-      'Couldn\'t change password. Please try again.';
+      'לא ניתן היה לשנות את הסיסמה. נסה שוב.';
 
   @override
-  String get changePasswordSuccess => 'Password changed successfully';
+  String get changePasswordSuccess => 'הסיסמה שונתה בהצלחה';
 }

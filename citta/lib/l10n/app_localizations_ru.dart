@@ -60,17 +60,17 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get firstTimeSetupSubtitle =>
-      'Let\'s set a few things up before you begin.';
+      'Давайте настроим несколько вещей, прежде чем начать.';
 
   @override
-  String get firstTimeSetupThemeSectionTitle => 'Choose your theme';
+  String get firstTimeSetupThemeSectionTitle => 'Выберите вашу тему';
 
   @override
   String get firstTimeSetupEncryptionAlreadyEnabledNotice =>
-      'Encryption is already enabled for your reflections.';
+      'Шифрование уже включено для ваших размышлений.';
 
   @override
-  String get firstTimeSetupContinueButton => 'Get Started';
+  String get firstTimeSetupContinueButton => 'Начать';
 
   @override
   String get homeBegin => 'Начать';
@@ -173,7 +173,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get settingsLanguage => 'Язык';
 
   @override
-  String get settingsColorPalette => 'Color Palette';
+  String get settingsColorPalette => 'Цветовая палитра';
 
   @override
   String get settingsLanguageSystem => 'По умолчанию';
@@ -314,37 +314,39 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
-  String get settingsExportChooseTitle => 'Export Data';
+  String get settingsExportChooseTitle => 'Экспорт данных';
 
   @override
-  String get settingsExportChooseMsg => 'Export as plain JSON, or encrypted?';
+  String get settingsExportChooseMsg =>
+      'Экспортировать как обычный JSON или зашифрованный?';
 
   @override
-  String get settingsExportChoosePlain => 'Plain JSON';
+  String get settingsExportChoosePlain => 'Обычный JSON';
 
   @override
-  String get settingsExportChooseEncrypted => 'Encrypted';
+  String get settingsExportChooseEncrypted => 'Зашифрованный';
 
   @override
-  String get settingsImportEncryptedTitle => 'Encrypted Export';
+  String get settingsImportEncryptedTitle => 'Зашифрованный экспорт';
 
   @override
   String get settingsImportEncryptedSubtitle =>
-      'Enter the password or recovery key used to encrypt this export.';
+      'Введите пароль или ключ восстановления, использованный для шифрования этого экспорта.';
 
   @override
-  String get settingsImportEncryptedInputLabel => 'Password or recovery key';
+  String get settingsImportEncryptedInputLabel =>
+      'Пароль или ключ восстановления';
 
   @override
-  String get settingsImportEncryptedSubmitButton => 'Unlock';
+  String get settingsImportEncryptedSubmitButton => 'Разблокировать';
 
   @override
   String get settingsImportEncryptedErrorEmpty =>
-      'Enter the password or recovery key';
+      'Введите пароль или ключ восстановления';
 
   @override
   String get settingsImportEncryptedErrorWrong =>
-      'Incorrect password or recovery key. Please try again.';
+      'Неверный пароль или ключ восстановления. Попробуйте снова.';
 
   @override
   String get notesTitle => 'Заметки сессии';
@@ -516,152 +518,152 @@ class AppLocalizationsRu extends AppLocalizations {
   String get timerPaused => 'НА ПАУЗЕ';
 
   @override
-  String get encryptionToggleTitle => 'Encrypt my reflections';
+  String get encryptionToggleTitle => 'Шифровать мои размышления';
 
   @override
   String get encryptionToggleSubtitle =>
-      'Protect your sessions on this device with a password';
+      'Защитите свои сессии на этом устройстве паролем';
 
   @override
-  String get encryptionPasswordLabel => 'Password';
+  String get encryptionPasswordLabel => 'Пароль';
 
   @override
-  String get encryptionConfirmPasswordLabel => 'Confirm password';
+  String get encryptionConfirmPasswordLabel => 'Подтвердите пароль';
 
   @override
-  String get encryptionEnableButton => 'Enable Encryption';
+  String get encryptionEnableButton => 'Включить шифрование';
 
   @override
-  String get encryptionErrorEmpty => 'Enter a password';
+  String get encryptionErrorEmpty => 'Введите пароль';
 
   @override
   String encryptionErrorTooShort(int minLength) {
-    return 'Password must be at least $minLength characters';
+    return 'Пароль должен содержать не менее $minLength символов';
   }
 
   @override
-  String get encryptionErrorMismatch => 'Passwords don\'t match';
+  String get encryptionErrorMismatch => 'Пароли не совпадают';
 
   @override
   String get encryptionErrorGeneric =>
-      'Couldn\'t enable encryption. Please try again.';
+      'Не удалось включить шифрование. Попробуйте снова.';
 
   @override
-  String get recoveryKeyScreenTitle => 'Save your recovery key';
+  String get recoveryKeyScreenTitle => 'Сохраните ключ восстановления';
 
   @override
   String get recoveryKeyWarning =>
-      'This is the only way to recover your data if you forget your password. If you lose both, your data is permanently unrecoverable.';
+      'Это единственный способ восстановить данные, если вы забудете пароль. Если вы потеряете и то, и другое, ваши данные будут утеряны безвозвратно.';
 
   @override
-  String get recoveryKeyCopyButton => 'Copy';
+  String get recoveryKeyCopyButton => 'Копировать';
 
   @override
-  String get recoveryKeyShareButton => 'Share';
+  String get recoveryKeyShareButton => 'Поделиться';
 
   @override
   String get recoveryKeyAckLabel =>
-      'I\'ve saved my recovery key in a safe place';
+      'Я сохранил(а) свой ключ восстановления в надёжном месте';
 
   @override
-  String get recoveryKeyContinueButton => 'Continue';
+  String get recoveryKeyContinueButton => 'Продолжить';
 
   @override
   String get recoveryKeyErrorGeneric =>
-      'Couldn\'t generate a recovery key. Please try again.';
+      'Не удалось создать ключ восстановления. Попробуйте снова.';
 
   @override
-  String get unlockTitle => 'Unlock Citta';
+  String get unlockTitle => 'Разблокировать Citta';
 
   @override
   String get unlockSubtitle =>
-      'Enter your password or recovery key to access your reflections.';
+      'Введите пароль или ключ восстановления, чтобы получить доступ к своим размышлениям.';
 
   @override
-  String get unlockInputLabel => 'Password or recovery key';
+  String get unlockInputLabel => 'Пароль или ключ восстановления';
 
   @override
-  String get unlockSubmitButton => 'Unlock';
+  String get unlockSubmitButton => 'Разблокировать';
 
   @override
-  String get unlockErrorEmpty => 'Enter your password or recovery key';
+  String get unlockErrorEmpty => 'Введите пароль или ключ восстановления';
 
   @override
   String get unlockErrorGeneric =>
-      'Incorrect password or recovery key. Please try again.';
+      'Неверный пароль или ключ восстановления. Попробуйте снова.';
 
   @override
   String get unlockErrorCorrupted =>
-      'Your encrypted data couldn\'t be read. It may be damaged.';
+      'Не удалось прочитать зашифрованные данные. Возможно, они повреждены.';
 
   @override
-  String get settingsEncryptionTitle => 'Encryption';
+  String get settingsEncryptionTitle => 'Шифрование';
 
   @override
   String get settingsEncryptionSubtitleEnabled =>
-      'Your sessions are encrypted on this device';
+      'Ваши сессии зашифрованы на этом устройстве';
 
   @override
   String get settingsEncryptionSubtitleDisabled =>
-      'Protect your sessions with a password';
+      'Защитите свои сессии паролем';
 
   @override
-  String get enableEncryptionScreenTitle => 'Enable Encryption';
+  String get enableEncryptionScreenTitle => 'Включить шифрование';
 
   @override
-  String get settingsEncryptionDisableConfirmTitle => 'Disable encryption?';
+  String get settingsEncryptionDisableConfirmTitle => 'Отключить шифрование?';
 
   @override
   String get settingsEncryptionDisableConfirmMessage =>
-      'Your sessions will be stored as plain text on this device again.';
+      'Ваши сессии снова будут храниться в виде обычного текста на этом устройстве.';
 
   @override
-  String get settingsEncryptionDisableConfirmButton => 'Disable';
+  String get settingsEncryptionDisableConfirmButton => 'Отключить';
 
   @override
   String get settingsEncryptionDisableError =>
-      'Couldn\'t disable encryption. Please try again.';
+      'Не удалось отключить шифрование. Попробуйте снова.';
 
   @override
-  String get settingsChangePasswordTitle => 'Change Password';
+  String get settingsChangePasswordTitle => 'Изменить пароль';
 
   @override
   String get settingsChangePasswordSubtitle =>
-      'Update the password protecting your sessions';
+      'Обновите пароль, защищающий ваши сессии';
 
   @override
-  String get changePasswordScreenTitle => 'Change Password';
+  String get changePasswordScreenTitle => 'Изменить пароль';
 
   @override
-  String get changePasswordCurrentLabel => 'Current password';
+  String get changePasswordCurrentLabel => 'Текущий пароль';
 
   @override
-  String get changePasswordNewLabel => 'New password';
+  String get changePasswordNewLabel => 'Новый пароль';
 
   @override
-  String get changePasswordConfirmLabel => 'Confirm new password';
+  String get changePasswordConfirmLabel => 'Подтвердите новый пароль';
 
   @override
-  String get changePasswordSubmitButton => 'Change Password';
+  String get changePasswordSubmitButton => 'Изменить пароль';
 
   @override
-  String get changePasswordErrorEmpty => 'Enter your current and new passwords';
+  String get changePasswordErrorEmpty => 'Введите текущий и новый пароль';
 
   @override
   String changePasswordErrorTooShort(int minLength) {
-    return 'New password must be at least $minLength characters';
+    return 'Новый пароль должен содержать не менее $minLength символов';
   }
 
   @override
-  String get changePasswordErrorMismatch => 'New passwords don\'t match';
+  String get changePasswordErrorMismatch => 'Новые пароли не совпадают';
 
   @override
-  String get changePasswordErrorWrongCurrent => 'Current password is incorrect';
+  String get changePasswordErrorWrongCurrent => 'Текущий пароль неверен';
 
   @override
   String get changePasswordErrorGeneric =>
-      'Couldn\'t change password. Please try again.';
+      'Не удалось изменить пароль. Попробуйте снова.';
 
   @override
-  String get changePasswordSuccess => 'Password changed successfully';
+  String get changePasswordSuccess => 'Пароль успешно изменён';
 }

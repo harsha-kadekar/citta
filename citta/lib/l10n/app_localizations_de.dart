@@ -60,17 +60,17 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get firstTimeSetupSubtitle =>
-      'Let\'s set a few things up before you begin.';
+      'Lassen Sie uns ein paar Dinge einrichten, bevor Sie beginnen.';
 
   @override
-  String get firstTimeSetupThemeSectionTitle => 'Choose your theme';
+  String get firstTimeSetupThemeSectionTitle => 'Wählen Sie Ihr Design';
 
   @override
   String get firstTimeSetupEncryptionAlreadyEnabledNotice =>
-      'Encryption is already enabled for your reflections.';
+      'Die Verschlüsselung ist für Ihre Reflexionen bereits aktiviert.';
 
   @override
-  String get firstTimeSetupContinueButton => 'Get Started';
+  String get firstTimeSetupContinueButton => 'Los geht\'s';
 
   @override
   String get homeBegin => 'Beginnen';
@@ -173,7 +173,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsLanguage => 'Sprache';
 
   @override
-  String get settingsColorPalette => 'Color Palette';
+  String get settingsColorPalette => 'Farbpalette';
 
   @override
   String get settingsLanguageSystem => 'Systemsprache';
@@ -314,37 +314,39 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get settingsExportChooseTitle => 'Export Data';
+  String get settingsExportChooseTitle => 'Daten exportieren';
 
   @override
-  String get settingsExportChooseMsg => 'Export as plain JSON, or encrypted?';
+  String get settingsExportChooseMsg =>
+      'Als einfaches JSON oder verschlüsselt exportieren?';
 
   @override
-  String get settingsExportChoosePlain => 'Plain JSON';
+  String get settingsExportChoosePlain => 'Einfaches JSON';
 
   @override
-  String get settingsExportChooseEncrypted => 'Encrypted';
+  String get settingsExportChooseEncrypted => 'Verschlüsselt';
 
   @override
-  String get settingsImportEncryptedTitle => 'Encrypted Export';
+  String get settingsImportEncryptedTitle => 'Verschlüsselter Export';
 
   @override
   String get settingsImportEncryptedSubtitle =>
-      'Enter the password or recovery key used to encrypt this export.';
+      'Geben Sie das Passwort oder den Wiederherstellungsschlüssel ein, mit dem dieser Export verschlüsselt wurde.';
 
   @override
-  String get settingsImportEncryptedInputLabel => 'Password or recovery key';
+  String get settingsImportEncryptedInputLabel =>
+      'Passwort oder Wiederherstellungsschlüssel';
 
   @override
-  String get settingsImportEncryptedSubmitButton => 'Unlock';
+  String get settingsImportEncryptedSubmitButton => 'Entsperren';
 
   @override
   String get settingsImportEncryptedErrorEmpty =>
-      'Enter the password or recovery key';
+      'Geben Sie das Passwort oder den Wiederherstellungsschlüssel ein';
 
   @override
   String get settingsImportEncryptedErrorWrong =>
-      'Incorrect password or recovery key. Please try again.';
+      'Falsches Passwort oder falscher Wiederherstellungsschlüssel. Bitte versuchen Sie es erneut.';
 
   @override
   String get notesTitle => 'Sitzungsnotizen';
@@ -519,152 +521,158 @@ class AppLocalizationsDe extends AppLocalizations {
   String get timerPaused => 'PAUSIERT';
 
   @override
-  String get encryptionToggleTitle => 'Encrypt my reflections';
+  String get encryptionToggleTitle => 'Meine Reflexionen verschlüsseln';
 
   @override
   String get encryptionToggleSubtitle =>
-      'Protect your sessions on this device with a password';
+      'Schützen Sie Ihre Sitzungen auf diesem Gerät mit einem Passwort';
 
   @override
-  String get encryptionPasswordLabel => 'Password';
+  String get encryptionPasswordLabel => 'Passwort';
 
   @override
-  String get encryptionConfirmPasswordLabel => 'Confirm password';
+  String get encryptionConfirmPasswordLabel => 'Passwort bestätigen';
 
   @override
-  String get encryptionEnableButton => 'Enable Encryption';
+  String get encryptionEnableButton => 'Verschlüsselung aktivieren';
 
   @override
-  String get encryptionErrorEmpty => 'Enter a password';
+  String get encryptionErrorEmpty => 'Geben Sie ein Passwort ein';
 
   @override
   String encryptionErrorTooShort(int minLength) {
-    return 'Password must be at least $minLength characters';
+    return 'Das Passwort muss mindestens $minLength Zeichen lang sein';
   }
 
   @override
-  String get encryptionErrorMismatch => 'Passwords don\'t match';
+  String get encryptionErrorMismatch => 'Die Passwörter stimmen nicht überein';
 
   @override
   String get encryptionErrorGeneric =>
-      'Couldn\'t enable encryption. Please try again.';
+      'Verschlüsselung konnte nicht aktiviert werden. Bitte versuchen Sie es erneut.';
 
   @override
-  String get recoveryKeyScreenTitle => 'Save your recovery key';
+  String get recoveryKeyScreenTitle =>
+      'Speichern Sie Ihren Wiederherstellungsschlüssel';
 
   @override
   String get recoveryKeyWarning =>
-      'This is the only way to recover your data if you forget your password. If you lose both, your data is permanently unrecoverable.';
+      'Dies ist die einzige Möglichkeit, Ihre Daten wiederherzustellen, wenn Sie Ihr Passwort vergessen. Wenn Sie beides verlieren, sind Ihre Daten dauerhaft unwiederbringlich.';
 
   @override
-  String get recoveryKeyCopyButton => 'Copy';
+  String get recoveryKeyCopyButton => 'Kopieren';
 
   @override
-  String get recoveryKeyShareButton => 'Share';
+  String get recoveryKeyShareButton => 'Teilen';
 
   @override
   String get recoveryKeyAckLabel =>
-      'I\'ve saved my recovery key in a safe place';
+      'Ich habe meinen Wiederherstellungsschlüssel an einem sicheren Ort gespeichert';
 
   @override
-  String get recoveryKeyContinueButton => 'Continue';
+  String get recoveryKeyContinueButton => 'Weiter';
 
   @override
   String get recoveryKeyErrorGeneric =>
-      'Couldn\'t generate a recovery key. Please try again.';
+      'Wiederherstellungsschlüssel konnte nicht erstellt werden. Bitte versuchen Sie es erneut.';
 
   @override
-  String get unlockTitle => 'Unlock Citta';
+  String get unlockTitle => 'Citta entsperren';
 
   @override
   String get unlockSubtitle =>
-      'Enter your password or recovery key to access your reflections.';
+      'Geben Sie Ihr Passwort oder Ihren Wiederherstellungsschlüssel ein, um auf Ihre Reflexionen zuzugreifen.';
 
   @override
-  String get unlockInputLabel => 'Password or recovery key';
+  String get unlockInputLabel => 'Passwort oder Wiederherstellungsschlüssel';
 
   @override
-  String get unlockSubmitButton => 'Unlock';
+  String get unlockSubmitButton => 'Entsperren';
 
   @override
-  String get unlockErrorEmpty => 'Enter your password or recovery key';
+  String get unlockErrorEmpty =>
+      'Geben Sie Ihr Passwort oder Ihren Wiederherstellungsschlüssel ein';
 
   @override
   String get unlockErrorGeneric =>
-      'Incorrect password or recovery key. Please try again.';
+      'Falsches Passwort oder falscher Wiederherstellungsschlüssel. Bitte versuchen Sie es erneut.';
 
   @override
   String get unlockErrorCorrupted =>
-      'Your encrypted data couldn\'t be read. It may be damaged.';
+      'Ihre verschlüsselten Daten konnten nicht gelesen werden. Sie könnten beschädigt sein.';
 
   @override
-  String get settingsEncryptionTitle => 'Encryption';
+  String get settingsEncryptionTitle => 'Verschlüsselung';
 
   @override
   String get settingsEncryptionSubtitleEnabled =>
-      'Your sessions are encrypted on this device';
+      'Ihre Sitzungen sind auf diesem Gerät verschlüsselt';
 
   @override
   String get settingsEncryptionSubtitleDisabled =>
-      'Protect your sessions with a password';
+      'Schützen Sie Ihre Sitzungen mit einem Passwort';
 
   @override
-  String get enableEncryptionScreenTitle => 'Enable Encryption';
+  String get enableEncryptionScreenTitle => 'Verschlüsselung aktivieren';
 
   @override
-  String get settingsEncryptionDisableConfirmTitle => 'Disable encryption?';
+  String get settingsEncryptionDisableConfirmTitle =>
+      'Verschlüsselung deaktivieren?';
 
   @override
   String get settingsEncryptionDisableConfirmMessage =>
-      'Your sessions will be stored as plain text on this device again.';
+      'Ihre Sitzungen werden auf diesem Gerät wieder als Klartext gespeichert.';
 
   @override
-  String get settingsEncryptionDisableConfirmButton => 'Disable';
+  String get settingsEncryptionDisableConfirmButton => 'Deaktivieren';
 
   @override
   String get settingsEncryptionDisableError =>
-      'Couldn\'t disable encryption. Please try again.';
+      'Verschlüsselung konnte nicht deaktiviert werden. Bitte versuchen Sie es erneut.';
 
   @override
-  String get settingsChangePasswordTitle => 'Change Password';
+  String get settingsChangePasswordTitle => 'Passwort ändern';
 
   @override
   String get settingsChangePasswordSubtitle =>
-      'Update the password protecting your sessions';
+      'Aktualisieren Sie das Passwort, das Ihre Sitzungen schützt';
 
   @override
-  String get changePasswordScreenTitle => 'Change Password';
+  String get changePasswordScreenTitle => 'Passwort ändern';
 
   @override
-  String get changePasswordCurrentLabel => 'Current password';
+  String get changePasswordCurrentLabel => 'Aktuelles Passwort';
 
   @override
-  String get changePasswordNewLabel => 'New password';
+  String get changePasswordNewLabel => 'Neues Passwort';
 
   @override
-  String get changePasswordConfirmLabel => 'Confirm new password';
+  String get changePasswordConfirmLabel => 'Neues Passwort bestätigen';
 
   @override
-  String get changePasswordSubmitButton => 'Change Password';
+  String get changePasswordSubmitButton => 'Passwort ändern';
 
   @override
-  String get changePasswordErrorEmpty => 'Enter your current and new passwords';
+  String get changePasswordErrorEmpty =>
+      'Geben Sie Ihr aktuelles und neues Passwort ein';
 
   @override
   String changePasswordErrorTooShort(int minLength) {
-    return 'New password must be at least $minLength characters';
+    return 'Das neue Passwort muss mindestens $minLength Zeichen lang sein';
   }
 
   @override
-  String get changePasswordErrorMismatch => 'New passwords don\'t match';
+  String get changePasswordErrorMismatch =>
+      'Die neuen Passwörter stimmen nicht überein';
 
   @override
-  String get changePasswordErrorWrongCurrent => 'Current password is incorrect';
+  String get changePasswordErrorWrongCurrent =>
+      'Das aktuelle Passwort ist falsch';
 
   @override
   String get changePasswordErrorGeneric =>
-      'Couldn\'t change password. Please try again.';
+      'Passwort konnte nicht geändert werden. Bitte versuchen Sie es erneut.';
 
   @override
-  String get changePasswordSuccess => 'Password changed successfully';
+  String get changePasswordSuccess => 'Passwort erfolgreich geändert';
 }

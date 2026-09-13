@@ -59,18 +59,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get welcomeNameHint => '输入您的名字';
 
   @override
-  String get firstTimeSetupSubtitle =>
-      'Let\'s set a few things up before you begin.';
+  String get firstTimeSetupSubtitle => '开始之前，我们先设置几项内容。';
 
   @override
-  String get firstTimeSetupThemeSectionTitle => 'Choose your theme';
+  String get firstTimeSetupThemeSectionTitle => '选择你的主题';
 
   @override
-  String get firstTimeSetupEncryptionAlreadyEnabledNotice =>
-      'Encryption is already enabled for your reflections.';
+  String get firstTimeSetupEncryptionAlreadyEnabledNotice => '你的反思记录已启用加密。';
 
   @override
-  String get firstTimeSetupContinueButton => 'Get Started';
+  String get firstTimeSetupContinueButton => '开始使用';
 
   @override
   String get homeBegin => '开始';
@@ -166,7 +164,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsLanguage => '语言';
 
   @override
-  String get settingsColorPalette => 'Color Palette';
+  String get settingsColorPalette => '配色方案';
 
   @override
   String get settingsLanguageSystem => '系统默认';
@@ -306,37 +304,34 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get settingsExportChooseTitle => 'Export Data';
+  String get settingsExportChooseTitle => '导出数据';
 
   @override
-  String get settingsExportChooseMsg => 'Export as plain JSON, or encrypted?';
+  String get settingsExportChooseMsg => '导出为普通 JSON，还是加密？';
 
   @override
-  String get settingsExportChoosePlain => 'Plain JSON';
+  String get settingsExportChoosePlain => '普通 JSON';
 
   @override
-  String get settingsExportChooseEncrypted => 'Encrypted';
+  String get settingsExportChooseEncrypted => '加密';
 
   @override
-  String get settingsImportEncryptedTitle => 'Encrypted Export';
+  String get settingsImportEncryptedTitle => '加密导出';
 
   @override
-  String get settingsImportEncryptedSubtitle =>
-      'Enter the password or recovery key used to encrypt this export.';
+  String get settingsImportEncryptedSubtitle => '请输入用于加密此导出文件的密码或恢复密钥。';
 
   @override
-  String get settingsImportEncryptedInputLabel => 'Password or recovery key';
+  String get settingsImportEncryptedInputLabel => '密码或恢复密钥';
 
   @override
-  String get settingsImportEncryptedSubmitButton => 'Unlock';
+  String get settingsImportEncryptedSubmitButton => '解锁';
 
   @override
-  String get settingsImportEncryptedErrorEmpty =>
-      'Enter the password or recovery key';
+  String get settingsImportEncryptedErrorEmpty => '请输入密码或恢复密钥';
 
   @override
-  String get settingsImportEncryptedErrorWrong =>
-      'Incorrect password or recovery key. Please try again.';
+  String get settingsImportEncryptedErrorWrong => '密码或恢复密钥不正确，请重试。';
 
   @override
   String get notesTitle => '会话笔记';
@@ -508,152 +503,138 @@ class AppLocalizationsZh extends AppLocalizations {
   String get timerPaused => '已暂停';
 
   @override
-  String get encryptionToggleTitle => 'Encrypt my reflections';
+  String get encryptionToggleTitle => '加密我的反思记录';
 
   @override
-  String get encryptionToggleSubtitle =>
-      'Protect your sessions on this device with a password';
+  String get encryptionToggleSubtitle => '使用密码保护此设备上的会话';
 
   @override
-  String get encryptionPasswordLabel => 'Password';
+  String get encryptionPasswordLabel => '密码';
 
   @override
-  String get encryptionConfirmPasswordLabel => 'Confirm password';
+  String get encryptionConfirmPasswordLabel => '确认密码';
 
   @override
-  String get encryptionEnableButton => 'Enable Encryption';
+  String get encryptionEnableButton => '启用加密';
 
   @override
-  String get encryptionErrorEmpty => 'Enter a password';
+  String get encryptionErrorEmpty => '请输入密码';
 
   @override
   String encryptionErrorTooShort(int minLength) {
-    return 'Password must be at least $minLength characters';
+    return '密码至少需要 $minLength 个字符';
   }
 
   @override
-  String get encryptionErrorMismatch => 'Passwords don\'t match';
+  String get encryptionErrorMismatch => '两次输入的密码不一致';
 
   @override
-  String get encryptionErrorGeneric =>
-      'Couldn\'t enable encryption. Please try again.';
+  String get encryptionErrorGeneric => '无法启用加密，请重试。';
 
   @override
-  String get recoveryKeyScreenTitle => 'Save your recovery key';
+  String get recoveryKeyScreenTitle => '保存你的恢复密钥';
 
   @override
-  String get recoveryKeyWarning =>
-      'This is the only way to recover your data if you forget your password. If you lose both, your data is permanently unrecoverable.';
+  String get recoveryKeyWarning => '如果你忘记了密码，这是恢复数据的唯一方法。如果两者都丢失，你的数据将永久无法恢复。';
 
   @override
-  String get recoveryKeyCopyButton => 'Copy';
+  String get recoveryKeyCopyButton => '复制';
 
   @override
-  String get recoveryKeyShareButton => 'Share';
+  String get recoveryKeyShareButton => '分享';
 
   @override
-  String get recoveryKeyAckLabel =>
-      'I\'ve saved my recovery key in a safe place';
+  String get recoveryKeyAckLabel => '我已将恢复密钥保存在安全的地方';
 
   @override
-  String get recoveryKeyContinueButton => 'Continue';
+  String get recoveryKeyContinueButton => '继续';
 
   @override
-  String get recoveryKeyErrorGeneric =>
-      'Couldn\'t generate a recovery key. Please try again.';
+  String get recoveryKeyErrorGeneric => '无法生成恢复密钥，请重试。';
 
   @override
-  String get unlockTitle => 'Unlock Citta';
+  String get unlockTitle => '解锁 Citta';
 
   @override
-  String get unlockSubtitle =>
-      'Enter your password or recovery key to access your reflections.';
+  String get unlockSubtitle => '请输入密码或恢复密钥以访问你的反思记录。';
 
   @override
-  String get unlockInputLabel => 'Password or recovery key';
+  String get unlockInputLabel => '密码或恢复密钥';
 
   @override
-  String get unlockSubmitButton => 'Unlock';
+  String get unlockSubmitButton => '解锁';
 
   @override
-  String get unlockErrorEmpty => 'Enter your password or recovery key';
+  String get unlockErrorEmpty => '请输入密码或恢复密钥';
 
   @override
-  String get unlockErrorGeneric =>
-      'Incorrect password or recovery key. Please try again.';
+  String get unlockErrorGeneric => '密码或恢复密钥不正确，请重试。';
 
   @override
-  String get unlockErrorCorrupted =>
-      'Your encrypted data couldn\'t be read. It may be damaged.';
+  String get unlockErrorCorrupted => '无法读取你的加密数据，数据可能已损坏。';
 
   @override
-  String get settingsEncryptionTitle => 'Encryption';
+  String get settingsEncryptionTitle => '加密';
 
   @override
-  String get settingsEncryptionSubtitleEnabled =>
-      'Your sessions are encrypted on this device';
+  String get settingsEncryptionSubtitleEnabled => '你的会话已在此设备上加密';
 
   @override
-  String get settingsEncryptionSubtitleDisabled =>
-      'Protect your sessions with a password';
+  String get settingsEncryptionSubtitleDisabled => '使用密码保护你的会话';
 
   @override
-  String get enableEncryptionScreenTitle => 'Enable Encryption';
+  String get enableEncryptionScreenTitle => '启用加密';
 
   @override
-  String get settingsEncryptionDisableConfirmTitle => 'Disable encryption?';
+  String get settingsEncryptionDisableConfirmTitle => '要禁用加密吗？';
 
   @override
-  String get settingsEncryptionDisableConfirmMessage =>
-      'Your sessions will be stored as plain text on this device again.';
+  String get settingsEncryptionDisableConfirmMessage => '你的会话将再次以明文形式存储在此设备上。';
 
   @override
-  String get settingsEncryptionDisableConfirmButton => 'Disable';
+  String get settingsEncryptionDisableConfirmButton => '禁用';
 
   @override
-  String get settingsEncryptionDisableError =>
-      'Couldn\'t disable encryption. Please try again.';
+  String get settingsEncryptionDisableError => '无法禁用加密，请重试。';
 
   @override
-  String get settingsChangePasswordTitle => 'Change Password';
+  String get settingsChangePasswordTitle => '修改密码';
 
   @override
-  String get settingsChangePasswordSubtitle =>
-      'Update the password protecting your sessions';
+  String get settingsChangePasswordSubtitle => '更新保护你会话的密码';
 
   @override
-  String get changePasswordScreenTitle => 'Change Password';
+  String get changePasswordScreenTitle => '修改密码';
 
   @override
-  String get changePasswordCurrentLabel => 'Current password';
+  String get changePasswordCurrentLabel => '当前密码';
 
   @override
-  String get changePasswordNewLabel => 'New password';
+  String get changePasswordNewLabel => '新密码';
 
   @override
-  String get changePasswordConfirmLabel => 'Confirm new password';
+  String get changePasswordConfirmLabel => '确认新密码';
 
   @override
-  String get changePasswordSubmitButton => 'Change Password';
+  String get changePasswordSubmitButton => '修改密码';
 
   @override
-  String get changePasswordErrorEmpty => 'Enter your current and new passwords';
+  String get changePasswordErrorEmpty => '请输入当前密码和新密码';
 
   @override
   String changePasswordErrorTooShort(int minLength) {
-    return 'New password must be at least $minLength characters';
+    return '新密码至少需要 $minLength 个字符';
   }
 
   @override
-  String get changePasswordErrorMismatch => 'New passwords don\'t match';
+  String get changePasswordErrorMismatch => '两次输入的新密码不一致';
 
   @override
-  String get changePasswordErrorWrongCurrent => 'Current password is incorrect';
+  String get changePasswordErrorWrongCurrent => '当前密码不正确';
 
   @override
-  String get changePasswordErrorGeneric =>
-      'Couldn\'t change password. Please try again.';
+  String get changePasswordErrorGeneric => '无法修改密码，请重试。';
 
   @override
-  String get changePasswordSuccess => 'Password changed successfully';
+  String get changePasswordSuccess => '密码修改成功';
 }

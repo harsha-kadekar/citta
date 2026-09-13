@@ -1983,3 +1983,36 @@ No actionable defects were identified in the reviewed changes.
   exact resolve-then-build logic `main.dart` now runs.
 - Ran `flutter test` (761 tests) and `flutter analyze` after all fixes: all passed, zero analyzer
   issues.
+
+---
+
+## Review: issue #90 — Translate accumulated English-only UI strings into all supported locales
+
+## Findings
+
+- `/code-review` (7a) flagged one issue, fixed before the `codex` pass:
+  - **Medium**: the 59 new German (`app_de.arb`) translations used the informal `du`/`dein` register,
+    while every pre-existing German string in the same file uses the formal `Sie`/`Ihr` register (e.g.
+    `welcomeNameHint`: "Geben Sie Ihren Namen ein"). This produced an inconsistent, jarring tone within
+    one locale — particularly noticeable on security-sensitive screens (password, encryption, recovery
+    key). All other locales with a formal/informal distinction (fr, it, es, pt, ru, bn, ta, te, kn, ml,
+    mr, gu) kept the existing register, so this was specific to German. Fixed by rewriting all 23 affected
+    strings (pronouns `du/dein/dir` → `Sie/Ihr`, and informal imperatives `Wähle/Schütze/Gib/Aktualisiere`
+    → `Wählen Sie/Schützen Sie/Geben Sie/Aktualisieren Sie`) to formal register, then regenerating
+    `app_localizations_de.dart` via `flutter gen-l10n`.
+- `codex review --uncommitted --title "issue #90: translate accumulated English-only UI strings into all
+  supported locales"` against the full working-tree diff (53 files: `CLAUDE.md`, all 26 non-English
+  `.arb` files, all 26 generated `app_localizations_*.dart` files, and the new completeness test):
+  "No discrete correctness issues were identified in the reviewed changes."
+
+## Verification
+
+- Added a regression test (`test/l10n/translation_completeness_test.dart`, group "German register
+  consistency") that scans all 59 tracked keys in `app_de.arb` for informal-register markers
+  (`du|dein\w*|dir|dich|lass`, case-insensitive) and fails if any are found.
+- Verified the regression test actually catches the bug: temporarily reverted one string
+  (`firstTimeSetupThemeSectionTitle`) back to the informal "Wähle dein Design", reran the test, confirmed
+  it failed with the expected string flagged, then restored the formal "Wählen Sie Ihr Design" and
+  confirmed it passed again.
+- Ran `flutter test` (790 tests, including the 28 translation-completeness checks and the new German
+  register test) and `flutter analyze` after the fix: all passed, zero analyzer issues.

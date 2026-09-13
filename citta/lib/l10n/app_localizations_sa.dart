@@ -60,17 +60,17 @@ class AppLocalizationsSa extends AppLocalizations {
 
   @override
   String get firstTimeSetupSubtitle =>
-      'Let\'s set a few things up before you begin.';
+      'आरम्भात् पूर्वं वयं किञ्चन सज्जीकुर्मः।';
 
   @override
-  String get firstTimeSetupThemeSectionTitle => 'Choose your theme';
+  String get firstTimeSetupThemeSectionTitle => 'स्वविषयं चिनोतु';
 
   @override
   String get firstTimeSetupEncryptionAlreadyEnabledNotice =>
-      'Encryption is already enabled for your reflections.';
+      'भवतः चिन्तनानां कृते गुप्तीकरणं पूर्वमेव सक्षमम् अस्ति।';
 
   @override
-  String get firstTimeSetupContinueButton => 'Get Started';
+  String get firstTimeSetupContinueButton => 'आरभताम्';
 
   @override
   String get homeBegin => 'आरभ्यताम्';
@@ -173,7 +173,7 @@ class AppLocalizationsSa extends AppLocalizations {
   String get settingsLanguage => 'भाषा';
 
   @override
-  String get settingsColorPalette => 'Color Palette';
+  String get settingsColorPalette => 'वर्णपटलम्';
 
   @override
   String get settingsLanguageSystem => 'व्यवस्था-पूर्वनिर्धारितम्';
@@ -314,37 +314,39 @@ class AppLocalizationsSa extends AppLocalizations {
   }
 
   @override
-  String get settingsExportChooseTitle => 'Export Data';
+  String get settingsExportChooseTitle => 'दत्तांशः निर्यातयतु';
 
   @override
-  String get settingsExportChooseMsg => 'Export as plain JSON, or encrypted?';
+  String get settingsExportChooseMsg =>
+      'सामान्यं JSON रूपेण निर्यातयतु, अथवा गुप्तीकृतम्?';
 
   @override
-  String get settingsExportChoosePlain => 'Plain JSON';
+  String get settingsExportChoosePlain => 'सामान्यं JSON';
 
   @override
-  String get settingsExportChooseEncrypted => 'Encrypted';
+  String get settingsExportChooseEncrypted => 'गुप्तीकृतम्';
 
   @override
-  String get settingsImportEncryptedTitle => 'Encrypted Export';
+  String get settingsImportEncryptedTitle => 'गुप्तीकृतः निर्यातः';
 
   @override
   String get settingsImportEncryptedSubtitle =>
-      'Enter the password or recovery key used to encrypt this export.';
+      'एतस्य निर्यातस्य गुप्तीकरणे उपयुक्तं गुप्तशब्दं पुनःप्राप्तिकुञ्चिकां वा प्रविशतु।';
 
   @override
-  String get settingsImportEncryptedInputLabel => 'Password or recovery key';
+  String get settingsImportEncryptedInputLabel =>
+      'गुप्तशब्दः अथवा पुनःप्राप्तिकुञ्चिका';
 
   @override
-  String get settingsImportEncryptedSubmitButton => 'Unlock';
+  String get settingsImportEncryptedSubmitButton => 'अनवरुद्धं करोतु';
 
   @override
   String get settingsImportEncryptedErrorEmpty =>
-      'Enter the password or recovery key';
+      'गुप्तशब्दं पुनःप्राप्तिकुञ्चिकां वा प्रविशतु';
 
   @override
   String get settingsImportEncryptedErrorWrong =>
-      'Incorrect password or recovery key. Please try again.';
+      'अशुद्धः गुप्तशब्दः अथवा पुनःप्राप्तिकुञ्चिका। कृपया पुनः प्रयतताम्।';
 
   @override
   String get notesTitle => 'सत्रटिप्पणीः';
@@ -516,152 +518,156 @@ class AppLocalizationsSa extends AppLocalizations {
   String get timerPaused => 'विरतम्';
 
   @override
-  String get encryptionToggleTitle => 'Encrypt my reflections';
+  String get encryptionToggleTitle => 'मम चिन्तनानि गुप्तीकरोतु';
 
   @override
   String get encryptionToggleSubtitle =>
-      'Protect your sessions on this device with a password';
+      'अस्मिन् उपकरणे भवतः सत्राणि गुप्तशब्देन रक्षतु';
 
   @override
-  String get encryptionPasswordLabel => 'Password';
+  String get encryptionPasswordLabel => 'गुप्तशब्दः';
 
   @override
-  String get encryptionConfirmPasswordLabel => 'Confirm password';
+  String get encryptionConfirmPasswordLabel => 'गुप्तशब्दं निश्चिनोतु';
 
   @override
-  String get encryptionEnableButton => 'Enable Encryption';
+  String get encryptionEnableButton => 'गुप्तीकरणं सक्षमं करोतु';
 
   @override
-  String get encryptionErrorEmpty => 'Enter a password';
+  String get encryptionErrorEmpty => 'गुप्तशब्दं प्रविशतु';
 
   @override
   String encryptionErrorTooShort(int minLength) {
-    return 'Password must be at least $minLength characters';
+    return 'गुप्तशब्दे न्यूनातिन्यूनं $minLength अक्षराणि भवेयुः';
   }
 
   @override
-  String get encryptionErrorMismatch => 'Passwords don\'t match';
+  String get encryptionErrorMismatch => 'गुप्तशब्दौ न मेलतः';
 
   @override
   String get encryptionErrorGeneric =>
-      'Couldn\'t enable encryption. Please try again.';
+      'गुप्तीकरणं सक्षमं कर्तुं न शक्तम्। कृपया पुनः प्रयतताम्।';
 
   @override
-  String get recoveryKeyScreenTitle => 'Save your recovery key';
+  String get recoveryKeyScreenTitle => 'स्वपुनःप्राप्तिकुञ्चिकां रक्षतु';
 
   @override
   String get recoveryKeyWarning =>
-      'This is the only way to recover your data if you forget your password. If you lose both, your data is permanently unrecoverable.';
+      'यदि भवान् गुप्तशब्दं विस्मरति तर्हि इयमेव भवतः दत्तांशस्य पुनःप्राप्तेः एकमात्रा उपायः। यदि उभे अपि नश्यतः, तर्हि भवतः दत्तांशः सर्वदा अप्राप्यः भविष्यति।';
 
   @override
-  String get recoveryKeyCopyButton => 'Copy';
+  String get recoveryKeyCopyButton => 'प्रतिलिपिं करोतु';
 
   @override
-  String get recoveryKeyShareButton => 'Share';
+  String get recoveryKeyShareButton => 'साझां करोतु';
 
   @override
   String get recoveryKeyAckLabel =>
-      'I\'ve saved my recovery key in a safe place';
+      'मया स्वपुनःप्राप्तिकुञ्चिका सुरक्षितस्थाने रक्षिता';
 
   @override
-  String get recoveryKeyContinueButton => 'Continue';
+  String get recoveryKeyContinueButton => 'अग्रे गच्छतु';
 
   @override
   String get recoveryKeyErrorGeneric =>
-      'Couldn\'t generate a recovery key. Please try again.';
+      'पुनःप्राप्तिकुञ्चिकां जनयितुं न शक्तम्। कृपया पुनः प्रयतताम्।';
 
   @override
-  String get unlockTitle => 'Unlock Citta';
+  String get unlockTitle => 'Citta अनवरुद्धं करोतु';
 
   @override
   String get unlockSubtitle =>
-      'Enter your password or recovery key to access your reflections.';
+      'स्वचिन्तनानि द्रष्टुं गुप्तशब्दं पुनःप्राप्तिकुञ्चिकां वा प्रविशतु।';
 
   @override
-  String get unlockInputLabel => 'Password or recovery key';
+  String get unlockInputLabel => 'गुप्तशब्दः अथवा पुनःप्राप्तिकुञ्चिका';
 
   @override
-  String get unlockSubmitButton => 'Unlock';
+  String get unlockSubmitButton => 'अनवरुद्धं करोतु';
 
   @override
-  String get unlockErrorEmpty => 'Enter your password or recovery key';
+  String get unlockErrorEmpty =>
+      'स्वगुप्तशब्दं पुनःप्राप्तिकुञ्चिकां वा प्रविशतु';
 
   @override
   String get unlockErrorGeneric =>
-      'Incorrect password or recovery key. Please try again.';
+      'अशुद्धः गुप्तशब्दः अथवा पुनःप्राप्तिकुञ्चिका। कृपया पुनः प्रयतताम्।';
 
   @override
   String get unlockErrorCorrupted =>
-      'Your encrypted data couldn\'t be read. It may be damaged.';
+      'भवतः गुप्तीकृतः दत्तांशः पठितुं न शक्तः। सः दूषितः स्यात्।';
 
   @override
-  String get settingsEncryptionTitle => 'Encryption';
+  String get settingsEncryptionTitle => 'गुप्तीकरणम्';
 
   @override
   String get settingsEncryptionSubtitleEnabled =>
-      'Your sessions are encrypted on this device';
+      'भवतः सत्राणि अस्मिन् उपकरणे गुप्तीकृतानि सन्ति';
 
   @override
   String get settingsEncryptionSubtitleDisabled =>
-      'Protect your sessions with a password';
+      'स्वसत्राणि गुप्तशब्देन रक्षतु';
 
   @override
-  String get enableEncryptionScreenTitle => 'Enable Encryption';
+  String get enableEncryptionScreenTitle => 'गुप्तीकरणं सक्षमं करोतु';
 
   @override
-  String get settingsEncryptionDisableConfirmTitle => 'Disable encryption?';
+  String get settingsEncryptionDisableConfirmTitle =>
+      'गुप्तीकरणम् असक्षमं करणीयम् वा?';
 
   @override
   String get settingsEncryptionDisableConfirmMessage =>
-      'Your sessions will be stored as plain text on this device again.';
+      'भवतः सत्राणि अस्मिन् उपकरणे पुनः सरलपाठरूपेण संगृहीतानि भविष्यन्ति।';
 
   @override
-  String get settingsEncryptionDisableConfirmButton => 'Disable';
+  String get settingsEncryptionDisableConfirmButton => 'असक्षमं करोतु';
 
   @override
   String get settingsEncryptionDisableError =>
-      'Couldn\'t disable encryption. Please try again.';
+      'गुप्तीकरणम् असक्षमं कर्तुं न शक्तम्। कृपया पुनः प्रयतताम्।';
 
   @override
-  String get settingsChangePasswordTitle => 'Change Password';
+  String get settingsChangePasswordTitle => 'गुप्तशब्दं परिवर्तयतु';
 
   @override
   String get settingsChangePasswordSubtitle =>
-      'Update the password protecting your sessions';
+      'स्वसत्राणि रक्षन्तं गुप्तशब्दं नवीकरोतु';
 
   @override
-  String get changePasswordScreenTitle => 'Change Password';
+  String get changePasswordScreenTitle => 'गुप्तशब्दं परिवर्तयतु';
 
   @override
-  String get changePasswordCurrentLabel => 'Current password';
+  String get changePasswordCurrentLabel => 'वर्तमानः गुप्तशब्दः';
 
   @override
-  String get changePasswordNewLabel => 'New password';
+  String get changePasswordNewLabel => 'नूतनः गुप्तशब्दः';
 
   @override
-  String get changePasswordConfirmLabel => 'Confirm new password';
+  String get changePasswordConfirmLabel => 'नूतनं गुप्तशब्दं निश्चिनोतु';
 
   @override
-  String get changePasswordSubmitButton => 'Change Password';
+  String get changePasswordSubmitButton => 'गुप्तशब्दं परिवर्तयतु';
 
   @override
-  String get changePasswordErrorEmpty => 'Enter your current and new passwords';
+  String get changePasswordErrorEmpty =>
+      'स्ववर्तमानं नूतनं च गुप्तशब्दं प्रविशतु';
 
   @override
   String changePasswordErrorTooShort(int minLength) {
-    return 'New password must be at least $minLength characters';
+    return 'नूतने गुप्तशब्दे न्यूनातिन्यूनं $minLength अक्षराणि भवेयुः';
   }
 
   @override
-  String get changePasswordErrorMismatch => 'New passwords don\'t match';
+  String get changePasswordErrorMismatch => 'नूतनौ गुप्तशब्दौ न मेलतः';
 
   @override
-  String get changePasswordErrorWrongCurrent => 'Current password is incorrect';
+  String get changePasswordErrorWrongCurrent =>
+      'वर्तमानः गुप्तशब्दः अशुद्धः अस्ति';
 
   @override
   String get changePasswordErrorGeneric =>
-      'Couldn\'t change password. Please try again.';
+      'गुप्तशब्दं परिवर्तयितुं न शक्तम्। कृपया पुनः प्रयतताम्।';
 
   @override
-  String get changePasswordSuccess => 'Password changed successfully';
+  String get changePasswordSuccess => 'गुप्तशब्दः सफलतया परिवर्तितः';
 }
