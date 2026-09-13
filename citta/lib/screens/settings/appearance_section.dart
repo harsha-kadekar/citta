@@ -4,7 +4,9 @@ import 'package:citta/l10n/app_localizations.dart';
 import '../../providers/app_state.dart';
 import '../../models/app_theme_mode.dart';
 import '../../models/app_language.dart';
+import '../../theme/app_palette.dart';
 import 'language_picker.dart';
+import 'palette_picker.dart';
 import 'settings_widgets.dart';
 
 String languageDisplayName(AppLanguage language, AppLocalizations l10n) {
@@ -45,6 +47,14 @@ class AppearanceSection extends StatelessWidget {
           subtitle: languageDisplayName(appState.config.language, l10n),
           onTap: () => _showLanguagePicker(context, appState, l10n),
         ),
+        SettingsTile(
+          title: l10n.settingsColorPalette,
+          subtitle:
+              AppPaletteStorage.fromStorageString(appState.config.colorPalette)
+                  .definition
+                  .displayName,
+          onTap: () => _showPalettePicker(context, appState, l10n),
+        ),
       ],
     );
   }
@@ -59,8 +69,11 @@ class AppearanceSection extends StatelessWidget {
           for (final entry in [
             (AppThemeMode.dark, l10n.settingsThemeDark, Icons.dark_mode),
             (AppThemeMode.light, l10n.settingsThemeLight, Icons.light_mode),
-            (AppThemeMode.system, l10n.settingsThemeSystem,
-                Icons.settings_brightness),
+            (
+              AppThemeMode.system,
+              l10n.settingsThemeSystem,
+              Icons.settings_brightness
+            ),
           ])
             SimpleDialogOption(
               onPressed: () {
@@ -91,6 +104,25 @@ class AppearanceSection extends StatelessWidget {
           LanguagePickerOptions(
             onSelected: (language) {
               appState.setLanguage(language);
+              Navigator.pop(context);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPalettePicker(
+      BuildContext context, AppState appState, AppLocalizations l10n) {
+    showDialog(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text(l10n.settingsColorPalette),
+        children: [
+          PalettePickerOptions(
+            onSelected: (palette) {
+              appState.mutateConfig((current) =>
+                  current.copyWith(colorPalette: palette.toStorageString()));
               Navigator.pop(context);
             },
           ),

@@ -1943,3 +1943,43 @@ No actionable defects were identified in the reviewed changes.
   suite (`flutter test`) shows 13 pre-existing failures unrelated to this change (confirmed identical
   failure set, modulo normal flakiness, on `master` before this change) — all in unrelated widget/timing
   tests (e.g. `calendar_view_test.dart`, `unlock_screen_test.dart`, `tag_chip_test.dart`).
+
+---
+
+## Review: issue #66 — Add palette picker UI in Settings, Appearance
+
+## Findings
+
+- `/code-review` (7a) flagged two issues, both fixed before the `codex` pass:
+  1. **High**: `lib/main.dart` still built `AppTheme.lightTheme()`/`darkTheme()` with no argument, so
+     `MaterialApp` always rendered the default sage palette regardless of what the new picker persisted
+     to `ConfigModel.colorPalette` — the feature had no visible effect for any user. Fixed by resolving
+     `appState.config.colorPalette` to an `AppPalette` and threading it into both theme builders, mirroring
+     how `themeMode` was already threaded through `AppTheme.themeMode(appState.config.themeMode)` on the
+     next line.
+  2. **Low**: the new `AppPaletteStorage.fromId(String id)` helper (added to resolve the picker's current
+     selection) diverged in name and signature from the established `fromStorageString(String? value,
+     {fallback})` shape used by `AppThemeModeStorage`/`AppLanguageStorage`. Renamed to
+     `fromStorageString`, added a matching `toStorageString()`, and updated both call sites
+     (`appearance_section.dart`, `palette_picker.dart`) plus the palette-selection callback.
+- `codex review --uncommitted --title "issue #66: palette picker in Settings, Appearance"` (with `-c
+  sandbox_permissions=["disk-full-read-access"]`, needed for the same nested-bubblewrap-sandbox reason as
+  issue #65's entry above): "No actionable issues were identified in the reviewed changes."
+
+## Verification
+
+- Added a regression test group (`AppPaletteStorage` in `test/theme/app_palette_test.dart`) covering
+  `fromStorageString` round-tripping every palette's own stored id, falling back to `sage` for a null or
+  unknown id, and — reconstructing `main.dart`'s resolve-then-build wiring end to end — that a selected
+  palette id (`'ocean'`) produces a visibly different `AppTheme.lightTheme(...)` than the default sage
+  theme.
+- Verified the regression test actually catches the `main.dart` wiring bug: temporarily replaced
+  `fromStorageString`'s body with `return AppPalette.sage;` (unconditionally), reran
+  `test/theme/app_palette_test.dart`, confirmed the new tests failed with the expected
+  ocean-vs-sage color mismatch, then restored the real implementation and confirmed they passed again.
+  `CittaApp`/`main.dart` itself has no existing widget-test harness (it constructs a real
+  `StorageService()` with no injectable base path, same as the pre-existing, already-untested
+  `themeMode` wiring one line above it) — the fix is instead pinned by this unit-level test against the
+  exact resolve-then-build logic `main.dart` now runs.
+- Ran `flutter test` (761 tests) and `flutter analyze` after all fixes: all passed, zero analyzer
+  issues.

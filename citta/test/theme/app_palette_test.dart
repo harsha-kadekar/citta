@@ -130,6 +130,34 @@ void main() {
     });
   });
 
+  group('AppPaletteStorage', () {
+    test('fromStorageString resolves each palette\'s own stored id', () {
+      for (final palette in AppPalette.values) {
+        expect(
+            AppPaletteStorage.fromStorageString(palette.toStorageString()),
+            palette);
+      }
+    });
+
+    test('fromStorageString falls back to sage for null or unknown ids', () {
+      expect(AppPaletteStorage.fromStorageString(null), AppPalette.sage);
+      expect(AppPaletteStorage.fromStorageString('not-a-real-palette'),
+          AppPalette.sage);
+    });
+
+    // Regression test (code review, issue #66): the palette picker persisted
+    // ConfigModel.colorPalette but main.dart still always built
+    // AppTheme.lightTheme()/darkTheme() with the default sage palette, so a
+    // selected palette never actually changed the rendered app. This
+    // reconstructs main.dart's resolve-then-build wiring end to end.
+    test('a selected palette id resolves to a visibly different theme', () {
+      final resolved = AppPaletteStorage.fromStorageString('ocean');
+      final theme = AppTheme.lightTheme(resolved);
+      expect(theme.colorScheme.primary, AppPalette.ocean.definition.light.primary);
+      expect(theme.colorScheme.primary, isNot(AppPalette.sage.definition.light.primary));
+    });
+  });
+
   group('AppTheme parameterized by palette', () {
     test('lightTheme()/darkTheme() default to the sage palette unchanged', () {
       final light = AppTheme.lightTheme();

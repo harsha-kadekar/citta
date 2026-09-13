@@ -417,3 +417,22 @@ enum AppPalette {
           ),
       };
 }
+
+/// Converts between [AppPalette] and the plain string id stored in
+/// [ConfigModel.colorPalette] (kept a string there so the model layer
+/// doesn't depend on this theme layer — see that field's doc comment).
+/// Mirrors the `toStorageString`/`fromStorageString` shape used by
+/// [AppThemeModeStorage] and `AppLanguageStorage`.
+extension AppPaletteStorage on AppPalette {
+  String toStorageString() => name;
+
+  static AppPalette fromStorageString(
+    String? value, {
+    AppPalette fallback = AppPalette.sage,
+  }) {
+    for (final palette in AppPalette.values) {
+      if (palette.name == value) return palette;
+    }
+    return fallback;
+  }
+}

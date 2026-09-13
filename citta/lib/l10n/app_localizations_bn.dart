@@ -172,6 +172,9 @@ class AppLocalizationsBn extends AppLocalizations {
   String get settingsLanguage => 'ভাষা';
 
   @override
+  String get settingsColorPalette => 'Color Palette';
+
+  @override
   String get settingsLanguageSystem => 'সিস্টেম ডিফল্ট';
 
   @override

@@ -19,6 +19,7 @@ import 'package:citta/providers/app_state.dart';
 import 'package:citta/screens/settings/profile_section.dart';
 import 'package:citta/screens/settings/appearance_section.dart';
 import 'package:citta/screens/settings/language_picker.dart';
+import 'package:citta/theme/app_palette.dart';
 import 'package:citta/screens/settings/timer_section.dart';
 import 'package:citta/screens/settings/bells_section.dart';
 import 'package:citta/screens/settings/bg_music_section.dart';
@@ -36,20 +37,31 @@ import 'package:citta/theme/app_theme.dart';
 // ---------------------------------------------------------------------------
 
 class _FakeAudioPlayer implements AudioPlayerBase {
-  @override Future<void> setAsset(String path) async {}
-  @override Future<void> setFilePath(String path) async {}
-  @override Future<void> setLoopMode(LoopMode mode) async {}
-  @override Future<void> setVolume(double volume) async {}
-  @override Future<void> seek(Duration position) async {}
-  @override Future<void> play() async {}
-  @override Future<void> pause() async {}
-  @override Future<void> stop() async {}
-  @override Future<void> dispose() async {}
+  @override
+  Future<void> setAsset(String path) async {}
+  @override
+  Future<void> setFilePath(String path) async {}
+  @override
+  Future<void> setLoopMode(LoopMode mode) async {}
+  @override
+  Future<void> setVolume(double volume) async {}
+  @override
+  Future<void> seek(Duration position) async {}
+  @override
+  Future<void> play() async {}
+  @override
+  Future<void> pause() async {}
+  @override
+  Future<void> stop() async {}
+  @override
+  Future<void> dispose() async {}
 }
 
 class _FakeAudioSession implements AudioSessionBase {
-  @override Future<void> configure(AudioSessionConfiguration _) async {}
-  @override Stream<AudioInterruptionEvent> get interruptionEventStream =>
+  @override
+  Future<void> configure(AudioSessionConfiguration _) async {}
+  @override
+  Stream<AudioInterruptionEvent> get interruptionEventStream =>
       const Stream.empty();
 }
 
@@ -239,6 +251,57 @@ void main() {
       await tester.pump();
       expect(find.byType(SimpleDialog), findsOneWidget);
     });
+
+    testWidgets('shows current palette name', (tester) async {
+      await tester.pumpWidget(_wrap(appState, const AppearanceSection()));
+      await tester.pump();
+      expect(find.textContaining('Sage', findRichText: true), findsOneWidget);
+    });
+
+    testWidgets('tapping color palette tile opens picker dialog',
+        (tester) async {
+      await tester.pumpWidget(_wrap(appState, const AppearanceSection()));
+      await tester.pump();
+      await tester.tap(find.byType(ListTile).at(2));
+      await tester.pump();
+      expect(find.byType(SimpleDialog), findsOneWidget);
+    });
+
+    testWidgets('palette picker lists all 7 palettes with swatch previews',
+        (tester) async {
+      await tester.pumpWidget(_wrap(appState, const AppearanceSection()));
+      await tester.pump();
+      await tester.tap(find.byType(ListTile).at(2));
+      await tester.pump();
+
+      for (final palette in AppPalette.values) {
+        expect(
+            find.descendant(
+                of: find.byType(SimpleDialog),
+                matching: find.text(palette.definition.displayName)),
+            findsOneWidget);
+      }
+      // Each option previews 3 representative swatch colors.
+      expect(find.byType(CircleAvatar),
+          findsNWidgets(AppPalette.values.length * 3));
+    });
+
+    testWidgets('selecting a palette persists the choice and closes the dialog',
+        (tester) async {
+      await tester.pumpWidget(_wrap(appState, const AppearanceSection()));
+      await tester.pump();
+      await tester.tap(find.byType(ListTile).at(2));
+      await tester.pump();
+
+      await tester.runAsync(() async {
+        await tester.tap(find.text('Ocean'));
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      });
+      await tester.pump();
+
+      expect(appState.config.colorPalette, 'ocean');
+      expect(find.byType(SimpleDialog), findsNothing);
+    });
   });
 
   // ---------------------------------------------------------------------------
@@ -252,8 +315,8 @@ void main() {
     setUp(() async {
       tmpDir = Directory.systemTemp.createTempSync('citta_settings_test_');
       appState = await _makeAndInit(tmpDir.path,
-          initialConfig:
-              ConfigModel(timerMode: TimerMode.countdown, countdownDuration: 900));
+          initialConfig: ConfigModel(
+              timerMode: TimerMode.countdown, countdownDuration: 900));
     });
     tearDown(() => tmpDir.deleteSync(recursive: true));
 
@@ -432,8 +495,7 @@ void main() {
     });
     tearDown(() => tmpDir.deleteSync(recursive: true));
 
-    testWidgets('stores the picked path with a custom: prefix',
-        (tester) async {
+    testWidgets('stores the picked path with a custom: prefix', (tester) async {
       await tester.pumpWidget(_wrap(appState, const BgMusicSection()));
       await tester.pump();
       // The tap triggers a fire-and-forget async chain (file pick, then a
@@ -481,8 +543,8 @@ void main() {
       // Represents the parsed form of a pre-`custom:`-prefix legacy config
       // (the string-parsing itself is covered by ConfigModel.fromJson tests).
       appState = await _makeAndInit(tmpDir.path,
-          initialConfig:
-              ConfigModel(backgroundMusic: const AudioSource.custom('/legacy/music.mp3')));
+          initialConfig: ConfigModel(
+              backgroundMusic: const AudioSource.custom('/legacy/music.mp3')));
     });
     tearDown(() => tmpDir.deleteSync(recursive: true));
 
@@ -533,7 +595,8 @@ void main() {
       final icon = tester.widget<Icon>(find.byIcon(Icons.chevron_right));
       expect(icon.color, DarkAppColors.textHint);
       expect(icon.color, isNot(AppColors.textHint),
-          reason: 'must not stay pinned to the light-theme literal under dark theme');
+          reason:
+              'must not stay pinned to the light-theme literal under dark theme');
     });
   });
 
@@ -586,7 +649,8 @@ void main() {
       await tester.pump();
       final icon = tester.widget<Icon>(find.byIcon(Icons.clear));
       expect(icon.color, AppColors.error,
-          reason: 'must come from colorScheme.error, not a stray hardcoded literal');
+          reason:
+              'must come from colorScheme.error, not a stray hardcoded literal');
     });
 
     testWidgets('adapts to the dark theme error color in dark mode',
@@ -622,8 +686,8 @@ void main() {
     testWidgets('selected "None" option uses the light theme primary color',
         (tester) async {
       await openStartBellPicker(tester);
-      final text = tester.widget<Text>(
-          find.descendant(of: find.byType(SimpleDialog), matching: find.text('None')));
+      final text = tester.widget<Text>(find.descendant(
+          of: find.byType(SimpleDialog), matching: find.text('None')));
       expect(text.style?.color, AppColors.primary);
     });
 
@@ -634,8 +698,8 @@ void main() {
       await tester.pump();
       await tester.tap(find.byType(ListTile).first);
       await tester.pump();
-      final text = tester.widget<Text>(
-          find.descendant(of: find.byType(SimpleDialog), matching: find.text('None')));
+      final text = tester.widget<Text>(find.descendant(
+          of: find.byType(SimpleDialog), matching: find.text('None')));
       expect(text.style?.color, DarkAppColors.primary);
       expect(text.style?.color, isNot(AppColors.primary));
     });

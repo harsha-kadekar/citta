@@ -172,6 +172,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsLanguage => 'اللغة';
 
   @override
+  String get settingsColorPalette => 'Color Palette';
+
+  @override
   String get settingsLanguageSystem => 'افتراضي النظام';
 
   @override

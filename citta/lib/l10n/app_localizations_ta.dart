@@ -173,6 +173,9 @@ class AppLocalizationsTa extends AppLocalizations {
   String get settingsLanguage => 'மொழி';
 
   @override
+  String get settingsColorPalette => 'Color Palette';
+
+  @override
   String get settingsLanguageSystem => 'கணினி இயல்புநிலை';
 
   @override
