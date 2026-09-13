@@ -36,3 +36,16 @@ When assigned a GitHub issue, ALWAYS follow this order — no exceptions:
 - Never write implementation before tests
 - Never mark a task done without all tests passing
 - If you believe tests don't apply, you MUST get explicit human confirmation: "I AUTHORIZE SKIPPING TESTS"
+
+## Localization
+
+- Any PR that adds a new user-facing English string to `lib/l10n/app_en.arb` MUST
+  add a genuine translation for that string to all other locale `.arb` files in
+  `lib/l10n/` before merging. Do not leave new keys English-only for a later batch
+  pass.
+- Before merging, run `flutter gen-l10n` with `untranslated-messages-file` set in
+  `l10n.yaml` (see issue #90 for the exact steps) and confirm it reports 0
+  untranslated messages, then revert the `l10n.yaml` change.
+- This replaces the earlier convention (used through issues #51–#66) of adding
+  new strings to `app_en.arb` only and translating in a later batch pass — that
+  convention let a 59-key backlog accumulate across 26 locales (issue #90).

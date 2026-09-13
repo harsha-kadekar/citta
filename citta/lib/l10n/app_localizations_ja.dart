@@ -59,18 +59,17 @@ class AppLocalizationsJa extends AppLocalizations {
   String get welcomeNameHint => 'お名前を入力してください';
 
   @override
-  String get firstTimeSetupSubtitle =>
-      'Let\'s set a few things up before you begin.';
+  String get firstTimeSetupSubtitle => '始める前に、いくつか設定しましょう。';
 
   @override
-  String get firstTimeSetupThemeSectionTitle => 'Choose your theme';
+  String get firstTimeSetupThemeSectionTitle => 'テーマを選択';
 
   @override
   String get firstTimeSetupEncryptionAlreadyEnabledNotice =>
-      'Encryption is already enabled for your reflections.';
+      'あなたの振り返りの暗号化はすでに有効になっています。';
 
   @override
-  String get firstTimeSetupContinueButton => 'Get Started';
+  String get firstTimeSetupContinueButton => 'はじめる';
 
   @override
   String get homeBegin => '開始';
@@ -166,7 +165,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsLanguage => '言語';
 
   @override
-  String get settingsColorPalette => 'Color Palette';
+  String get settingsColorPalette => 'カラーパレット';
 
   @override
   String get settingsLanguageSystem => 'システムのデフォルト';
@@ -306,37 +305,36 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get settingsExportChooseTitle => 'Export Data';
+  String get settingsExportChooseTitle => 'データをエクスポート';
 
   @override
-  String get settingsExportChooseMsg => 'Export as plain JSON, or encrypted?';
+  String get settingsExportChooseMsg => '通常のJSONとして、それとも暗号化してエクスポートしますか？';
 
   @override
-  String get settingsExportChoosePlain => 'Plain JSON';
+  String get settingsExportChoosePlain => '通常のJSON';
 
   @override
-  String get settingsExportChooseEncrypted => 'Encrypted';
+  String get settingsExportChooseEncrypted => '暗号化';
 
   @override
-  String get settingsImportEncryptedTitle => 'Encrypted Export';
+  String get settingsImportEncryptedTitle => '暗号化されたエクスポート';
 
   @override
   String get settingsImportEncryptedSubtitle =>
-      'Enter the password or recovery key used to encrypt this export.';
+      'このエクスポートの暗号化に使用したパスワードまたは復旧キーを入力してください。';
 
   @override
-  String get settingsImportEncryptedInputLabel => 'Password or recovery key';
+  String get settingsImportEncryptedInputLabel => 'パスワードまたは復旧キー';
 
   @override
-  String get settingsImportEncryptedSubmitButton => 'Unlock';
+  String get settingsImportEncryptedSubmitButton => 'ロック解除';
 
   @override
-  String get settingsImportEncryptedErrorEmpty =>
-      'Enter the password or recovery key';
+  String get settingsImportEncryptedErrorEmpty => 'パスワードまたは復旧キーを入力してください';
 
   @override
   String get settingsImportEncryptedErrorWrong =>
-      'Incorrect password or recovery key. Please try again.';
+      'パスワードまたは復旧キーが正しくありません。もう一度お試しください。';
 
   @override
   String get notesTitle => 'セッションノート';
@@ -508,152 +506,140 @@ class AppLocalizationsJa extends AppLocalizations {
   String get timerPaused => '一時停止';
 
   @override
-  String get encryptionToggleTitle => 'Encrypt my reflections';
+  String get encryptionToggleTitle => '振り返りを暗号化する';
 
   @override
-  String get encryptionToggleSubtitle =>
-      'Protect your sessions on this device with a password';
+  String get encryptionToggleSubtitle => 'パスワードでこの端末上のセッションを保護します';
 
   @override
-  String get encryptionPasswordLabel => 'Password';
+  String get encryptionPasswordLabel => 'パスワード';
 
   @override
-  String get encryptionConfirmPasswordLabel => 'Confirm password';
+  String get encryptionConfirmPasswordLabel => 'パスワードの確認';
 
   @override
-  String get encryptionEnableButton => 'Enable Encryption';
+  String get encryptionEnableButton => '暗号化を有効にする';
 
   @override
-  String get encryptionErrorEmpty => 'Enter a password';
+  String get encryptionErrorEmpty => 'パスワードを入力してください';
 
   @override
   String encryptionErrorTooShort(int minLength) {
-    return 'Password must be at least $minLength characters';
+    return 'パスワードは$minLength文字以上にしてください';
   }
 
   @override
-  String get encryptionErrorMismatch => 'Passwords don\'t match';
+  String get encryptionErrorMismatch => 'パスワードが一致しません';
 
   @override
-  String get encryptionErrorGeneric =>
-      'Couldn\'t enable encryption. Please try again.';
+  String get encryptionErrorGeneric => '暗号化を有効にできませんでした。もう一度お試しください。';
 
   @override
-  String get recoveryKeyScreenTitle => 'Save your recovery key';
+  String get recoveryKeyScreenTitle => '復旧キーを保存してください';
 
   @override
   String get recoveryKeyWarning =>
-      'This is the only way to recover your data if you forget your password. If you lose both, your data is permanently unrecoverable.';
+      'パスワードを忘れた場合、これがデータを復元する唯一の方法です。両方を失うと、データは完全に復元できなくなります。';
 
   @override
-  String get recoveryKeyCopyButton => 'Copy';
+  String get recoveryKeyCopyButton => 'コピー';
 
   @override
-  String get recoveryKeyShareButton => 'Share';
+  String get recoveryKeyShareButton => '共有';
 
   @override
-  String get recoveryKeyAckLabel =>
-      'I\'ve saved my recovery key in a safe place';
+  String get recoveryKeyAckLabel => '復旧キーを安全な場所に保存しました';
 
   @override
-  String get recoveryKeyContinueButton => 'Continue';
+  String get recoveryKeyContinueButton => '続ける';
 
   @override
-  String get recoveryKeyErrorGeneric =>
-      'Couldn\'t generate a recovery key. Please try again.';
+  String get recoveryKeyErrorGeneric => '復旧キーを生成できませんでした。もう一度お試しください。';
 
   @override
-  String get unlockTitle => 'Unlock Citta';
+  String get unlockTitle => 'Cittaのロックを解除';
 
   @override
-  String get unlockSubtitle =>
-      'Enter your password or recovery key to access your reflections.';
+  String get unlockSubtitle => '振り返りにアクセスするには、パスワードまたは復旧キーを入力してください。';
 
   @override
-  String get unlockInputLabel => 'Password or recovery key';
+  String get unlockInputLabel => 'パスワードまたは復旧キー';
 
   @override
-  String get unlockSubmitButton => 'Unlock';
+  String get unlockSubmitButton => 'ロック解除';
 
   @override
-  String get unlockErrorEmpty => 'Enter your password or recovery key';
+  String get unlockErrorEmpty => 'パスワードまたは復旧キーを入力してください';
 
   @override
-  String get unlockErrorGeneric =>
-      'Incorrect password or recovery key. Please try again.';
+  String get unlockErrorGeneric => 'パスワードまたは復旧キーが正しくありません。もう一度お試しください。';
 
   @override
-  String get unlockErrorCorrupted =>
-      'Your encrypted data couldn\'t be read. It may be damaged.';
+  String get unlockErrorCorrupted => '暗号化されたデータを読み込めませんでした。データが破損している可能性があります。';
 
   @override
-  String get settingsEncryptionTitle => 'Encryption';
+  String get settingsEncryptionTitle => '暗号化';
 
   @override
-  String get settingsEncryptionSubtitleEnabled =>
-      'Your sessions are encrypted on this device';
+  String get settingsEncryptionSubtitleEnabled => 'この端末上のセッションは暗号化されています';
 
   @override
-  String get settingsEncryptionSubtitleDisabled =>
-      'Protect your sessions with a password';
+  String get settingsEncryptionSubtitleDisabled => 'パスワードでセッションを保護します';
 
   @override
-  String get enableEncryptionScreenTitle => 'Enable Encryption';
+  String get enableEncryptionScreenTitle => '暗号化を有効にする';
 
   @override
-  String get settingsEncryptionDisableConfirmTitle => 'Disable encryption?';
+  String get settingsEncryptionDisableConfirmTitle => '暗号化を無効にしますか？';
 
   @override
   String get settingsEncryptionDisableConfirmMessage =>
-      'Your sessions will be stored as plain text on this device again.';
+      'この端末上のセッションは、再び平文で保存されるようになります。';
 
   @override
-  String get settingsEncryptionDisableConfirmButton => 'Disable';
+  String get settingsEncryptionDisableConfirmButton => '無効にする';
 
   @override
-  String get settingsEncryptionDisableError =>
-      'Couldn\'t disable encryption. Please try again.';
+  String get settingsEncryptionDisableError => '暗号化を無効にできませんでした。もう一度お試しください。';
 
   @override
-  String get settingsChangePasswordTitle => 'Change Password';
+  String get settingsChangePasswordTitle => 'パスワードを変更';
 
   @override
-  String get settingsChangePasswordSubtitle =>
-      'Update the password protecting your sessions';
+  String get settingsChangePasswordSubtitle => 'セッションを保護しているパスワードを更新します';
 
   @override
-  String get changePasswordScreenTitle => 'Change Password';
+  String get changePasswordScreenTitle => 'パスワードを変更';
 
   @override
-  String get changePasswordCurrentLabel => 'Current password';
+  String get changePasswordCurrentLabel => '現在のパスワード';
 
   @override
-  String get changePasswordNewLabel => 'New password';
+  String get changePasswordNewLabel => '新しいパスワード';
 
   @override
-  String get changePasswordConfirmLabel => 'Confirm new password';
+  String get changePasswordConfirmLabel => '新しいパスワードの確認';
 
   @override
-  String get changePasswordSubmitButton => 'Change Password';
+  String get changePasswordSubmitButton => 'パスワードを変更';
 
   @override
-  String get changePasswordErrorEmpty => 'Enter your current and new passwords';
+  String get changePasswordErrorEmpty => '現在のパスワードと新しいパスワードを入力してください';
 
   @override
   String changePasswordErrorTooShort(int minLength) {
-    return 'New password must be at least $minLength characters';
+    return '新しいパスワードは$minLength文字以上にしてください';
   }
 
   @override
-  String get changePasswordErrorMismatch => 'New passwords don\'t match';
+  String get changePasswordErrorMismatch => '新しいパスワードが一致しません';
 
   @override
-  String get changePasswordErrorWrongCurrent => 'Current password is incorrect';
+  String get changePasswordErrorWrongCurrent => '現在のパスワードが正しくありません';
 
   @override
-  String get changePasswordErrorGeneric =>
-      'Couldn\'t change password. Please try again.';
+  String get changePasswordErrorGeneric => 'パスワードを変更できませんでした。もう一度お試しください。';
 
   @override
-  String get changePasswordSuccess => 'Password changed successfully';
+  String get changePasswordSuccess => 'パスワードが正常に変更されました';
 }

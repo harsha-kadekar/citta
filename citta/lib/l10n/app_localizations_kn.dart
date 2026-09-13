@@ -60,17 +60,17 @@ class AppLocalizationsKn extends AppLocalizations {
 
   @override
   String get firstTimeSetupSubtitle =>
-      'Let\'s set a few things up before you begin.';
+      'ಪ್ರಾರಂಭಿಸುವ ಮೊದಲು ಕೆಲವು ವಿಷಯಗಳನ್ನು ಹೊಂದಿಸೋಣ.';
 
   @override
-  String get firstTimeSetupThemeSectionTitle => 'Choose your theme';
+  String get firstTimeSetupThemeSectionTitle => 'ನಿಮ್ಮ ಥೀಮ್ ಆಯ್ಕೆಮಾಡಿ';
 
   @override
   String get firstTimeSetupEncryptionAlreadyEnabledNotice =>
-      'Encryption is already enabled for your reflections.';
+      'ನಿಮ್ಮ ಚಿಂತನೆಗಳಿಗಾಗಿ ಎನ್‌ಕ್ರಿಪ್ಶನ್ ಈಗಾಗಲೇ ಸಕ್ರಿಯಗೊಂಡಿದೆ.';
 
   @override
-  String get firstTimeSetupContinueButton => 'Get Started';
+  String get firstTimeSetupContinueButton => 'ಪ್ರಾರಂಭಿಸಿ';
 
   @override
   String get homeBegin => 'ಪ್ರಾರಂಭ';
@@ -173,7 +173,7 @@ class AppLocalizationsKn extends AppLocalizations {
   String get settingsLanguage => 'ಭಾಷೆ';
 
   @override
-  String get settingsColorPalette => 'Color Palette';
+  String get settingsColorPalette => 'ಬಣ್ಣದ ಪ್ಯಾಲೆಟ್';
 
   @override
   String get settingsLanguageSystem => 'ವ್ಯವಸ್ಥೆ ಡಿಫಾಲ್ಟ್';
@@ -315,37 +315,38 @@ class AppLocalizationsKn extends AppLocalizations {
   }
 
   @override
-  String get settingsExportChooseTitle => 'Export Data';
+  String get settingsExportChooseTitle => 'ದತ್ತಾಂಶ ರಫ್ತು ಮಾಡಿ';
 
   @override
-  String get settingsExportChooseMsg => 'Export as plain JSON, or encrypted?';
+  String get settingsExportChooseMsg =>
+      'ಸಾಮಾನ್ಯ JSON ಆಗಿ ರಫ್ತು ಮಾಡುವುದೇ, ಅಥವಾ ಎನ್‌ಕ್ರಿಪ್ಟೆಡ್?';
 
   @override
-  String get settingsExportChoosePlain => 'Plain JSON';
+  String get settingsExportChoosePlain => 'ಸಾಮಾನ್ಯ JSON';
 
   @override
-  String get settingsExportChooseEncrypted => 'Encrypted';
+  String get settingsExportChooseEncrypted => 'ಎನ್‌ಕ್ರಿಪ್ಟೆಡ್';
 
   @override
-  String get settingsImportEncryptedTitle => 'Encrypted Export';
+  String get settingsImportEncryptedTitle => 'ಎನ್‌ಕ್ರಿಪ್ಟೆಡ್ ರಫ್ತು';
 
   @override
   String get settingsImportEncryptedSubtitle =>
-      'Enter the password or recovery key used to encrypt this export.';
+      'ಈ ರಫ್ತನ್ನು ಎನ್‌ಕ್ರಿಪ್ಟ್ ಮಾಡಲು ಬಳಸಿದ ಪಾಸ್‌ವರ್ಡ್ ಅಥವಾ ರಿಕವರಿ ಕೀಯನ್ನು ನಮೂದಿಸಿ.';
 
   @override
-  String get settingsImportEncryptedInputLabel => 'Password or recovery key';
+  String get settingsImportEncryptedInputLabel => 'ಪಾಸ್‌ವರ್ಡ್ ಅಥವಾ ರಿಕವರಿ ಕೀ';
 
   @override
-  String get settingsImportEncryptedSubmitButton => 'Unlock';
+  String get settingsImportEncryptedSubmitButton => 'ಅನ್‌ಲಾಕ್ ಮಾಡಿ';
 
   @override
   String get settingsImportEncryptedErrorEmpty =>
-      'Enter the password or recovery key';
+      'ಪಾಸ್‌ವರ್ಡ್ ಅಥವಾ ರಿಕವರಿ ಕೀಯನ್ನು ನಮೂದಿಸಿ';
 
   @override
   String get settingsImportEncryptedErrorWrong =>
-      'Incorrect password or recovery key. Please try again.';
+      'ತಪ್ಪಾದ ಪಾಸ್‌ವರ್ಡ್ ಅಥವಾ ರಿಕವರಿ ಕೀ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.';
 
   @override
   String get notesTitle => 'ಸೆಷನ್ ಟಿಪ್ಪಣಿಗಳು';
@@ -517,152 +518,155 @@ class AppLocalizationsKn extends AppLocalizations {
   String get timerPaused => 'ನಿಲ್ಲಿಸಲಾಗಿದೆ';
 
   @override
-  String get encryptionToggleTitle => 'Encrypt my reflections';
+  String get encryptionToggleTitle => 'ನನ್ನ ಚಿಂತನೆಗಳನ್ನು ಎನ್‌ಕ್ರಿಪ್ಟ್ ಮಾಡಿ';
 
   @override
   String get encryptionToggleSubtitle =>
-      'Protect your sessions on this device with a password';
+      'ಈ ಸಾಧನದಲ್ಲಿ ನಿಮ್ಮ ಸೆಷನ್‌ಗಳನ್ನು ಪಾಸ್‌ವರ್ಡ್‌ನಿಂದ ರಕ್ಷಿಸಿ';
 
   @override
-  String get encryptionPasswordLabel => 'Password';
+  String get encryptionPasswordLabel => 'ಪಾಸ್‌ವರ್ಡ್';
 
   @override
-  String get encryptionConfirmPasswordLabel => 'Confirm password';
+  String get encryptionConfirmPasswordLabel => 'ಪಾಸ್‌ವರ್ಡ್ ದೃಢೀಕರಿಸಿ';
 
   @override
-  String get encryptionEnableButton => 'Enable Encryption';
+  String get encryptionEnableButton => 'ಎನ್‌ಕ್ರಿಪ್ಶನ್ ಸಕ್ರಿಯಗೊಳಿಸಿ';
 
   @override
-  String get encryptionErrorEmpty => 'Enter a password';
+  String get encryptionErrorEmpty => 'ಒಂದು ಪಾಸ್‌ವರ್ಡ್ ನಮೂದಿಸಿ';
 
   @override
   String encryptionErrorTooShort(int minLength) {
-    return 'Password must be at least $minLength characters';
+    return 'ಪಾಸ್‌ವರ್ಡ್ ಕನಿಷ್ಠ $minLength ಅಕ್ಷರಗಳಿರಬೇಕು';
   }
 
   @override
-  String get encryptionErrorMismatch => 'Passwords don\'t match';
+  String get encryptionErrorMismatch => 'ಪಾಸ್‌ವರ್ಡ್‌ಗಳು ಹೊಂದಿಕೆಯಾಗುತ್ತಿಲ್ಲ';
 
   @override
   String get encryptionErrorGeneric =>
-      'Couldn\'t enable encryption. Please try again.';
+      'ಎನ್‌ಕ್ರಿಪ್ಶನ್ ಸಕ್ರಿಯಗೊಳಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.';
 
   @override
-  String get recoveryKeyScreenTitle => 'Save your recovery key';
+  String get recoveryKeyScreenTitle => 'ನಿಮ್ಮ ರಿಕವರಿ ಕೀಯನ್ನು ಉಳಿಸಿ';
 
   @override
   String get recoveryKeyWarning =>
-      'This is the only way to recover your data if you forget your password. If you lose both, your data is permanently unrecoverable.';
+      'ನೀವು ಪಾಸ್‌ವರ್ಡ್ ಮರೆತರೆ ನಿಮ್ಮ ದತ್ತಾಂಶವನ್ನು ಮರಳಿ ಪಡೆಯುವ ಏಕೈಕ ಮಾರ್ಗ ಇದು. ಎರಡನ್ನೂ ಕಳೆದುಕೊಂಡರೆ, ನಿಮ್ಮ ದತ್ತಾಂಶ ಶಾಶ್ವತವಾಗಿ ಮರಳಿ ಪಡೆಯಲಾಗದಂತೆ ಆಗುತ್ತದೆ.';
 
   @override
-  String get recoveryKeyCopyButton => 'Copy';
+  String get recoveryKeyCopyButton => 'ನಕಲಿಸಿ';
 
   @override
-  String get recoveryKeyShareButton => 'Share';
+  String get recoveryKeyShareButton => 'ಹಂಚಿಕೊಳ್ಳಿ';
 
   @override
   String get recoveryKeyAckLabel =>
-      'I\'ve saved my recovery key in a safe place';
+      'ನಾನು ನನ್ನ ರಿಕವರಿ ಕೀಯನ್ನು ಸುರಕ್ಷಿತ ಸ್ಥಳದಲ್ಲಿ ಉಳಿಸಿದ್ದೇನೆ';
 
   @override
-  String get recoveryKeyContinueButton => 'Continue';
+  String get recoveryKeyContinueButton => 'ಮುಂದುವರಿಯಿರಿ';
 
   @override
   String get recoveryKeyErrorGeneric =>
-      'Couldn\'t generate a recovery key. Please try again.';
+      'ರಿಕವರಿ ಕೀಯನ್ನು ರಚಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.';
 
   @override
-  String get unlockTitle => 'Unlock Citta';
+  String get unlockTitle => 'Citta ಅನ್‌ಲಾಕ್ ಮಾಡಿ';
 
   @override
   String get unlockSubtitle =>
-      'Enter your password or recovery key to access your reflections.';
+      'ನಿಮ್ಮ ಚಿಂತನೆಗಳನ್ನು ಪ್ರವೇಶಿಸಲು ಪಾಸ್‌ವರ್ಡ್ ಅಥವಾ ರಿಕವರಿ ಕೀಯನ್ನು ನಮೂದಿಸಿ.';
 
   @override
-  String get unlockInputLabel => 'Password or recovery key';
+  String get unlockInputLabel => 'ಪಾಸ್‌ವರ್ಡ್ ಅಥವಾ ರಿಕವರಿ ಕೀ';
 
   @override
-  String get unlockSubmitButton => 'Unlock';
+  String get unlockSubmitButton => 'ಅನ್‌ಲಾಕ್ ಮಾಡಿ';
 
   @override
-  String get unlockErrorEmpty => 'Enter your password or recovery key';
+  String get unlockErrorEmpty => 'ನಿಮ್ಮ ಪಾಸ್‌ವರ್ಡ್ ಅಥವಾ ರಿಕವರಿ ಕೀಯನ್ನು ನಮೂದಿಸಿ';
 
   @override
   String get unlockErrorGeneric =>
-      'Incorrect password or recovery key. Please try again.';
+      'ತಪ್ಪಾದ ಪಾಸ್‌ವರ್ಡ್ ಅಥವಾ ರಿಕವರಿ ಕೀ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.';
 
   @override
   String get unlockErrorCorrupted =>
-      'Your encrypted data couldn\'t be read. It may be damaged.';
+      'ನಿಮ್ಮ ಎನ್‌ಕ್ರಿಪ್ಟೆಡ್ ದತ್ತಾಂಶವನ್ನು ಓದಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ಅದು ಹಾಳಾಗಿರಬಹುದು.';
 
   @override
-  String get settingsEncryptionTitle => 'Encryption';
+  String get settingsEncryptionTitle => 'ಎನ್‌ಕ್ರಿಪ್ಶನ್';
 
   @override
   String get settingsEncryptionSubtitleEnabled =>
-      'Your sessions are encrypted on this device';
+      'ನಿಮ್ಮ ಸೆಷನ್‌ಗಳು ಈ ಸಾಧನದಲ್ಲಿ ಎನ್‌ಕ್ರಿಪ್ಟ್ ಆಗಿವೆ';
 
   @override
   String get settingsEncryptionSubtitleDisabled =>
-      'Protect your sessions with a password';
+      'ಪಾಸ್‌ವರ್ಡ್‌ನಿಂದ ನಿಮ್ಮ ಸೆಷನ್‌ಗಳನ್ನು ರಕ್ಷಿಸಿ';
 
   @override
-  String get enableEncryptionScreenTitle => 'Enable Encryption';
+  String get enableEncryptionScreenTitle => 'ಎನ್‌ಕ್ರಿಪ್ಶನ್ ಸಕ್ರಿಯಗೊಳಿಸಿ';
 
   @override
-  String get settingsEncryptionDisableConfirmTitle => 'Disable encryption?';
+  String get settingsEncryptionDisableConfirmTitle =>
+      'ಎನ್‌ಕ್ರಿಪ್ಶನ್ ನಿಷ್ಕ್ರಿಯಗೊಳಿಸುವುದೇ?';
 
   @override
   String get settingsEncryptionDisableConfirmMessage =>
-      'Your sessions will be stored as plain text on this device again.';
+      'ನಿಮ್ಮ ಸೆಷನ್‌ಗಳು ಈ ಸಾಧನದಲ್ಲಿ ಮತ್ತೆ ಸಾಮಾನ್ಯ ಪಠ್ಯವಾಗಿ ಸಂಗ್ರಹಿಸಲ್ಪಡುತ್ತವೆ.';
 
   @override
-  String get settingsEncryptionDisableConfirmButton => 'Disable';
+  String get settingsEncryptionDisableConfirmButton => 'ನಿಷ್ಕ್ರಿಯಗೊಳಿಸಿ';
 
   @override
   String get settingsEncryptionDisableError =>
-      'Couldn\'t disable encryption. Please try again.';
+      'ಎನ್‌ಕ್ರಿಪ್ಶನ್ ನಿಷ್ಕ್ರಿಯಗೊಳಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.';
 
   @override
-  String get settingsChangePasswordTitle => 'Change Password';
+  String get settingsChangePasswordTitle => 'ಪಾಸ್‌ವರ್ಡ್ ಬದಲಾಯಿಸಿ';
 
   @override
   String get settingsChangePasswordSubtitle =>
-      'Update the password protecting your sessions';
+      'ನಿಮ್ಮ ಸೆಷನ್‌ಗಳನ್ನು ರಕ್ಷಿಸುವ ಪಾಸ್‌ವರ್ಡ್ ಅನ್ನು ನವೀಕರಿಸಿ';
 
   @override
-  String get changePasswordScreenTitle => 'Change Password';
+  String get changePasswordScreenTitle => 'ಪಾಸ್‌ವರ್ಡ್ ಬದಲಾಯಿಸಿ';
 
   @override
-  String get changePasswordCurrentLabel => 'Current password';
+  String get changePasswordCurrentLabel => 'ಪ್ರಸ್ತುತ ಪಾಸ್‌ವರ್ಡ್';
 
   @override
-  String get changePasswordNewLabel => 'New password';
+  String get changePasswordNewLabel => 'ಹೊಸ ಪಾಸ್‌ವರ್ಡ್';
 
   @override
-  String get changePasswordConfirmLabel => 'Confirm new password';
+  String get changePasswordConfirmLabel => 'ಹೊಸ ಪಾಸ್‌ವರ್ಡ್ ದೃಢೀಕರಿಸಿ';
 
   @override
-  String get changePasswordSubmitButton => 'Change Password';
+  String get changePasswordSubmitButton => 'ಪಾಸ್‌ವರ್ಡ್ ಬದಲಾಯಿಸಿ';
 
   @override
-  String get changePasswordErrorEmpty => 'Enter your current and new passwords';
+  String get changePasswordErrorEmpty =>
+      'ನಿಮ್ಮ ಪ್ರಸ್ತುತ ಮತ್ತು ಹೊಸ ಪಾಸ್‌ವರ್ಡ್ ನಮೂದಿಸಿ';
 
   @override
   String changePasswordErrorTooShort(int minLength) {
-    return 'New password must be at least $minLength characters';
+    return 'ಹೊಸ ಪಾಸ್‌ವರ್ಡ್ ಕನಿಷ್ಠ $minLength ಅಕ್ಷರಗಳಿರಬೇಕು';
   }
 
   @override
-  String get changePasswordErrorMismatch => 'New passwords don\'t match';
+  String get changePasswordErrorMismatch =>
+      'ಹೊಸ ಪಾಸ್‌ವರ್ಡ್‌ಗಳು ಹೊಂದಿಕೆಯಾಗುತ್ತಿಲ್ಲ';
 
   @override
-  String get changePasswordErrorWrongCurrent => 'Current password is incorrect';
+  String get changePasswordErrorWrongCurrent => 'ಪ್ರಸ್ತುತ ಪಾಸ್‌ವರ್ಡ್ ತಪ್ಪಾಗಿದೆ';
 
   @override
   String get changePasswordErrorGeneric =>
-      'Couldn\'t change password. Please try again.';
+      'ಪಾಸ್‌ವರ್ಡ್ ಬದಲಾಯಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.';
 
   @override
-  String get changePasswordSuccess => 'Password changed successfully';
+  String get changePasswordSuccess => 'ಪಾಸ್‌ವರ್ಡ್ ಯಶಸ್ವಿಯಾಗಿ ಬದಲಾಯಿಸಲಾಗಿದೆ';
 }

@@ -60,17 +60,17 @@ class AppLocalizationsAs extends AppLocalizations {
 
   @override
   String get firstTimeSetupSubtitle =>
-      'Let\'s set a few things up before you begin.';
+      'আৰম্ভ কৰাৰ আগতে আহক আমি কিছুমান কথা ছেট কৰোঁ।';
 
   @override
-  String get firstTimeSetupThemeSectionTitle => 'Choose your theme';
+  String get firstTimeSetupThemeSectionTitle => 'আপোনাৰ থিম বাছনি কৰক';
 
   @override
   String get firstTimeSetupEncryptionAlreadyEnabledNotice =>
-      'Encryption is already enabled for your reflections.';
+      'আপোনাৰ চিন্তনৰ বাবে এনক্ৰিপশ্যন ইতিমধ্যে সক্ষম কৰা আছে।';
 
   @override
-  String get firstTimeSetupContinueButton => 'Get Started';
+  String get firstTimeSetupContinueButton => 'আৰম্ভ কৰক';
 
   @override
   String get homeBegin => 'আৰম্ভ কৰক';
@@ -173,7 +173,7 @@ class AppLocalizationsAs extends AppLocalizations {
   String get settingsLanguage => 'ভাষা';
 
   @override
-  String get settingsColorPalette => 'Color Palette';
+  String get settingsColorPalette => 'ৰঙৰ পেলেট';
 
   @override
   String get settingsLanguageSystem => 'ছিষ্টেম ডিফল্ট';
@@ -314,37 +314,38 @@ class AppLocalizationsAs extends AppLocalizations {
   }
 
   @override
-  String get settingsExportChooseTitle => 'Export Data';
+  String get settingsExportChooseTitle => 'ডেটা এক্সপ\'ৰ্ট কৰক';
 
   @override
-  String get settingsExportChooseMsg => 'Export as plain JSON, or encrypted?';
+  String get settingsExportChooseMsg =>
+      'সাধাৰণ JSON হিচাপে এক্সপ\'ৰ্ট কৰিব, নে এনক্ৰিপ্টেড?';
 
   @override
-  String get settingsExportChoosePlain => 'Plain JSON';
+  String get settingsExportChoosePlain => 'সাধাৰণ JSON';
 
   @override
-  String get settingsExportChooseEncrypted => 'Encrypted';
+  String get settingsExportChooseEncrypted => 'এনক্ৰিপ্টেড';
 
   @override
-  String get settingsImportEncryptedTitle => 'Encrypted Export';
+  String get settingsImportEncryptedTitle => 'এনক্ৰিপ্টেড এক্সপ\'ৰ্ট';
 
   @override
   String get settingsImportEncryptedSubtitle =>
-      'Enter the password or recovery key used to encrypt this export.';
+      'এই এক্সপ\'ৰ্টটো এনক্ৰিপ্ট কৰিবলৈ ব্যৱহাৰ কৰা পাছৱৰ্ড বা ৰিকভাৰী কী প্ৰবিষ্ট কৰক।';
 
   @override
-  String get settingsImportEncryptedInputLabel => 'Password or recovery key';
+  String get settingsImportEncryptedInputLabel => 'পাছৱৰ্ড বা ৰিকভাৰী কী';
 
   @override
-  String get settingsImportEncryptedSubmitButton => 'Unlock';
+  String get settingsImportEncryptedSubmitButton => 'আনলক কৰক';
 
   @override
   String get settingsImportEncryptedErrorEmpty =>
-      'Enter the password or recovery key';
+      'পাছৱৰ্ড বা ৰিকভাৰী কী প্ৰবিষ্ট কৰক';
 
   @override
   String get settingsImportEncryptedErrorWrong =>
-      'Incorrect password or recovery key. Please try again.';
+      'ভুল পাছৱৰ্ড বা ৰিকভাৰী কী। অনুগ্ৰহ কৰি পুনৰ চেষ্টা কৰক।';
 
   @override
   String get notesTitle => 'অধিৱেশন টোকা';
@@ -516,152 +517,154 @@ class AppLocalizationsAs extends AppLocalizations {
   String get timerPaused => 'বিৰতি';
 
   @override
-  String get encryptionToggleTitle => 'Encrypt my reflections';
+  String get encryptionToggleTitle => 'মোৰ চিন্তন এনক্ৰিপ্ট কৰক';
 
   @override
   String get encryptionToggleSubtitle =>
-      'Protect your sessions on this device with a password';
+      'এই ডিভাইচত আপোনাৰ ছেছনসমূহ পাছৱৰ্ডেৰে সুৰক্ষিত কৰক';
 
   @override
-  String get encryptionPasswordLabel => 'Password';
+  String get encryptionPasswordLabel => 'পাছৱৰ্ড';
 
   @override
-  String get encryptionConfirmPasswordLabel => 'Confirm password';
+  String get encryptionConfirmPasswordLabel => 'পাছৱৰ্ড নিশ্চিত কৰক';
 
   @override
-  String get encryptionEnableButton => 'Enable Encryption';
+  String get encryptionEnableButton => 'এনক্ৰিপশ্যন সক্ষম কৰক';
 
   @override
-  String get encryptionErrorEmpty => 'Enter a password';
+  String get encryptionErrorEmpty => 'এটা পাছৱৰ্ড প্ৰবিষ্ট কৰক';
 
   @override
   String encryptionErrorTooShort(int minLength) {
-    return 'Password must be at least $minLength characters';
+    return 'পাছৱৰ্ড কমেও $minLength আখৰৰ হ\'ব লাগিব';
   }
 
   @override
-  String get encryptionErrorMismatch => 'Passwords don\'t match';
+  String get encryptionErrorMismatch => 'পাছৱৰ্ড মিলা নাই';
 
   @override
   String get encryptionErrorGeneric =>
-      'Couldn\'t enable encryption. Please try again.';
+      'এনক্ৰিপশ্যন সক্ষম কৰিব পৰা নগ\'ল। অনুগ্ৰহ কৰি পুনৰ চেষ্টা কৰক।';
 
   @override
-  String get recoveryKeyScreenTitle => 'Save your recovery key';
+  String get recoveryKeyScreenTitle => 'আপোনাৰ ৰিকভাৰী কী সংৰক্ষণ কৰক';
 
   @override
   String get recoveryKeyWarning =>
-      'This is the only way to recover your data if you forget your password. If you lose both, your data is permanently unrecoverable.';
+      'আপুনি পাছৱৰ্ড পাহৰি গ\'লে আপোনাৰ ডেটা পুনৰুদ্ধাৰ কৰাৰ এইটোৱেই একমাত্ৰ উপায়। দুয়োটা হেৰুৱালে, আপোনাৰ ডেটা স্থায়ীভাৱে অপ্ৰাপ্য হৈ যাব।';
 
   @override
-  String get recoveryKeyCopyButton => 'Copy';
+  String get recoveryKeyCopyButton => 'কপি কৰক';
 
   @override
-  String get recoveryKeyShareButton => 'Share';
+  String get recoveryKeyShareButton => 'শ্বেয়াৰ কৰক';
 
   @override
   String get recoveryKeyAckLabel =>
-      'I\'ve saved my recovery key in a safe place';
+      'মই মোৰ ৰিকভাৰী কী এটা সুৰক্ষিত ঠাইত সংৰক্ষণ কৰিছোঁ';
 
   @override
-  String get recoveryKeyContinueButton => 'Continue';
+  String get recoveryKeyContinueButton => 'অব্যাহত ৰাখক';
 
   @override
   String get recoveryKeyErrorGeneric =>
-      'Couldn\'t generate a recovery key. Please try again.';
+      'ৰিকভাৰী কী সৃষ্টি কৰিব পৰা নগ\'ল। অনুগ্ৰহ কৰি পুনৰ চেষ্টা কৰক।';
 
   @override
-  String get unlockTitle => 'Unlock Citta';
+  String get unlockTitle => 'Citta আনলক কৰক';
 
   @override
   String get unlockSubtitle =>
-      'Enter your password or recovery key to access your reflections.';
+      'আপোনাৰ চিন্তন চাবলৈ পাছৱৰ্ড বা ৰিকভাৰী কী প্ৰবিষ্ট কৰক।';
 
   @override
-  String get unlockInputLabel => 'Password or recovery key';
+  String get unlockInputLabel => 'পাছৱৰ্ড বা ৰিকভাৰী কী';
 
   @override
-  String get unlockSubmitButton => 'Unlock';
+  String get unlockSubmitButton => 'আনলক কৰক';
 
   @override
-  String get unlockErrorEmpty => 'Enter your password or recovery key';
+  String get unlockErrorEmpty => 'আপোনাৰ পাছৱৰ্ড বা ৰিকভাৰী কী প্ৰবিষ্ট কৰক';
 
   @override
   String get unlockErrorGeneric =>
-      'Incorrect password or recovery key. Please try again.';
+      'ভুল পাছৱৰ্ড বা ৰিকভাৰী কী। অনুগ্ৰহ কৰি পুনৰ চেষ্টা কৰক।';
 
   @override
   String get unlockErrorCorrupted =>
-      'Your encrypted data couldn\'t be read. It may be damaged.';
+      'আপোনাৰ এনক্ৰিপ্টেড ডেটা পঢ়িব পৰা নগ\'ল। ই খতি হৈ থাকিব পাৰে।';
 
   @override
-  String get settingsEncryptionTitle => 'Encryption';
+  String get settingsEncryptionTitle => 'এনক্ৰিপশ্যন';
 
   @override
   String get settingsEncryptionSubtitleEnabled =>
-      'Your sessions are encrypted on this device';
+      'আপোনাৰ ছেছনসমূহ এই ডিভাইচত এনক্ৰিপ্টেড আছে';
 
   @override
   String get settingsEncryptionSubtitleDisabled =>
-      'Protect your sessions with a password';
+      'পাছৱৰ্ডেৰে আপোনাৰ ছেছনসমূহ সুৰক্ষিত কৰক';
 
   @override
-  String get enableEncryptionScreenTitle => 'Enable Encryption';
+  String get enableEncryptionScreenTitle => 'এনক্ৰিপশ্যন সক্ষম কৰক';
 
   @override
-  String get settingsEncryptionDisableConfirmTitle => 'Disable encryption?';
+  String get settingsEncryptionDisableConfirmTitle =>
+      'এনক্ৰিপশ্যন অক্ষম কৰিবনে?';
 
   @override
   String get settingsEncryptionDisableConfirmMessage =>
-      'Your sessions will be stored as plain text on this device again.';
+      'আপোনাৰ ছেছনসমূহ এই ডিভাইচত পুনৰ প্লেইন টেক্সট হিচাপে সংৰক্ষিত হ\'ব।';
 
   @override
-  String get settingsEncryptionDisableConfirmButton => 'Disable';
+  String get settingsEncryptionDisableConfirmButton => 'অক্ষম কৰক';
 
   @override
   String get settingsEncryptionDisableError =>
-      'Couldn\'t disable encryption. Please try again.';
+      'এনক্ৰিপশ্যন অক্ষম কৰিব পৰা নগ\'ল। অনুগ্ৰহ কৰি পুনৰ চেষ্টা কৰক।';
 
   @override
-  String get settingsChangePasswordTitle => 'Change Password';
+  String get settingsChangePasswordTitle => 'পাছৱৰ্ড সলনি কৰক';
 
   @override
   String get settingsChangePasswordSubtitle =>
-      'Update the password protecting your sessions';
+      'আপোনাৰ ছেছন সুৰক্ষা কৰা পাছৱৰ্ড আপডেট কৰক';
 
   @override
-  String get changePasswordScreenTitle => 'Change Password';
+  String get changePasswordScreenTitle => 'পাছৱৰ্ড সলনি কৰক';
 
   @override
-  String get changePasswordCurrentLabel => 'Current password';
+  String get changePasswordCurrentLabel => 'বৰ্তমান পাছৱৰ্ড';
 
   @override
-  String get changePasswordNewLabel => 'New password';
+  String get changePasswordNewLabel => 'নতুন পাছৱৰ্ড';
 
   @override
-  String get changePasswordConfirmLabel => 'Confirm new password';
+  String get changePasswordConfirmLabel => 'নতুন পাছৱৰ্ড নিশ্চিত কৰক';
 
   @override
-  String get changePasswordSubmitButton => 'Change Password';
+  String get changePasswordSubmitButton => 'পাছৱৰ্ড সলনি কৰক';
 
   @override
-  String get changePasswordErrorEmpty => 'Enter your current and new passwords';
+  String get changePasswordErrorEmpty =>
+      'আপোনাৰ বৰ্তমান আৰু নতুন পাছৱৰ্ড প্ৰবিষ্ট কৰক';
 
   @override
   String changePasswordErrorTooShort(int minLength) {
-    return 'New password must be at least $minLength characters';
+    return 'নতুন পাছৱৰ্ড কমেও $minLength আখৰৰ হ\'ব লাগিব';
   }
 
   @override
-  String get changePasswordErrorMismatch => 'New passwords don\'t match';
+  String get changePasswordErrorMismatch => 'নতুন পাছৱৰ্ড মিলা নাই';
 
   @override
-  String get changePasswordErrorWrongCurrent => 'Current password is incorrect';
+  String get changePasswordErrorWrongCurrent => 'বৰ্তমান পাছৱৰ্ড ভুল';
 
   @override
   String get changePasswordErrorGeneric =>
-      'Couldn\'t change password. Please try again.';
+      'পাছৱৰ্ড সলনি কৰিব পৰা নগ\'ল। অনুগ্ৰহ কৰি পুনৰ চেষ্টা কৰক।';
 
   @override
-  String get changePasswordSuccess => 'Password changed successfully';
+  String get changePasswordSuccess => 'পাছৱৰ্ড সফলতাৰে সলনি কৰা হ\'ল';
 }

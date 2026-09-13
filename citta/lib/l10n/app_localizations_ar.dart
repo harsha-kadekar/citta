@@ -59,18 +59,17 @@ class AppLocalizationsAr extends AppLocalizations {
   String get welcomeNameHint => 'أدخل اسمك';
 
   @override
-  String get firstTimeSetupSubtitle =>
-      'Let\'s set a few things up before you begin.';
+  String get firstTimeSetupSubtitle => 'لنقم بضبط بعض الأمور قبل أن تبدأ.';
 
   @override
-  String get firstTimeSetupThemeSectionTitle => 'Choose your theme';
+  String get firstTimeSetupThemeSectionTitle => 'اختر السمة الخاصة بك';
 
   @override
   String get firstTimeSetupEncryptionAlreadyEnabledNotice =>
-      'Encryption is already enabled for your reflections.';
+      'التشفير مُفعّل بالفعل لتأملاتك.';
 
   @override
-  String get firstTimeSetupContinueButton => 'Get Started';
+  String get firstTimeSetupContinueButton => 'ابدأ الآن';
 
   @override
   String get homeBegin => 'ابدأ';
@@ -172,7 +171,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsLanguage => 'اللغة';
 
   @override
-  String get settingsColorPalette => 'Color Palette';
+  String get settingsColorPalette => 'لوحة الألوان';
 
   @override
   String get settingsLanguageSystem => 'افتراضي النظام';
@@ -313,37 +312,39 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get settingsExportChooseTitle => 'Export Data';
+  String get settingsExportChooseTitle => 'تصدير البيانات';
 
   @override
-  String get settingsExportChooseMsg => 'Export as plain JSON, or encrypted?';
+  String get settingsExportChooseMsg =>
+      'هل تريد التصدير كملف JSON عادي أم مشفّر؟';
 
   @override
-  String get settingsExportChoosePlain => 'Plain JSON';
+  String get settingsExportChoosePlain => 'JSON عادي';
 
   @override
-  String get settingsExportChooseEncrypted => 'Encrypted';
+  String get settingsExportChooseEncrypted => 'مشفّر';
 
   @override
-  String get settingsImportEncryptedTitle => 'Encrypted Export';
+  String get settingsImportEncryptedTitle => 'تصدير مشفّر';
 
   @override
   String get settingsImportEncryptedSubtitle =>
-      'Enter the password or recovery key used to encrypt this export.';
+      'أدخل كلمة المرور أو مفتاح الاسترداد المستخدم لتشفير هذا التصدير.';
 
   @override
-  String get settingsImportEncryptedInputLabel => 'Password or recovery key';
+  String get settingsImportEncryptedInputLabel =>
+      'كلمة المرور أو مفتاح الاسترداد';
 
   @override
-  String get settingsImportEncryptedSubmitButton => 'Unlock';
+  String get settingsImportEncryptedSubmitButton => 'فتح القفل';
 
   @override
   String get settingsImportEncryptedErrorEmpty =>
-      'Enter the password or recovery key';
+      'أدخل كلمة المرور أو مفتاح الاسترداد';
 
   @override
   String get settingsImportEncryptedErrorWrong =>
-      'Incorrect password or recovery key. Please try again.';
+      'كلمة المرور أو مفتاح الاسترداد غير صحيح. يرجى المحاولة مرة أخرى.';
 
   @override
   String get notesTitle => 'ملاحظات الجلسة';
@@ -515,152 +516,152 @@ class AppLocalizationsAr extends AppLocalizations {
   String get timerPaused => 'متوقف مؤقتاً';
 
   @override
-  String get encryptionToggleTitle => 'Encrypt my reflections';
+  String get encryptionToggleTitle => 'تشفير تأملاتي';
 
   @override
   String get encryptionToggleSubtitle =>
-      'Protect your sessions on this device with a password';
+      'احمِ جلساتك على هذا الجهاز بكلمة مرور';
 
   @override
-  String get encryptionPasswordLabel => 'Password';
+  String get encryptionPasswordLabel => 'كلمة المرور';
 
   @override
-  String get encryptionConfirmPasswordLabel => 'Confirm password';
+  String get encryptionConfirmPasswordLabel => 'تأكيد كلمة المرور';
 
   @override
-  String get encryptionEnableButton => 'Enable Encryption';
+  String get encryptionEnableButton => 'تفعيل التشفير';
 
   @override
-  String get encryptionErrorEmpty => 'Enter a password';
+  String get encryptionErrorEmpty => 'أدخل كلمة مرور';
 
   @override
   String encryptionErrorTooShort(int minLength) {
-    return 'Password must be at least $minLength characters';
+    return 'يجب أن تتكون كلمة المرور من $minLength أحرف على الأقل';
   }
 
   @override
-  String get encryptionErrorMismatch => 'Passwords don\'t match';
+  String get encryptionErrorMismatch => 'كلمتا المرور غير متطابقتين';
 
   @override
   String get encryptionErrorGeneric =>
-      'Couldn\'t enable encryption. Please try again.';
+      'تعذّر تفعيل التشفير. يرجى المحاولة مرة أخرى.';
 
   @override
-  String get recoveryKeyScreenTitle => 'Save your recovery key';
+  String get recoveryKeyScreenTitle => 'احفظ مفتاح الاسترداد الخاص بك';
 
   @override
   String get recoveryKeyWarning =>
-      'This is the only way to recover your data if you forget your password. If you lose both, your data is permanently unrecoverable.';
+      'هذه هي الطريقة الوحيدة لاسترداد بياناتك إذا نسيت كلمة المرور. إذا فقدت كليهما، ستكون بياناتك غير قابلة للاسترداد نهائيًا.';
 
   @override
-  String get recoveryKeyCopyButton => 'Copy';
+  String get recoveryKeyCopyButton => 'نسخ';
 
   @override
-  String get recoveryKeyShareButton => 'Share';
+  String get recoveryKeyShareButton => 'مشاركة';
 
   @override
   String get recoveryKeyAckLabel =>
-      'I\'ve saved my recovery key in a safe place';
+      'لقد حفظت مفتاح الاسترداد الخاص بي في مكان آمن';
 
   @override
-  String get recoveryKeyContinueButton => 'Continue';
+  String get recoveryKeyContinueButton => 'متابعة';
 
   @override
   String get recoveryKeyErrorGeneric =>
-      'Couldn\'t generate a recovery key. Please try again.';
+      'تعذّر إنشاء مفتاح استرداد. يرجى المحاولة مرة أخرى.';
 
   @override
-  String get unlockTitle => 'Unlock Citta';
+  String get unlockTitle => 'فتح قفل Citta';
 
   @override
   String get unlockSubtitle =>
-      'Enter your password or recovery key to access your reflections.';
+      'أدخل كلمة المرور أو مفتاح الاسترداد للوصول إلى تأملاتك.';
 
   @override
-  String get unlockInputLabel => 'Password or recovery key';
+  String get unlockInputLabel => 'كلمة المرور أو مفتاح الاسترداد';
 
   @override
-  String get unlockSubmitButton => 'Unlock';
+  String get unlockSubmitButton => 'فتح القفل';
 
   @override
-  String get unlockErrorEmpty => 'Enter your password or recovery key';
+  String get unlockErrorEmpty => 'أدخل كلمة المرور أو مفتاح الاسترداد الخاص بك';
 
   @override
   String get unlockErrorGeneric =>
-      'Incorrect password or recovery key. Please try again.';
+      'كلمة المرور أو مفتاح الاسترداد غير صحيح. يرجى المحاولة مرة أخرى.';
 
   @override
   String get unlockErrorCorrupted =>
-      'Your encrypted data couldn\'t be read. It may be damaged.';
+      'تعذّرت قراءة بياناتك المشفّرة. قد تكون تالفة.';
 
   @override
-  String get settingsEncryptionTitle => 'Encryption';
+  String get settingsEncryptionTitle => 'التشفير';
 
   @override
   String get settingsEncryptionSubtitleEnabled =>
-      'Your sessions are encrypted on this device';
+      'جلساتك مشفّرة على هذا الجهاز';
 
   @override
-  String get settingsEncryptionSubtitleDisabled =>
-      'Protect your sessions with a password';
+  String get settingsEncryptionSubtitleDisabled => 'احمِ جلساتك بكلمة مرور';
 
   @override
-  String get enableEncryptionScreenTitle => 'Enable Encryption';
+  String get enableEncryptionScreenTitle => 'تفعيل التشفير';
 
   @override
-  String get settingsEncryptionDisableConfirmTitle => 'Disable encryption?';
+  String get settingsEncryptionDisableConfirmTitle => 'هل تريد تعطيل التشفير؟';
 
   @override
   String get settingsEncryptionDisableConfirmMessage =>
-      'Your sessions will be stored as plain text on this device again.';
+      'سيتم تخزين جلساتك كنص عادي على هذا الجهاز مرة أخرى.';
 
   @override
-  String get settingsEncryptionDisableConfirmButton => 'Disable';
+  String get settingsEncryptionDisableConfirmButton => 'تعطيل';
 
   @override
   String get settingsEncryptionDisableError =>
-      'Couldn\'t disable encryption. Please try again.';
+      'تعذّر تعطيل التشفير. يرجى المحاولة مرة أخرى.';
 
   @override
-  String get settingsChangePasswordTitle => 'Change Password';
+  String get settingsChangePasswordTitle => 'تغيير كلمة المرور';
 
   @override
   String get settingsChangePasswordSubtitle =>
-      'Update the password protecting your sessions';
+      'قم بتحديث كلمة المرور التي تحمي جلساتك';
 
   @override
-  String get changePasswordScreenTitle => 'Change Password';
+  String get changePasswordScreenTitle => 'تغيير كلمة المرور';
 
   @override
-  String get changePasswordCurrentLabel => 'Current password';
+  String get changePasswordCurrentLabel => 'كلمة المرور الحالية';
 
   @override
-  String get changePasswordNewLabel => 'New password';
+  String get changePasswordNewLabel => 'كلمة المرور الجديدة';
 
   @override
-  String get changePasswordConfirmLabel => 'Confirm new password';
+  String get changePasswordConfirmLabel => 'تأكيد كلمة المرور الجديدة';
 
   @override
-  String get changePasswordSubmitButton => 'Change Password';
+  String get changePasswordSubmitButton => 'تغيير كلمة المرور';
 
   @override
-  String get changePasswordErrorEmpty => 'Enter your current and new passwords';
+  String get changePasswordErrorEmpty => 'أدخل كلمة المرور الحالية والجديدة';
 
   @override
   String changePasswordErrorTooShort(int minLength) {
-    return 'New password must be at least $minLength characters';
+    return 'يجب أن تتكون كلمة المرور الجديدة من $minLength أحرف على الأقل';
   }
 
   @override
-  String get changePasswordErrorMismatch => 'New passwords don\'t match';
+  String get changePasswordErrorMismatch =>
+      'كلمتا المرور الجديدتان غير متطابقتين';
 
   @override
-  String get changePasswordErrorWrongCurrent => 'Current password is incorrect';
+  String get changePasswordErrorWrongCurrent => 'كلمة المرور الحالية غير صحيحة';
 
   @override
   String get changePasswordErrorGeneric =>
-      'Couldn\'t change password. Please try again.';
+      'تعذّر تغيير كلمة المرور. يرجى المحاولة مرة أخرى.';
 
   @override
-  String get changePasswordSuccess => 'Password changed successfully';
+  String get changePasswordSuccess => 'تم تغيير كلمة المرور بنجاح';
 }
