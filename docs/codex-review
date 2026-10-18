@@ -2016,3 +2016,24 @@ No actionable defects were identified in the reviewed changes.
   confirmed it passed again.
 - Ran `flutter test` (790 tests, including the 28 translation-completeness checks and the new German
   register test) and `flutter analyze` after the fix: all passed, zero analyzer issues.
+
+---
+
+## Review: issue #101 — Add an open-source LICENSE to the repository
+
+## Findings
+
+- `/code-review` (7a) against the full diff: no findings. The change is documentation/licensing only
+  (new `LICENSE` file with standard MIT text, plus a "## License" section added to `README.md` and a
+  one-line license mention added to `citta/README.md`) — no logic, control flow, or call sites to
+  evaluate, so none of the review's finder angles surface anything.
+- `codex review --uncommitted --title "issue #101: Add an open-source LICENSE to the repository"`: "The
+  detected changes are limited to documentation and an added license file; no blocking code issues were
+  identified."
+
+## Verification
+
+- No regression tests apply — user explicitly authorized skipping tests ("I AUTHORIZE SKIPPING TESTS")
+  since this issue has no testable Dart behavior.
+- Ran `flutter analyze`: no issues found.
+- Ran `flutter test` (790 tests): all passed.
