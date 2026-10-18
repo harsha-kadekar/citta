@@ -66,3 +66,7 @@ See [docs/PLAN.md](docs/PLAN.md) for the full implementation plan.
 ## Source Code
 
 GitHub: https://github.com/harsha-kadekar/citta
+
+## License
+
+MIT License — see [LICENSE](LICENSE).
