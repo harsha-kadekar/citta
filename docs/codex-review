@@ -2037,3 +2037,122 @@ No actionable defects were identified in the reviewed changes.
   since this issue has no testable Dart behavior.
 - Ran `flutter analyze`: no issues found.
 - Ran `flutter test` (790 tests): all passed.
+
+---
+
+## Review: issue #102 — Audit and document licenses for bundled audio, data and font assets
+
+## Findings
+
+- `/code-review` (7a) reported 4 findings:
+  - **important**: `ASSETS_LICENSES.md` claimed every translation was an original MIT rendering, but some
+    untouched Bhagavad Gita entries (6.35, 6.19, the Gita 3.35 text labelled "Shanti Parva 25.29") still
+    tracked published copyrighted editions. Fixed: rewrote every remaining Gita and Yoga Sutra translation
+    from the Sanskrit (11 more entries, 23 in all), narrowed the doc's wording to what was actually done,
+    and added a regression test that rejects distinctive phrasing from the Prabhupada, Satchidananda and
+    Gambhirananda editions.
+  - **pre_existing**: several verses cite the wrong source (e.g. "Shanti Parva 296.18" is Gita 15.15,
+    "Shanti Parva 25.29" is Gita 3.35). Not fixed here: this is about content accuracy, not licensing, and
+    is reported separately.
+  - **nit**: the sounds README allowed "your own recordings", but the test required a freesound URL. Fixed:
+    the test now accepts any https source URL or a Source cell starting with `Original recording`, and the
+    README documents this.
+  - **nit**: the doc said it lists every file "shipped", but `icon_backup.png` is not shipped and
+    `icon.png` ships only through the generated launcher icons. Fixed: reworded to "every file under
+    `assets/`", and the doc now says what ships and how.
+- `codex review --uncommitted --title "issue #102: Audit and document licenses for bundled audio, data and
+  font assets"`: no findings. "The asset replacements, attribution documentation, and asset-license
+  regression test are consistent with the registered sound paths and declared asset layout." (Codex's
+  sandbox had no network access, so it could not check the freesound pages itself.)
+
+## Verification
+
+- Copyrighted-phrase regression test: ran it against the current translations before the rewrite and it
+  failed on Gita 6.35. Ran the same phrase list against the original `HEAD` `quotes.json` and it flagged 8
+  entries (002, 003, 004, 014, 017, 020, 023, 057). It passes after the rewrite.
+- All 7 replacement sounds were checked on their freesound.org pages: each links to CC0 1.0
+  (`creativecommons.org/publicdomain/zero/1.0/`), and the authors in the table match the page owners.
+- Ran `flutter test` (800 tests): all passed. Ran `flutter analyze`: no issues found.
+
+---
+
+## Review: issue #102 (round 2) — quote reference audit
+
+Follow-up to the pre-existing finding from round 1, fixed at the user's request: bundled quotes cited the
+wrong source. Every Gita, Yoga Sutra, Upanishad, Ramayana and Mahabharata reference was checked against
+heritage.iitk.ac.in. Gita verses filed under the Mahabharata (3.35, 15.15, 13.25) were moved to the Gita.
+Wrong references were corrected. Six fabricated verses were replaced with verified ones. Six real verses
+from other works (Manusmriti, Yajnavalkya Smriti, Hitopadesha, Panchatantra) were re-filed as subhashita.
+Nine verified epic verses were added so the Ramayana and Mahabharata each keep 10 entries.
+
+## Findings
+
+- `/code-review` (7a) reported 8 findings:
+  - **important**: the new entries 061–069 weren't pinned by a test, and 062 was said to be "usually
+    18.33". Fixed: a script machine-checked all 48 site-verifiable references (all match; 062 is
+    VRAM 6.18.32 in the IITK edition, and editions differ by one verse here), and every new or corrected
+    reference is now pinned in `quotes_data_test.dart`.
+  - **nit**: 056 repeats विद्यासमं ("knowledge") where the familiar reading has सत्यसमं ("truth").
+    Declined: BORI 12.316.6, fetched from the site, reads विद्या समं twice. See the codex finding below.
+  - **nit**: 042 (Manusmriti 8.15) was a half-line fragment. Fixed: it now has the full verse and
+    translation, pinned by a test.
+  - **nit**: IDs 041/044/048/050/051/053 were reused for completely different verses. Fixed: the
+    replacements got fresh IDs (070–075), and a test asserts the old IDs stay retired.
+  - **nit**: hidden files (`.DS_Store`) under `assets/` would fail the license test. Fixed: the scan skips
+    dotfiles, with a temp-dir regression test.
+  - **nit**: the hard-coded "69 verses" count in `ASSETS_LICENSES.md` wasn't enforced. Fixed: removed the
+    number.
+  - **nit**: `Public-Domain` isn't an SPDX identifier. Fixed: the doc now says so explicitly.
+  - **pre_existing**: `ConfigModel.quoteSources` is never used to filter quotes (`QuoteService` shows
+    every source), and its ids (`yoga_sutra`, `upanishad`) don't match the JSON (`yoga_sutras`,
+    `upanishads`). Not fixed: out of scope, reported to the user.
+- `codex review --uncommitted` (7b): one P2 finding, "Restore `satyasamaṃ` in the Shanti Parva verse"
+  (056), the same point as the 7a nit. Declined with evidence: the reference uses BORI numbering
+  (12.316.6), and BORI reads "नास्ति विद्या समं तपः". सत्यसमं is the vulgate reading, which numbers the
+  verse differently, so the two must not be mixed. The reading is now pinned by a test that explains
+  this.
+
+## Verification
+
+- New data tests failed before the fix (16 in the first pass; then 8 for retired IDs, 042 and IDs 070–075)
+  and pass after it.
+- Dotfile regression: with only the dotfile filter removed, the test failed with
+  `Actual: ['bell.mp3', '.DS_Store']`. It passes once the filter is restored.
+- Ran `flutter test` (838 tests): all passed. Ran `flutter analyze`: no issues found.
+
+---
+
+## Review: issue #102 (round 3) — trim Indian Temple Bell, add four temple-bell sounds
+
+At the user's request, `indian-temple-bell.mp3` was replaced with ganiket's "Indian Temple Bell"
+(freesound 466652, CC0), trimmed to its first 10 s with a 1.5 s linear fade-out (GStreamer decode → Python
+fade → lamemp3enc 128 kbps CBR). Four new CC0 options were added to `AudioService.bundledSounds` /
+`soundDisplayNames`: Shiva Bells (34870), Hindu Temple Bells (876449), Ghanta (Puja Bell) (274316) and
+Brass Bell (479978). They are kept at full length, as the user chose.
+
+## Findings
+
+- `/code-review` (7a) reported 5 findings:
+  - **important**: the new clips are long (estimated at 65/42/34 s from file size). Declined: the user
+    explicitly chose to keep them full length. Measured durations (gst-discoverer) are ghanta 45.3 s,
+    shiva-bells 30.0 s and hindu-temple-bells 23.9 s; the previews are VBR, so the size-based estimate
+    was too high.
+  - **nit**: the new display names are hardcoded English, not ARB strings. Declined for this change: this
+    follows the existing `soundDisplayNames` pattern (all 11 names are English-only), and the user
+    approved a plan with no ARB changes. Localizing the bell names is a separate follow-up.
+  - **nit**: Gita "13.25 should be 13.24". Declined with evidence: on the Gita Supersite
+    (heritage.iitk.ac.in), SBG/13.24 is "य एवं वेत्ति…" and SBG/13.25 is "ध्यानेनात्मनि पश्यन्ति…".
+  - **nit**: the 049 translation dropped "क्रयविक्रयवेलायां" (at the time of buying and selling). Fixed,
+    with a regression test.
+  - **nit**: 031 ("उद्यमेन हि सिध्यन्ति") is from the Hitopadesha. Fixed: reference
+    "Hitopadesha, Prastavika", pinned in the re-filed group.
+- `codex review --uncommitted` (7b): no findings. "The added bundled sound registrations, assets, license
+  documentation, and quote-data updates are internally consistent."
+
+## Verification
+
+- `bundled_sounds_test.dart` failed before the new sounds were registered (`Expected:
+  'assets/sounds/shiva-bells.mp3'`, `Actual: <null>`) and passes after.
+- The trimmed file decodes to 10.03 s. Peak level falls from 25543 (0–1 s) to 310 (final 0.1 s).
+- The 049 and 031 tests failed before their fixes and pass after.
+- Ran `flutter test` (843 tests): all passed. Ran `flutter analyze`: no issues found.
