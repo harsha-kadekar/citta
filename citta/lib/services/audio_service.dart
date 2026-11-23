@@ -141,6 +141,10 @@ class AudioService {
     'singing_bell': 'assets/sounds/singing-bell.mp3',
     'temple_bells': 'assets/sounds/temple-bells.mp3',
     'wind_chime': 'assets/sounds/wind-chime.mp3',
+    'shiva_bells': 'assets/sounds/shiva-bells.mp3',
+    'hindu_temple_bells': 'assets/sounds/hindu-temple-bells.mp3',
+    'ghanta': 'assets/sounds/ghanta.mp3',
+    'brass_bell': 'assets/sounds/brass-bell.mp3',
   };
 
   static const Map<String, String> soundDisplayNames = {
@@ -151,6 +155,10 @@ class AudioService {
     'singing_bell': 'Singing Bell',
     'temple_bells': 'Temple Bells',
     'wind_chime': 'Wind Chime',
+    'shiva_bells': 'Shiva Bells',
+    'hindu_temple_bells': 'Hindu Temple Bells',
+    'ghanta': 'Ghanta (Puja Bell)',
+    'brass_bell': 'Brass Bell',
   };
 
   /// Configures the audio session and subscribes to interruption events.
