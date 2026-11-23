@@ -17,6 +17,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: 3.44.5
 
       - run: flutter pub get
         working-directory: citta
@@ -41,6 +42,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: 3.44.5
 
       - run: flutter pub get
         working-directory: citta
@@ -72,6 +74,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: 3.44.5
 
       - run: flutter pub get
         working-directory: citta
