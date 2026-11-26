@@ -2272,3 +2272,41 @@ Brass Bell (479978). They are kept at full length, as the user chose.
 - `scripts/verify-release-key.sh` prints OK for the real v0.3.0 `app-release.apk`
   (`cee3a0e0…6716`) and MISMATCH for the debug-signed v0.2.1 APK.
 - Ran `flutter test` (882 tests): all passed. Ran `flutter analyze`: no issues found.
+
+---
+
+## Review: issue #106 — Write and publish a privacy policy
+
+## Findings
+
+- `/code-review` (7a) reported 6 findings. All fixed:
+  - **important**: PRIVACY.md said "your data is encrypted", but only `sessions.json` is encrypted.
+    `config.json`, `user_quotes.json` and `in_progress_session.json` are always plain JSON. The
+    policy now says encryption covers session history (including notes and tags) and lists what
+    stays unencrypted.
+  - **important**: the guard test read only the source `main/AndroidManifest.xml`, so a dependency
+    that adds `INTERNET` through manifest merging would go unnoticed. Added a test that checks the
+    merged release manifest when one exists (and is skipped otherwise). The CI `release` job now
+    runs it right after `flutter build apk --release`.
+  - **important**: the backup section said backed-up data stays encrypted. It now says only session
+    history does, and that settings, added quotes and the in-progress snapshot are backed up
+    unencrypted.
+  - **nit**: the list of stored data was incomplete. It now covers the in-progress snapshot, added
+    quotes and the encryption metadata.
+  - **nit**: "makes no network requests" was too strong, because `MarkdownBody` would try to load a
+    remote image in a note. Reworded to "cannot connect" (there is no `INTERNET` permission), with
+    the image case stated explicitly. The app code was not changed.
+  - **nit**: "Uninstalling deletes it" ignored exported copies and Android auto-restore. Both are
+    now stated.
+- `codex review --uncommitted` (7b) reported no findings: "The privacy policy, README link, and
+  release-manifest check are consistent with the current Android configuration."
+
+## Verification
+
+- RED: before PRIVACY.md and the README link existed, both doc tests failed (`does not contain
+  '](PRIVACY.md)'`).
+- Adding `<uses-permission android:name="android.permission.INTERNET"/>` to the main manifest by hand
+  made the source-manifest guard fail. The same edit in the merged release manifest made the
+  merged-manifest guard fail. With no release build, that guard was skipped. Every file was restored
+  afterwards.
+- Ran `flutter test` (888 tests): all passed. Ran `flutter analyze`: no issues found.

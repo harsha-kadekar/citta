@@ -63,6 +63,12 @@ citta/
 
 See [docs/PLAN.md](docs/PLAN.md) for the full implementation plan.
 
+## Privacy
+
+Citta collects no data, contains no analytics, and makes no network requests —
+everything stays on your device. See the [privacy policy](PRIVACY.md), also
+available at https://github.com/harsha-kadekar/citta/blob/master/PRIVACY.md.
+
 ## Source Code
 
 GitHub: https://github.com/harsha-kadekar/citta
