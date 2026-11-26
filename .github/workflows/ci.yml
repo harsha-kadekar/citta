@@ -99,6 +99,12 @@ jobs:
         run: flutter build apk --release
         working-directory: citta
 
+      # Refuse to publish an APK whose merged manifest requests INTERNET,
+      # which would make PRIVACY.md's "no network" claim false (issue #106).
+      - name: Verify release manifest matches the privacy policy
+        run: flutter test test/platform/privacy_policy_test.dart
+        working-directory: citta
+
       # Refuse to publish an APK signed with anything but the release key
       # (docs/android-signing-key.md, issue #105).
       - name: Verify release signing key
