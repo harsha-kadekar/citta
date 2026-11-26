@@ -2310,3 +2310,45 @@ Brass Bell (479978). They are kept at full length, as the user chose.
   merged-manifest guard fail. With no release build, that guard was skipped. Every file was restored
   afterwards.
 - Ran `flutter test` (888 tests): all passed. Ran `flutter analyze`: no issues found.
+
+---
+
+## Review: issue #107 — Define release versioning and tagging rules
+
+## Findings
+
+- `/code-review` (7a) reported 6 findings. All fixed:
+  - **important**: `check-release-version.sh` exited 128 with no message when any tag it read had no
+    `citta/pubspec.yaml`, because `git show` failed inside a `pipefail` pipeline. A non-release `v*`
+    tag such as `vendor-base` therefore blocked every release. A missing pubspec now reads as no
+    version: earlier tags without one are skipped, and the tag being checked fails with "no version".
+  - **nit**: the build-number check only saw tags reachable from the new tag, so a `+N` reused on
+    another branch passed. The script now also fails when any other `v*` tag uses the same build
+    number. The "higher than" check still only looks at earlier tags, so old tags can still be
+    re-checked.
+  - **nit**: a quoted version (`version: "0.4.0+5"`) kept its quotes and failed the format check.
+    The quotes are now stripped.
+  - **nit**: the release history table and the "next build number is 5" line would go out of date.
+    The checklist now says to add a history row in the bump commit, and the fixed number is gone.
+  - **nit**: the rule that tags are annotated wasn't enforced, and the existing tags are lightweight.
+    The doc now says so.
+  - **nit**: the test's git commands inherited the parent environment, so an exported `GIT_DIR`
+    (from a git hook, say) would point them at the real repository. They now run with
+    `includeParentEnvironment: false`.
+- `codex review --uncommitted` (7b) reported no findings: "The release validation, CI integration,
+  documentation, and coverage are consistent with the intended versioning workflow." Its sandboxed
+  `dart format` check showed the new test file wasn't formatted. It was reformatted.
+
+## Verification
+
+- RED: before the script, doc and CI step existed, 12 tests failed (script exit 127, doc missing, no
+  CI step).
+- When run against the real tags, the first version also rejected `v0.2.0` and `v0.2.1`, because
+  later tags had higher build numbers. A regression test ("ignores later releases when re-checking
+  an older tag") failed first. Limiting the "higher than" check to tags reachable from the checked
+  tag (`--merged`) fixed it.
+- Each 7a regression test (pubspec-less tag, missing pubspec at the checked tag, quoted version,
+  reuse on another branch, history checklist item) failed before its fix and passes after it.
+- Against the real tags, `v0.1.0` gives FAIL (pubspec said `1.0.0+1`) and `v0.2.0`, `v0.2.1` and
+  `v0.3.0` give OK.
+- Ran `flutter test` (910 tests): all passed. Ran `flutter analyze`: no issues found.

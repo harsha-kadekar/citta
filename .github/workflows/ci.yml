@@ -65,6 +65,14 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          # All tags, so the version check can compare build numbers.
+          fetch-depth: 0
+
+      # Refuse to publish when the tag doesn't match pubspec.yaml or reuses a
+      # build number (versionCode) — docs/RELEASING.md, issue #107.
+      - name: Verify tag matches pubspec.yaml version
+        run: scripts/check-release-version.sh "$GITHUB_REF_NAME"
 
       - uses: actions/setup-java@v4
         with:
