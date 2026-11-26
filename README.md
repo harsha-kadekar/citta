@@ -63,6 +63,11 @@ citta/
 
 See [docs/PLAN.md](docs/PLAN.md) for the full implementation plan.
 
+## Releasing
+
+See [docs/RELEASING.md](docs/RELEASING.md) for the versioning and tagging rules
+and the release checklist.
+
 ## Privacy
 
 Citta collects no data, contains no analytics, and makes no network requests —
