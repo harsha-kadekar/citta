@@ -99,6 +99,11 @@ jobs:
         run: flutter build apk --release
         working-directory: citta
 
+      # Refuse to publish an APK signed with anything but the release key
+      # (docs/android-signing-key.md, issue #105).
+      - name: Verify release signing key
+        run: scripts/verify-release-key.sh citta/build/app/outputs/flutter-apk/app-release.apk
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:

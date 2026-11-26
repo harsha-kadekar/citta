@@ -1,0 +1,7 @@
+# Release signing material must never be committed (issue #105).
+# See docs/android-signing-key.md.
+key.properties
+*.jks
+*.keystore
+*.p12
+*.pfx
