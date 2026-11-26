@@ -2218,3 +2218,57 @@ Brass Bell (479978). They are kept at full length, as the user chose.
   matcher would have missed both. Both guards pass once the fixtures are removed.
 - `aapt2 dump badging` on a debug APK shows `application: label='Citta'` for every locale.
 - Ran `flutter test` (856 tests): all passed. Ran `flutter analyze`: no issues found.
+
+---
+
+## Review: issue #105 — Back up the release keystore and document key management
+
+## Findings
+
+- `/code-review` (7a) reported 8 findings. All fixed:
+  - **important**: `verify-release-key.sh` read the first `SHA256:` line of `keytool -list -v`
+    without `-alias`, so a matching key under another alias could print OK. It now checks
+    `-alias "${KEY_ALIAS:-citta}"`, the alias Gradle signs with.
+  - **important**: the APK check read only `Signer #1`. It now requires exactly one signer and
+    fails otherwise.
+  - **important**: keystores outside `citta/android/` and `*.p12`/`*.pfx` files were not
+    gitignored. Added a root `.gitignore` (`key.properties`, `*.jks`, `*.keystore`, `*.p12`,
+    `*.pfx`). The guard test now asserts this with `git check-ignore` on concrete paths.
+  - **nit**: `.apk` matching was case-sensitive and any other file was treated as a keystore. The
+    extension now matches case-insensitively, `.aab` is supported via `keytool -printcert -jarfile`,
+    and unknown types are rejected with "unsupported file type".
+  - **nit**: with `KEYSTORE_PASSWORD` unset and stdin not a TTY, keytool hit EOF and the script
+    blamed the password. It now fails with a message asking for `KEYSTORE_PASSWORD`.
+  - **nit**: the test helper let the developer's `CITTA_EXPECTED_CERT_SHA256`/`KEY_ALIAS` leak in.
+    These are now pinned to empty.
+  - **nit**: the keytool tests skipped silently when keytool was missing. They now skip only
+    outside CI and fail when `CI` is set.
+  - **pre_existing**: the release job published `app-release.apk` without checking its signer.
+    Added a "Verify release signing key" step before "Create GitHub Release", guarded by a test
+    that checks the step order.
+- `codex review --uncommitted` (7b) reported 1 finding:
+  - **P1**, no change needed (false positive): "the custom environment replaces rather than augments
+    the process environment, so ... the script then reports `keytool not found`". Dart's
+    `Process.runSync` defaults to `includeParentEnvironment: true` and merges `environment` into
+    the parent's, so PATH is kept. Codex reproduced the failure with `env -i`, which Dart doesn't do.
+    Made `includeParentEnvironment: true` explicit and documented it on `_runScript` so the intent
+    can't be misread.
+
+## Verification
+
+- Before the 7a fixes, each new regression test failed for the reason its finding describes:
+  - the decoy-alias test printed OK (`Actual: <0>`);
+  - the two-signer APK was accepted;
+  - `notes.txt` gave "wrong password?";
+  - `APP-RELEASE.APK` exited 2;
+  - the non-TTY run printed keytool's "Enter keystore password:" prompt;
+  - `git check-ignore` failed for the root, `docs/` and `.p12` paths;
+  - the CI verify step was missing.
+
+  All of them pass after the fixes.
+- Codex finding: with keytool absent from the bare PATH (`PATH=/usr/bin:/bin command -v keytool`
+  finds nothing), a Dart `Process.runSync('bash', ..., environment: {'KEY_ALIAS': ''})` run with the
+  mise JDK on PATH still resolved `keytool`. The keystore tests pass in exactly that setup.
+- `scripts/verify-release-key.sh` prints OK for the real v0.3.0 `app-release.apk`
+  (`cee3a0e0…6716`) and MISMATCH for the debug-signed v0.2.1 APK.
+- Ran `flutter test` (882 tests): all passed. Ran `flutter analyze`: no issues found.
