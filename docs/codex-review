@@ -2184,3 +2184,37 @@ Brass Bell (479978). They are kept at full length, as the user chose.
 - With the line anchor removed from `gradleStringValue`, the commented-out-assignment test failed
   (`Actual: 'com.hkadekar.citta'`). It passes once the anchor is restored.
 - Ran `flutter test` (848 tests): all passed. Ran `flutter analyze`: no issues found.
+
+---
+
+## Review: issue #104 — Fix Android launcher label casing ("citta" -> "Citta")
+
+## Findings
+
+- `/code-review` (7a) reported 5 findings:
+  - **nit**, fixed: the diff included `android.builtInKotlin=false` / `android.newDsl=false` in
+    `android/gradle.properties`. The Flutter migrator added them during a local verification build,
+    and they have nothing to do with this issue. Reverted.
+  - **nit**, fixed: the test header said the string resource exists "so it can be localized", which
+    contradicts `translatable="false"`. Reworded: the resource keeps the brand name in one place.
+  - **nit**, fixed: `stringResource` only matched when `name` was the first attribute. Replaced it
+    with an attribute-order-independent `stringResources` and added regression tests (reordered
+    attributes, suffix name).
+  - **nit**, fixed: the rename guards only read `strings.xml`. They now scan every `*.xml` in
+    `res/values` (which must define `app_name` exactly once) and in each `res/values-*` directory.
+  - **pre_existing**, not changed: `linux/runner/my_application.cc` hard-codes a "citta" window
+    title. `citta/linux/` is gitignored and outside the Android publishing scope (see issue #103).
+- `codex review --uncommitted` (7b): no findings. "The Android label now correctly resolves to a
+  dedicated non-translatable string resource, and the added test covers the manifest and resource
+  invariants."
+
+## Verification
+
+- Before the fix, the manifest-label and `app_name` tests failed (`Actual: 'citta'`, missing
+  `strings.xml`). They pass after it.
+- Injected `res/values/app.xml` with a duplicate `app_name` set to "citta", and
+  `res/values-night/strings.xml` with `translatable="false" name="app_name"` set to "citta". Both guards
+  failed (`Actual: ['citta', 'Citta']` and `Actual: 'citta'`). The old `strings.xml`-only, name-first
+  matcher would have missed both. Both guards pass once the fixtures are removed.
+- `aapt2 dump badging` on a debug APK shows `application: label='Citta'` for every locale.
+- Ran `flutter test` (856 tests): all passed. Ran `flutter analyze`: no issues found.

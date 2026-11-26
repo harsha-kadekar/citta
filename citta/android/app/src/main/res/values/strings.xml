@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Launcher / store label (issue #104). Brand name: not translated. -->
+    <string name="app_name" translatable="false">Citta</string>
+</resources>
