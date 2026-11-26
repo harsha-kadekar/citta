@@ -2156,3 +2156,31 @@ Brass Bell (479978). They are kept at full length, as the user chose.
 - The trimmed file decodes to 10.03 s. Peak level falls from 25543 (0–1 s) to 310 (final 0.1 s).
 - The 049 and 031 tests failed before their fixes and pass after.
 - Ran `flutter test` (843 tests): all passed. Ran `flutter analyze`: no issues found.
+
+---
+
+## Review: issue #103 — Finalize the Android applicationId before first store release
+
+## Findings
+
+- `/code-review` (7a) reported 4 findings, all fixed:
+  - **important**: the decision record said the v0.1.0–v0.3.0 release APKs all used `com.hkadekar.citta`.
+    Confirmed false with `git show <tag>:citta/android/app/build.gradle.kts`: v0.1.0, v0.2.0 and v0.2.1
+    shipped `com.example.citta`, and only v0.3.0 (commit 80bc637) shipped `com.hkadekar.citta`. Corrected
+    the rationale and the alternatives table, and added `com.example.citta` as a rejected alternative
+    (Play rejects `com.example.*`). The decision is unchanged.
+  - **nit**: the test header comment said the ID shipped "since v0.1.0". Corrected to v0.3.0.
+  - **nit**: the "Other platforms" section said the local Linux `APPLICATION_ID` still needed changing.
+    Reworded: `citta/linux/` is gitignored and out of scope.
+  - **nit**: the Gradle regexes matched commented-out assignments. Anchored them to the start of the line
+    in a `gradleStringValue` helper and added regression tests (commented-out assignment and suffix key).
+- `codex review --uncommitted` (7b): no findings. "The untracked Android application ID guard test and
+  decision record are consistent with the existing Gradle and Kotlin configuration."
+
+## Verification
+
+- The guard tests fail when `applicationId`, `namespace` and the `MainActivity.kt` package are
+  temporarily changed to `com.example.citta`, and pass once they are restored.
+- With the line anchor removed from `gradleStringValue`, the commented-out-assignment test failed
+  (`Actual: 'com.hkadekar.citta'`). It passes once the anchor is restored.
+- Ran `flutter test` (848 tests): all passed. Ran `flutter analyze`: no issues found.
